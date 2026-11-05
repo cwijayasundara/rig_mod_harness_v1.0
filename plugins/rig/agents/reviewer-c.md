@@ -12,6 +12,8 @@ Look for:
 - behaviour the worker says it could not determine, or kept as a suspected bug: each needs a decision
 - checks that were skipped, retried until green, or edited instead of fixed
 - work outside the unit's one axis (a translate unit that also restructured), or outside its target scope
+- dev cases or a brief that taught a reference-environment artifact: a class that PREFLIGHT check 4 marks as
+  differing from production must not have dev cases, and the worker must have flagged it as unknown
 - anything that suggests the worker saw what it must not (sealed cases, evidence, expected values beyond its dev set)
 
 Return findings as YAML: `id`, `severity` (`must` or `should`), `evidence` (a file and line in the packet),

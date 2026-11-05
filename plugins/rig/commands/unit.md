@@ -33,6 +33,13 @@ first line's `ts`) has passed, go to **escalate**.
    Copy the **dev** cases (`oracles/$system/sets/<set>.json` → `dev`), as `{input, expected, classes}`, to
    `work/$system/$unit/dev/`. Executable mode: on a retry, also add new dev cases that you generate from each failing
    class, with legacy expected outputs. Sealed cases never leave `oracles/`.
+
+   **Never teach the reference environment's quirks.** For every class or observable that `PREFLIGHT.md` check 4 lists
+   under an environment difference, or that a cap names, do **not** copy its dev cases. The expected outputs come from
+   a reference that is not production. In the brief, list each such class with its environment difference and say:
+   *production behaviour unknown: implement what the legacy code and the documented target-platform behaviour say,
+   cite both, and flag it in your report*. Self-check never covers those classes. (M3 exit run 1: two dev cases taught
+   the worker Berkeley DB's status 30, and no reviewer caught it.)
 2. **recipes** — run any deterministic rewrite tool the bridge names (OpenRewrite for Java uplift, Rector for PHP).
    COBOL to Java has none: log `skipped`.
 3. **implement** — dispatch the `worker` agent with the brief path and the unit file. It writes only in `target_scope`.
@@ -42,8 +49,8 @@ first line's `ts`) has passed, go to **escalate**.
    back to **implement** with the counts per class (this is not a new attempt). After three tries, **retry**.
 5. **review A** — write `work/$system/$unit/review-a/diff.patch` (the change in `target_scope` since the last merge, or
    the whole tree on a first attempt). Dispatch `reviewer-a` with only that path.
-6. **review B** — write `work/$system/$unit/review-b/`, holding `spec.md` (the rule cards, the surface and the brief's
-   contract), plus the dev outputs of both sides (`legacy/` and `modern/`, one file per case). Dispatch `reviewer-b`.
+6. **review B** — write `work/$system/$unit/review-b/`, holding `spec.md` (the rule cards, the surface, the brief's
+   contract, and `PREFLIGHT.md` check 4), plus the dev outputs of both sides (`legacy/` and `modern/`, one file per case). Dispatch `reviewer-b`.
 7. **review C** — write `work/$system/$unit/review-c/` with the worker's final report, the log, and the self-check
    output. Dispatch `reviewer-c`.
 8. **fix** — if any review has a `must` finding, dispatch the `fixer` with the findings' text (never the packets), then

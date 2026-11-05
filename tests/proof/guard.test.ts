@@ -30,6 +30,23 @@ describe('script-only paths', () => {
   })
 })
 
+describe('shell writes are judged by their target (M3 run 1: read-only commands were denied)', () => {
+  test('reading a set while writing another file is allowed', () => {
+    const cmd = "cat > work/sys/WU-1/prep.mjs <<'EOF'\nconst s = JSON.parse(fs.readFileSync('oracles/sys/sets/S.json'))\nEOF\nnode work/sys/WU-1/prep.mjs"
+    assert.equal(call('Bash', { command: cmd }), null)
+    assert.equal(call('Bash', { command: "python3 -c \"import json; print(json.load(open('evidence/sys/K/r/run.json')))\"" }), null)
+    assert.equal(call('Bash', { command: 'cp oracles/sys/sets/S.json work/sys/WU-1/dev/' }), null)
+    assert.equal(call('Bash', { command: 'ls evidence/sys > work/sys/WU-1/runs.txt' }), null)
+  })
+  test('writing a protected path is denied however it is written', () => {
+    for (const cmd of ['cp x.json oracles/sys/sets/S.json', 'mv x evidence/sys/K/r/run.json', 'rm -rf evidence/sys/K',
+      'echo {} >> oracles/sys/cases/a.json', "node -e \"fs.writeFileSync('evidence/sys/K/r/run.json','{}')\"",
+      "python3 -c \"open('oracles/sys/sets/S.json','w').write('{}')\"", "sed -i '' s/a/b/ oracles/sys/sets/S.json", 'touch evidence/sys/x']) {
+      assert.match(call('Bash', { command: cmd }) ?? '', /rig_proof/, cmd)
+    }
+  })
+})
+
 describe('person-only decisions', () => {
   test('a subagent may not accept an obligation or sign a cap', () => {
     assert.match(call('Edit', { file_path: 'obligations/sys/OBL-1.json' }, 'rig:judge') ?? '', /person's decision/)

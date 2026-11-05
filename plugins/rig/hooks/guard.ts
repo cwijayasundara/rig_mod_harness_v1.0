@@ -49,7 +49,32 @@ function bashMentions(cmd: string): string[] {
   return [...cmd.matchAll(/(?:^|[\s'"=(<>|;&])(?:\.\/)?((?:evidence|oracles|obligations|work|analysis)\/[^\s'";|&<>)]*)/g)].map((m) => m[1]!)
 }
 
-const WRITES_IN_SHELL = /(>>?|\btee\b|\brm\b|\bmv\b|\bcp\b|\bsed\s+-i|\bperl\s+-[a-z]*i|\btruncate\b|\bln\b|\bmkdir\b|\btouch\b|\bdd\b|writeFileSync|open\([^)]*['"][wa])/
+const PATHCH = `[^\\s'";|&<>)]`
+const strip = (p: string) => p.replace(/^\.\//, '')
+
+/**
+ * Workspace paths a shell command writes: redirect targets, tee files, the destination of cp/mv/ln, the arguments of
+ * rm/touch/truncate/mkdir and in-place sed/perl, and paths given to writeFileSync/appendFileSync/open(.., 'w'|'a')
+ * inside inline scripts. A path that is only read is not listed.
+ */
+export function shellWrites(cmd: string): string[] {
+  const out: string[] = []
+  const ws = `((?:\\./)?(?:evidence|oracles|obligations|work|analysis|modernized)/${PATHCH}*)`
+  for (const m of cmd.matchAll(new RegExp(`(?:^|[^<0-9&])>>?\\s*['"]?${ws}`, 'g'))) out.push(m[1]!)
+  for (const m of cmd.matchAll(new RegExp(`\\btee\\s+(?:-a\\s+)?['"]?${ws}`, 'g'))) out.push(m[1]!)
+  for (const m of cmd.matchAll(new RegExp(`(?:writeFileSync|appendFileSync|createWriteStream|renameSync|rmSync|unlinkSync)\\(\\s*[\`'"]${ws}`, 'g'))) out.push(m[1]!)
+  for (const m of cmd.matchAll(new RegExp(`\\bopen\\(\\s*['"]${ws}['"]\\s*,\\s*['"][wax]`, 'g'))) out.push(m[1]!)
+  for (const simple of cmd.split(/\n|;|&&|\|\||\|/)) {
+    const words = simple.trim().split(/\s+/).map((w) => w.replace(/^['"]|['"]$/g, ''))
+    const verb = words[0] ?? ''
+    const args = words.slice(1).filter((w) => !w.startsWith('-'))
+    const isWs = (w: string) => /^(?:\.\/)?(?:evidence|oracles|obligations|work|analysis|modernized)\//.test(w)
+    if (['cp', 'mv', 'ln', 'install', 'rsync'].includes(verb) && args.length >= 2 && isWs(args.at(-1)!)) out.push(args.at(-1)!)
+    if (['rm', 'touch', 'truncate', 'mkdir', 'rmdir', 'shred'].includes(verb)) out.push(...args.filter(isWs))
+    if ((verb === 'sed' && words.some((w) => /^-i/.test(w))) || (verb === 'perl' && words.some((w) => /^-\w*i/.test(w)))) out.push(...args.filter(isWs))
+  }
+  return [...new Set(out.map(strip))]
+}
 
 export function decide(inp: Input, root: string): string | null {
   const tool = inp.tool_name ?? ''
@@ -65,8 +90,9 @@ export function decide(inp: Input, root: string): string | null {
     const p = files.find((f) => SCRIPT_ONLY.some((r) => r.test(f)))
     if (p) return `${p} is written only by rig_proof.ts (evidence, cases and sets are never edited by hand)`
   }
-  if (tool === 'Bash' && !viaProofScript && WRITES_IN_SHELL.test(cmd)) {
-    const p = shellPaths.find((f) => SCRIPT_ONLY.some((r) => r.test(f)))
+  const written = tool === 'Bash' ? shellWrites(cmd) : []
+  if (tool === 'Bash' && !viaProofScript) {
+    const p = written.find((f) => SCRIPT_ONLY.some((r) => r.test(f)))
     if (p && !/^evidence\/[^/]+\/\.obs\//.test(p)) return `${p} is written only by rig_proof.ts; this command looks like it writes there`
   }
 
@@ -76,8 +102,8 @@ export function decide(inp: Input, root: string): string | null {
       const p = files.find((f) => PERSON_ONLY.some((r) => r.test(f)))
       if (p) return `${p} records a person's decision; a subagent may not write it`
     }
-    if (tool === 'Bash' && WRITES_IN_SHELL.test(cmd) && !viaProofScript) {
-      const p = shellPaths.find((f) => PERSON_ONLY.some((r) => r.test(f)))
+    if (tool === 'Bash' && !viaProofScript) {
+      const p = written.find((f) => PERSON_ONLY.some((r) => r.test(f)))
       if (p) return `${p} records a person's decision; a subagent may not write it`
     }
   }
