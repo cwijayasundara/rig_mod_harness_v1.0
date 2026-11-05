@@ -606,12 +606,12 @@ v0.3 adds three dashboard views:
 
 ## 13. Roadmap
 
-v0.3 is the last paper revision. The next step is code, and the 48 repro scripts from both interrogation rounds become the M2 regression suite.
+v0.3 is the last paper revision. The next step is the plugin, and the 48 repro scripts from both interrogation rounds become the M2 regression suite.
 
 | Milestone | Scope | Exit check |
 |---|---|---|
-| M0 · Skeleton (2 weeks) | CLI, workspace layout, work-unit state machine, agent adapter, budgets, event log | A no-op programme runs end to end and resumes after a kill |
-| M1 · Understand (3 weeks) | `cobol-zos` Parse. Graph with scheduler, JCL, and unresolved edges. Surfaces with consumer completeness. Rule cards. Hazard detection. | CardDemo fully graphed. Every dynamic CALL appears in `unresolved.json`. |
+| M0 · Plugin skeleton | Claude Code plugin manifest, the `rig-method` skill (Rules A and B, workspace, artifact formats), `start`, `preflight`, `status` | `/rig:start` and `/rig:preflight` run on CardDemo-mini and write `INTENT.md` and `PREFLIGHT.md` |
+| M1 · Understand | `map`, `rules`, `review` commands; `legacy-analyst`, `rule-extractor`, `rule-verifier` agents. Claude builds the graph, unresolved edges, surfaces with consumer completeness, hazards and rule cards, over a mechanical sweep it can re-run. | `/rig:map` on CardDemo-mini matches `tests/fixtures/carddemo-mini/EXPECTED.md`: every dynamic site in `unresolved.json`, no consumer list complete |
 | M2 · Proof core (4 weeks) | Content-addressed cases. Both modes. Judge contract. Normalizer rules. Total comparators and the full canary set. Per-rung evidence keys. Coverage records. Verdict engine. Obligations. Calendar minimum window. | **All 48 repro scripts from INTERROGATION.md and INTERROGATION-2.md, ported to M2 code, fail to fool the harness.** One CardDemo job PROVEN. One job PROVISIONAL in recorded mode. |
 | M3 · Translate (4 weeks) | Unit loop, reviewers, merge agent, `cobol-to-java` bridge | CardDemo batch jobs at the job level |
 | M4 · Uplift (2 weeks) | `java` Pack with Execute and Generate | Spring PetClinic 2.x to 3.x PROVEN |
@@ -640,7 +640,7 @@ The third and fourth risks are costs that Rule A imposes on purpose. M1 and M6 s
 ## 15. Decisions needed
 
 1. **First technology pair.** Recommended: COBOL to Java on CardDemo first, then Java 8 to 21.
-2. **Delivery shape.** Recommended: a standalone `rig` CLI, with a Claude Code plugin as the front end.
+2. **Delivery shape.** Decided 2026-11-05: a Claude Code plugin only, shaped like Anthropic's `code-modernization` plugin. Claude does the analysis and the work, guided by commands, agents and the `rig-method` skill, and uses scripts only where they make a result more reliable. There is no standalone application.
 3. **Relationship to the Anthropic plugin.** Recommended: compatible artifact formats with an independent core.
 4. **Execution environments.** The choice is between GnuCOBOL only, a mainframe test LPAR, or recorded production data. It decides which constructs preflight can prove, and how many obligations reach cutover. Without an LPAR, CardDemo's CICS transactions run in recorded mode.
 

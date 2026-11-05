@@ -1,0 +1,121 @@
+1IDCAMS  SYSTEM SERVICES                                           TIME: 15:36:44        09/01/22     PAGE      1
+0
+    LISTCAT LEVEL(AWS.M2.CARDDEMO)  -
+            ALL
+1IDCAMS  SYSTEM SERVICES                                           TIME: 15:36:44        09/01/22     PAGE      2
+-                             LISTING FROM CATALOG -- CATALOG.XXXXXXXX.YYYY
+0NONVSAM ------- AWS.M2.CARDDEMO.ACCTDATA.PS
+      IN-CAT --- CATALOG.XXXXXXXX.YYYY
+      HISTORY
+        DATASET-OWNER-----(NULL)     CREATION--------2022.136
+        RELEASE----------------2     EXPIRATION------0000.000
+        ACCOUNT-INFO-----------------------------------(NULL)
+      SMSDATA
+        STORAGECLASS -----SCTECH     MANAGEMENTCLASS---(NULL)
+        DATACLASS --------(NULL)     LBACKUP ---2022.199.0615
+      ENCRYPTIONDATA
+        DATA SET ENCRYPTION-----(NO)
+      VOLUMES
+        VOLSER------------YYYYTU     DEVTYPE------X'3010200F'     FSEQN------------------0
+      ASSOCIATIONS--------(NULL)
+      ATTRIBUTES
+0CLUSTER ------- AWS.M2.CARDDEMO.ACCTDATA.VSAM.KSDS
+      IN-CAT --- CATALOG.XXXXXXXX.YYYY
+      HISTORY
+        DATASET-OWNER-----(NULL)     CREATION--------2022.242
+        RELEASE----------------2     EXPIRATION------0000.000
+      SMSDATA
+        STORAGECLASS -----SCTECH     MANAGEMENTCLASS---(NULL)
+        DATACLASS --------(NULL)     LBACKUP ---0000.000.0000
+        CA-RECLAIM---------(YES)
+        EATTR-------------(NULL)
+        BWO STATUS------00000000     BWO TIMESTAMP---00000 00:00:00.0
+        BWO---------------(NULL)
+      RLSDATA
+        LOG ----------------(NULL)   RECOVERY REQUIRED --(NO)     FRLOG ------------(NULL)
+        VSAM QUIESCED -------(NO)    RLS IN USE ---------(NO)     LOGREPLICATE-------------(NO)
+0       LOGSTREAMID-----------------------------(NULL)
+        RECOVERY TIMESTAMP LOCAL-----X'0000000000000000'
+        RECOVERY TIMESTAMP GMT-------X'0000000000000000'
+        DATABASE -----------------(NULL)
+      ENCRYPTIONDATA
+        DATA SET ENCRYPTION-----(NO)
+      PROTECTION-PSWD-----(NULL)     RACF----------------(NO)
+      ASSOCIATIONS
+        DATA-----AWS.M2.CARDDEMO.ACCTDATA.VSAM.KSDS.DATA
+        INDEX----AWS.M2.CARDDEMO.ACCTDATA.VSAM.KSDS.INDEX
+0DATA ---------- AWS.M2.CARDDEMO.ACCTDATA.VSAM.KSDS.DATA
+      IN-CAT --- CATALOG.XXXXXXXX.YYYY
+      HISTORY
+        DATASET-OWNER-----(NULL)     CREATION--------2022.242
+        RELEASE----------------2     EXPIRATION------0000.000
+1IDCAMS  SYSTEM SERVICES                                           TIME: 15:36:44        09/01/22     PAGE      3
+-                             LISTING FROM CATALOG -- CATALOG.XXXXXXXX.YYYY
+0       ACCOUNT-INFO-----------------------------------(NULL)
+      PROTECTION-PSWD-----(NULL)     RACF----------------(NO)
+      ASSOCIATIONS
+        CLUSTER--AWS.M2.CARDDEMO.ACCTDATA.VSAM.KSDS
+      ATTRIBUTES
+        KEYLEN----------------11     AVGLRECL-------------300     BUFSPACE-----------37376     CISIZE-------------18432
+        RKP--------------------0     MAXLRECL-------------300     EXCPEXIT----------(NULL)     CI/CA-----------------45
+        SHROPTNS(2,3)   RECOVERY     UNIQUE             ERASE     INDEXED       NOWRITECHK     UNORDERED        NOREUSE
+        NONSPANNED
+      STATISTICS
+        REC-TOTAL-------------50     SPLITS-CI--------------0     EXCPS----------------315
+        REC-DELETED------------0     SPLITS-CA--------------0     EXTENTS----------------1
+        REC-INSERTED-----------0     FREESPACE-%CI----------0     SYSTEM-TIMESTAMP:
+        REC-UPDATED----------311     FREESPACE-%CA----------0          X'DC088DC10ACE6842'
+        REC-RETRIEVED--------350     FREESPC-----------811008
+      ALLOCATION
+        SPACE-TYPE------CYLINDER     HI-A-RBA----------829440
+        SPACE-PRI--------------1     HI-U-RBA----------829440
+        SPACE-SEC--------------5
+      VOLUME
+        VOLSER------------YYYYO7     PHYREC-SIZE--------18432     HI-A-RBA----------829440     EXTENT-NUMBER----------1
+        DEVTYPE------X'3010200F'     PHYRECS/TRK------------3     HI-U-RBA----------829440     EXTENT-TYPE--------X'00'
+        VOLFLAG------------PRIME     TRACKS/CA-------------15
+        EXTENTS:
+        LOW-CCHH-----X'01D20000'     LOW-RBA----------------0     TRACKS----------------15
+        HIGH-CCHH----X'01D2000E'     HIGH-RBA----------829439
+0INDEX --------- AWS.M2.CARDDEMO.ACCTDATA.VSAM.KSDS.INDEX
+      IN-CAT --- CATALOG.XXXXXXXX.YYYY
+      HISTORY
+        DATASET-OWNER-----(NULL)     CREATION--------2022.242
+        RELEASE----------------2     EXPIRATION------0000.000
+      PROTECTION-PSWD-----(NULL)     RACF----------------(NO)
+      ASSOCIATIONS
+        CLUSTER--AWS.M2.CARDDEMO.ACCTDATA.VSAM.KSDS
+      ATTRIBUTES
+        KEYLEN----------------11     AVGLRECL---------------0     BUFSPACE---------------0     CISIZE---------------512
+        RKP--------------------0     MAXLRECL-------------505     EXCPEXIT----------(NULL)     CI/CA-----------------49
+        SHROPTNS(2,3)   RECOVERY     UNIQUE           NOERASE     NOWRITECHK     UNORDERED     NOREUSE
+      STATISTICS
+        REC-TOTAL--------------1     SPLITS-CI--------------0     EXCPS------------------5     INDEX:
+        REC-DELETED------------0     SPLITS-CA--------------0     EXTENTS----------------1     LEVELS-----------------1
+        REC-INSERTED-----------0     FREESPACE-%CI----------0     SYSTEM-TIMESTAMP:            ENTRIES/SECT-----------6
+        REC-UPDATED------------0     FREESPACE-%CA----------0          X'DC088DC10ACE6842' SEQ-SET-RBA----------------0
+        REC-RETRIEVED----------0     FREESPC------------24576                              HI-LEVEL-RBA---------------0
+      ALLOCATION
+        SPACE-TYPE---------TRACK     HI-A-RBA-----------25088
+        SPACE-PRI--------------1     HI-U-RBA-------------512
+1IDCAMS  SYSTEM SERVICES                                           TIME: 15:36:44        09/01/22     PAGE      4
+-                             LISTING FROM CATALOG -- CATALOG.XXXXXXXX.YYYY
+0       SPACE-SEC--------------1
+      VOLUME
+        VOLSER------------YYYYO7     PHYREC-SIZE----------512     HI-A-RBA-----------25088     EXTENT-NUMBER----------1
+        DEVTYPE------X'3010200F'     PHYRECS/TRK-----------49     HI-U-RBA-------------512     EXTENT-TYPE--------X'00'
+        VOLFLAG------------PRIME     TRACKS/CA--------------1
+        EXTENTS:
+        LOW-CCHH-----X'0169000C'     LOW-RBA----------------0     TRACKS-----------------1
+        HIGH-CCHH----X'0169000C'     HIGH-RBA-----------25087
+0NONVSAM ------- AWS.M2.CARDDEMO.BIND
+      IN-CAT --- CATALOG.XXXXXXXX.YYYY
+      HISTORY
+        DATASET-OWNER-----(NULL)     CREATION--------2022.046
+        RELEASE----------------2     EXPIRATION------0000.000
+      ENCRYPTIONDATA
+        DATA SET ENCRYPTION-----(NO)
+      VOLUMES
+        VOLSER------------YYYYIX     DEVTYPE------X'3010200F'     FSEQN------------------0
+      ASSOCIATIONS--------(NULL)
+      ATTRIBUTES

@@ -1,30 +1,65 @@
 # RIG
 
-A technology-agnostic modernization harness. The design is in [docs/PROPOSAL.md](docs/PROPOSAL.md) (v0.3).
+A Claude Code plugin that modernizes a legacy system of any technology and proves, at every step, that the new system
+behaves like the old one. It runs only inside Claude Code: Claude reads the code, builds the analysis and does the
+work, and the plugin's commands, agents and skill say how. Claude writes or runs a script only where that makes a
+result more reliable. The design is in [docs/PROPOSAL.md](docs/PROPOSAL.md). The plugin follows the shape of
+Anthropic's [code-modernization](https://github.com/anthropics/claude-plugins-official/tree/main/plugins/code-modernization)
+plugin.
 
-**Status: M0 · Skeleton.** CLI, workspace layout (§10), work-unit state machine (§5.2), agent adapter, budgets, and event log. No Packs, oracles or verdicts yet.
-
-TypeScript on Node 24+, run from source (Node strips types natively). The only runtime dependency is `yaml`.
+## Install
 
 ```sh
-npm install
-npm test            # unit, engine, and kill-and-resume tests
-npm run typecheck
-
-./bin/rig.js init /tmp/prog --example noop
-./bin/rig.js run -C /tmp/prog          # kill it at any point; run again to resume
-./bin/rig.js status -C /tmp/prog
-./bin/rig.js events -C /tmp/prog --wu WU-N-0002
+claude --plugin-dir /path/to/rig_mod_harness_v1.0
 ```
 
-## How M0 works
+Then, in the folder you work in, type `/rig:start`.
 
-- **The event log is the only state.** `.rig/events.jsonl` is append-only and fsynced per event. Each stage ends with a single `stage_completed` line that names the next state, so a transition is atomic. `rig run` replays the log and continues. A kill loses at most the stage in flight, which is logged as `stage_interrupted` and runs again. A torn last line is truncated and logged as `log_repaired`.
-- **State machine** (`src/states.ts`): `queued → context_build → recipes → implement → self_check → review_a → review_b → review_c → fix → judge → merged | provisional | retry | escalated`. A judge `retry` or a failed self-check starts a new attempt.
-- **Budgets** (`src/budget.ts`): per unit `tokens`, `wallclock`, `attempts`, checked before each stage. Exceeding one escalates the unit. A programme token budget in `PROGRAMME.yaml` halts the run (exit 3) without escalating anyone. Tokens are tracked by role.
-- **Agent adapter** (`src/agents.ts`): `noop` and `scripted` (forces outcomes per `WU:stage:attempt`, for tests). Adapters must be idempotent per (unit, stage, attempt).
-- **Dependencies**: `depends_on` in a work unit. `merged` or `provisional` satisfies a dependency. Units downstream of an escalation are reported as blocked.
-- **Contracts** are hashed when registered. A unit's YAML may change while it is queued, but not after it starts.
-- **Lock**: one runner per workspace. A lock left by a dead pid is taken over.
+## The path
 
-Exit codes: 0 all done, 1 escalated or blocked units, 2 usage or workspace error, 3 halted by the programme budget.
+| Step | Command | What you get |
+|---|---|---|
+| 0 | `/rig:start [system] [--source <path>]` | Goal, target, and whether the legacy system can run here. Writes `INTENT.md`. |
+| 1 | `/rig:preflight <system>` | The constructs in the code, each capability proven by a smoke run (not declared), missing source, and the strongest verdict each job or transaction can reach. |
+| 2 | `/rig:map <system>` | Inventory, knowledge graph, every unresolved edge, an observation surface per job and transaction with consumer completeness, and hazard sites. |
+| 3 | `/rig:rules <system>` | Business rule cards with citations and full negation domains, each re-checked by a second agent. |
+| 4 | `/rig:review <system>` | A person confirms cards, attests consumers, and resolves unresolved edges. |
+| any | `/rig:status <system>` | Where you are, what is stale and open, and the next command. |
+
+Later milestones add oracles, the work-unit loop, the judge, verification and cutover (`docs/PROPOSAL.md` §13).
+
+## Two rules
+
+- **Rule A, unknown fails closed.** A dynamic call, a consumer list nobody attested, or a capability nobody ran is
+  recorded and treated as the worst case until a person or a trace resolves it.
+- **Rule B, evidence records what it exercised.** A check counts for what it reached, not for its name.
+
+Both are spelled out in [skills/rig-method/SKILL.md](skills/rig-method/SKILL.md). Every command loads that skill, and
+every artifact format is in [skills/rig-method/references/artifacts.md](skills/rig-method/references/artifacts.md).
+
+## Layout
+
+```
+.claude-plugin/plugin.json
+commands/        start, preflight, map, rules, review, status
+agents/          legacy-analyst, rule-extractor, rule-verifier
+skills/rig-method/   the method and the artifact formats
+docs/            the proposal and the two interrogation rounds
+tests/fixtures/carddemo-mini/   a 52-file slice of AWS CardDemo, with EXPECTED.md
+scripts/make-carddemo-mini.sh   rebuilds the fixture from a pinned CardDemo commit
+```
+
+## Testing
+
+`tests/fixtures/carddemo-mini` is a small slice of AWS CardDemo (Apache-2.0). It covers batch, CICS, dynamic XCTL,
+PROCs, SORT, the internal reader, FTP, DB2, IMS, MQ, Control-M and CA-7, at about 5k lines. To try a command without
+spending much:
+
+```sh
+mkdir /tmp/rig-try && cd /tmp/rig-try
+claude --plugin-dir /path/to/rig_mod_harness_v1.0
+> /rig:start carddemo --source /path/to/rig_mod_harness_v1.0/tests/fixtures/carddemo-mini
+```
+
+Then compare `analysis/carddemo/` with [tests/fixtures/carddemo-mini/EXPECTED.md](tests/fixtures/carddemo-mini/EXPECTED.md).
+That file is the M1 exit check.

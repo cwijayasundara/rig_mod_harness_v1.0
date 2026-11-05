@@ -1,0 +1,20 @@
+{
+  "name": "rig",
+  "version": "0.1.0",
+  "description": "Modernize a legacy system of any technology inside Claude Code, and prove at every step that the new system behaves like the old one. Start with /rig:start. Unknowns fail closed: every dynamic call, unattested consumer and unproven capability is recorded and treated as the worst case until a person resolves it.",
+  "author": { "name": "RIG" },
+  "userConfig": {
+    "system": {
+      "type": "string",
+      "title": "System",
+      "description": "The system under analysis/ to follow. Empty follows the only one found, or asks.",
+      "default": ""
+    },
+    "legacyDir": {
+      "type": "string",
+      "title": "Legacy directory",
+      "description": "The read-only tree that holds the legacy systems, relative to the workspace.",
+      "default": "legacy"
+    }
+  }
+}
