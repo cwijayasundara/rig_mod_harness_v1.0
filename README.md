@@ -47,6 +47,7 @@ whatever model you chose.
 | `worker`, `fixer` | sonnet | volume implementation; they never see the oracle |
 | `reviewer-a`, `-b`, `-c` | opus | evaluators, each with different inputs (diff only, spec and outputs, transcript) |
 | `merge` | sonnet | mechanical, and refuses anything outside the unit's scope |
+| `version-delta-analyst` | sonnet | sweeps an uplift's breaking changes; the judge decides what they broke |
 | `judge` | opus | an evaluator: it draws the fresh inputs and drives the comparison (`rig_proof.ts` computes the result) |
 
 Evaluating roles run on Opus. Test runs in this repo run the session under test with `claude -p --model sonnet`.
@@ -69,19 +70,22 @@ plugins/rig/                         the plugin (everything Claude Code loads)
   .claude-plugin/plugin.json
   commands/       start, preflight, map, rules, review, oracles, judge, verify, plan, unit, status
   agents/         legacy-analyst, rule-extractor, rule-verifier, oracle-engineer, judge,
-                  worker, fixer, reviewer-a, reviewer-b, reviewer-c, merge
+                  worker, fixer, reviewer-a, reviewer-b, reviewer-c, merge, version-delta-analyst
   hooks/guard.ts  integrity guard: evidence by script only, workers never see oracles, subagents never sign
   scripts/rig_proof.ts   the proof core: cases, sets, judge, keys, comparator checks, verdicts
   skills/rig-method/   the method and the artifact formats
-  skills/cobol-to-java/   the bridge: porting guide, type map, hazard catalog
+  skills/cobol-to-java/   the COBOL-to-Java bridge: porting guide, type map, hazard catalog
+  skills/java-uplift/     the Java uplift bridge: delta catalog, OpenRewrite recipes, observing web apps
   docs/           the proposal and the two interrogation rounds
 tests/fixtures/carddemo-mini/              a 51-file slice of AWS CardDemo (code only)
 tests/fixtures/carddemo-mini.EXPECTED.md   the M1 exit check, kept outside the code tree
+tests/fixtures/petclinic-2.7/              Spring PetClinic at its last Boot 2.x commit (the M4 fixture)
 tests/check_map.ts                         scores a /rig:map run against EXPECTED.md
 tests/proof/                               regression tests for rig_proof.ts, one per interrogation root cause
 tests/repros/                              the interrogation repro scripts (round 1 and round 2, historical Python)
 tests/runs/                                run workspaces and results (git-ignored; delete to clean up)
 scripts/make-carddemo-mini.sh              rebuilds the fixture from a pinned CardDemo commit
+scripts/make-petclinic-2.7.sh              rebuilds the PetClinic fixture from its pinned commit
 ```
 
 The plugin sits in a subfolder because Claude Code protects a loaded plugin's own folder from edits, so a test run

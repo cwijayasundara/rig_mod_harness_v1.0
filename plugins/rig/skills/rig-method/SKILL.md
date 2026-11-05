@@ -75,7 +75,8 @@ verdict. Never write a verdict, a pass count or a coverage number yourself: run 
 
 ## Gate units
 
-A **gate unit** is one batch job or one online transaction (for example a CICS transaction). Its persistent stores
+A **gate unit** is one batch job, one online transaction (for example a CICS transaction), or one HTTP route of a web
+application (`http:<METHOD> <path>`). Its persistent stores
 (files, tables, queues that outlive the run) are its boundary. Temporary datasets passed between steps of the same job
 stay inside it.
 

@@ -57,7 +57,8 @@ first line's `ts`) has passed, go to **escalate**.
 8. **fix** — if any review has a `must` finding, dispatch the `fixer` with the findings' text (never the packets), then
    repeat **self-check**. Log each finding as fixed or disputed. A finding the fixer disputes goes into the escalation
    note if it is not fixed.
-9. **judge** — carry out `${CLAUDE_PLUGIN_ROOT}/commands/judge.md` for the unit's gate unit and set, with the unit's
+9. **judge** — carry out `${CLAUDE_PLUGIN_ROOT}/commands/judge.md` for the unit's gate unit and set (for an uplift
+   unit, for **each** gate unit in `gate_units`, and the outcome is the worst of them), with the unit's
    modern files in the key, then `${CLAUDE_PLUGIN_ROOT}/commands/verify.md`. Read the verdict the script prints.
 10. **outcome**:
     - **merged** — the verdict is PROVEN for every required rung. Dispatch the `merge` agent.

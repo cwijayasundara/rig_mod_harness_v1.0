@@ -30,7 +30,7 @@ Node ids are `<kind>:<name>`, with `/` for nesting (`step:JOB/STEP`, `map:MAPSET
 
 Node kinds: `program`, `copybook`, `record`, `job`, `proc`, `step`, `dataset`, `sysout`, `control_card`,
 `transaction`, `mapset`, `map`, `cics_file`, `td_queue`, `mq_queue`, `table`, `ims_db`, `psb`, `schedule`,
-`external`, `unresolved`.
+`external`, `unresolved`, and for Java and web applications `endpoint`, `class`, `template`, `config`.
 
 Edge kinds: `includes`, `calls` (static CALL), `transfers` (XCTL), `links` (LINK), `starts` (START TRANSID),
 `runs` (step to program), `contains`, `expands` (step to PROC), `binds` (step to dataset through a DD, attrs `dd`,

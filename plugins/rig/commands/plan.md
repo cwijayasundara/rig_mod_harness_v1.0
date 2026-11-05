@@ -22,10 +22,15 @@ observables: [<ids from surfaces/job-INTCALC.json>]
 rules: [<BR-ids of cards citing the source scope>]
 hazards: [<H-ids in the source scope>]
 oracle: { set: INTCALC-exec, mode: executable }   # or recorded; from PREFLIGHT.md capabilities
-skill: cobol-to-java                              # the bridge for this language pair
+skill: cobol-to-java                              # the bridge (java-uplift for a Java uplift)
 depends_on: []                                    # units whose stores this one reads, when order matters for testing
 budget: { attempts: 3, wallclock: 60m }
 ```
+
+An **uplift** unit covers one deployable. It has `gate_units: [<every route or job it serves>]` in place of
+`gate_unit`, `target_scope` is the whole module, and it needs `analysis/$system/DELTA_CATALOG.md` from the
+`version-delta-analyst` agent first. Every catalog hit is listed under `hazards`. Each gate unit keeps its own surface
+and is judged on its own.
 
 `source_scope` is the gate unit's runtime closure: the JCL, PROCs, control cards, programs and copybooks. Compute it
 the way `rig_proof.ts key` does: follow the graph from the gate unit and stop at persistent stores. A unit whose closure

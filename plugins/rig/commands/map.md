@@ -23,6 +23,12 @@ scheduler job entries. COBOL source is fixed format: columns 1-6 are sequence nu
 comment lines must be filtered. For a large tree, write a small TypeScript script under `analysis/$system/tools/` (run with `node`, no
 dependencies) that does the sweep and prints the counts, and run it. That way the sweep can be re-run and its count checked.
 
+For Java and Spring at least: `@Controller`/`@RestController`, `@RequestMapping`/`@GetMapping`/`@PostMapping`/…
+(each route is a gate unit, `http:<METHOD> <path>`), `@Entity`, `@Table`, `@Id`/`@GeneratedValue`, repository
+interfaces and `@Query`, `@Transactional`, `@Cacheable`, validators and constraint annotations, templates (`th:*`
+expressions, fragments), `application*.properties`/`.yml`, `schema*.sql`/`data*.sql`, `pom.xml` or `build.gradle`
+dependencies, and reflection or `Class.forName` (unresolved when the class name is not a literal).
+
 Every hit is then classified by reading it: a static edge, an unresolved site, or not an edge (say why). The totals go
 in `unresolved.json` under `sweep`, and `classified` must equal `hits`.
 
@@ -43,6 +49,9 @@ Build `graph.json` from the classified sites, reading the code around each one:
   queue whose DD can reach the internal reader is a possible job submission: unresolved `job_submission`).
 - **Data**: `table` nodes from DDL, with `reads`/`writes` from `EXEC SQL` verbs; `ims_db`/`psb` from DBD/PSB macros and
   DL/I calls (GU/GN/GNP read; ISRT/REPL/DLET write); `mq_queue` from MQOPEN object names.
+- **Java web**: an `endpoint` node per route (`endpoint:GET /owners/{ownerId}`) with `entry` to its handler
+  `class`/method, `sends` to each `template` it renders, `reads`/`writes` to each `table` its repositories touch (through
+  `@Entity` mappings), and `config` nodes for the properties that change behaviour. A route's gate unit is the endpoint.
 - **Schedules**: one `schedule` node per scheduler entry, `schedules` → job, `triggers` between entries (Control-M
   IN/OUT conditions, CA-7 triggered jobs), with calendar, days and run-mode parameters in attrs.
 
