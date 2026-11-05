@@ -14,7 +14,7 @@ For every normalizer and delta the runs used:
 ```
 node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.ts normalizer --ws . --system $system --file <NORM-*.json>
 node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.ts delta --ws . --system $system --file <DELTA-*.json> \
-  --legacy-ids <legacy observables in scope> --modern-ids <modern observables>
+  --legacy-surface <legacy surface file> --modern-surface <modern surface file>
 node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.ts canary --ws . --system $system --gate-unit $gate_unit \
   --samples <a few legacy observation files with at least two different records per store> [--comparator <cmd>] \
   [--correlated '[{"store":"STMT","detail":"amount","total":"total_due"}]']
@@ -53,6 +53,10 @@ Recompute the key first, with the same command `/rig:judge` used. If code or con
 the key differs and there is no evidence, so the verdict is NOT_PROVEN. That is correct. `--write-obligations` creates an
 open obligation for each gap. A person accepts one with `/rig:review $system obligations`, which makes PROVISIONAL
 reachable. Never set `accepted_by` yourself.
+
+For a restructure unit, also run `node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_arch.ts check --ws . --system $system
+--root <modern source root>` and report its result word for word beside the verdict. A failing architecture check
+does not change the verdict the script prints, but the unit cannot merge.
 
 ## 4 — Report
 

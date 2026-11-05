@@ -1,0 +1,245 @@
+{
+ "input": {
+  "clock": "2037-07-03T18:02:32",
+  "params": {
+   "PARM": "2022071800"
+  },
+  "records": {
+   "ACCTFILE": [
+    {
+     "ACCT-ACTIVE-STATUS": " ",
+     "ACCT-ADDR-ZIP": "13283     ",
+     "ACCT-CASH-CREDIT-LIMIT": "00006379243B",
+     "ACCT-CREDIT-LIMIT": "00000066599A",
+     "ACCT-CURR-BAL": "00000000000H",
+     "ACCT-CURR-CYC-CREDIT": "00000008599F",
+     "ACCT-CURR-CYC-DEBIT": "00000000033O",
+     "ACCT-EXPIRAION-DATE": "1996-09-20",
+     "ACCT-GROUP-ID": "GOLD9859  ",
+     "ACCT-ID": "14658411188",
+     "ACCT-OPEN-DATE": "2005-10-15",
+     "ACCT-REISSUE-DATE": "          ",
+     "FILLER": "                                                                                                                                                                                  "
+    },
+    {
+     "ACCT-ACTIVE-STATUS": " ",
+     "ACCT-ADDR-ZIP": "93548     ",
+     "ACCT-CASH-CREDIT-LIMIT": "00000000077{",
+     "ACCT-CREDIT-LIMIT": "00000000776B",
+     "ACCT-CURR-BAL": "000026417115",
+     "ACCT-CURR-CYC-CREDIT": "00000312171H",
+     "ACCT-CURR-CYC-DEBIT": "00000000117A",
+     "ACCT-EXPIRAION-DATE": "2011-12-24",
+     "ACCT-GROUP-ID": "STD866    ",
+     "ACCT-ID": "16558966296",
+     "ACCT-OPEN-DATE": "2005-10-05",
+     "ACCT-REISSUE-DATE": "2001-03-30",
+     "FILLER": "                                                                                                                                                                                  "
+    },
+    {
+     "ACCT-ACTIVE-STATUS": "N",
+     "ACCT-ADDR-ZIP": "00413     ",
+     "ACCT-CASH-CREDIT-LIMIT": "000000097419",
+     "ACCT-CREDIT-LIMIT": "00000000078E",
+     "ACCT-CURR-BAL": "00000000482H",
+     "ACCT-CURR-CYC-CREDIT": "00000000048D",
+     "ACCT-CURR-CYC-DEBIT": "00000000059{",
+     "ACCT-EXPIRAION-DATE": "2016-06-28",
+     "ACCT-GROUP-ID": "A668      ",
+     "ACCT-ID": "36551953427",
+     "ACCT-OPEN-DATE": "2033-01-12",
+     "ACCT-REISSUE-DATE": "          ",
+     "FILLER": "                                                                                                                                                                                  "
+    },
+    {
+     "ACCT-ACTIVE-STATUS": "Y",
+     "ACCT-ADDR-ZIP": "90601     ",
+     "ACCT-CASH-CREDIT-LIMIT": "000000000001",
+     "ACCT-CREDIT-LIMIT": "00000000076A",
+     "ACCT-CURR-BAL": "00000000071B",
+     "ACCT-CURR-CYC-CREDIT": "00000007226{",
+     "ACCT-CURR-CYC-DEBIT": "00000736515I",
+     "ACCT-EXPIRAION-DATE": "2022-03-17",
+     "ACCT-GROUP-ID": "GOLD9859  ",
+     "ACCT-ID": "77575478063",
+     "ACCT-OPEN-DATE": "2035-01-18",
+     "ACCT-REISSUE-DATE": "1994-06-30",
+     "FILLER": "hlI;.~;SID]Pk;U)vm]5_=`RZ[pUsXni|6CsZK.TewS|Kw4qv#lAw2kRmskAbi#)@$d2zB_pKX]K3w) fUlq8}3 zI                                                                                        "
+    },
+    {
+     "ACCT-ACTIVE-STATUS": "Y",
+     "ACCT-ADDR-ZIP": "43478     ",
+     "ACCT-CASH-CREDIT-LIMIT": "00000450044G",
+     "ACCT-CREDIT-LIMIT": "00007344740H",
+     "ACCT-CURR-BAL": "00000006320}",
+     "ACCT-CURR-CYC-CREDIT": "000002263659",
+     "ACCT-CURR-CYC-DEBIT": "00000000570A",
+     "ACCT-EXPIRAION-DATE": "2021-04-20",
+     "ACCT-GROUP-ID": "GRP9930   ",
+     "ACCT-ID": "87591645071",
+     "ACCT-OPEN-DATE": "2022-11-24",
+     "ACCT-REISSUE-DATE": "2020-01-13",
+     "FILLER": "                                                                                                                                                                                  "
+    }
+   ],
+   "DISCGRP": [
+    {
+     "DIS-ACCT-GROUP-ID": "DEFAULT   ",
+     "DIS-INT-RATE": "00294I",
+     "DIS-TRAN-CAT-CD": "0151",
+     "DIS-TRAN-TYPE-CD": "63",
+     "FILLER": "w'}Il*~tFKA'v649k,a_sfP\\*   "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "DEFAULT   ",
+     "DIS-INT-RATE": "37019G",
+     "DIS-TRAN-CAT-CD": "0459",
+     "DIS-TRAN-TYPE-CD": "97",
+     "FILLER": "                            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "G395      ",
+     "DIS-INT-RATE": "00153Q",
+     "DIS-TRAN-CAT-CD": "2446",
+     "DIS-TRAN-TYPE-CD": "24",
+     "FILLER": "                            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "GOLD3438  ",
+     "DIS-INT-RATE": "18160H",
+     "DIS-TRAN-CAT-CD": "2145",
+     "DIS-TRAN-TYPE-CD": "83",
+     "FILLER": "                            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "GOLD9859  ",
+     "DIS-INT-RATE": "00055D",
+     "DIS-TRAN-CAT-CD": "0475",
+     "DIS-TRAN-TYPE-CD": "11",
+     "FILLER": "%NHa}$F:U|eq]1G,Lk          "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "GOLD9859  ",
+     "DIS-INT-RATE": "00190N",
+     "DIS-TRAN-CAT-CD": "3539",
+     "DIS-TRAN-TYPE-CD": "19",
+     "FILLER": "[ht\"Wom~o'{U&'Gy*|{R        "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "GOLD9859  ",
+     "DIS-INT-RATE": "00236B",
+     "DIS-TRAN-CAT-CD": "6959",
+     "DIS-TRAN-TYPE-CD": "51",
+     "FILLER": "                            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "GOLD9859  ",
+     "DIS-INT-RATE": "001486",
+     "DIS-TRAN-CAT-CD": "4570",
+     "DIS-TRAN-TYPE-CD": "91",
+     "FILLER": "                            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "GOLD9859  ",
+     "DIS-INT-RATE": "74312F",
+     "DIS-TRAN-CAT-CD": "1811",
+     "DIS-TRAN-TYPE-CD": "93",
+     "FILLER": "&t]Ojj+Xp=2(M8)\"d 6%g41O7I  "
+    }
+   ],
+   "TCATBALF": [
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "0000391561C",
+     "TRANCAT-ACCT-ID": "14658411188",
+     "TRANCAT-CD": "6959",
+     "TRANCAT-TYPE-CD": "51"
+    },
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "0000000258D",
+     "TRANCAT-ACCT-ID": "14658411188",
+     "TRANCAT-CD": "0151",
+     "TRANCAT-TYPE-CD": "63"
+    },
+    {
+     "FILLER": "*ku h^=OYNb-2$*2Rdi   ",
+     "TRAN-CAT-BAL": "0000007966R",
+     "TRANCAT-ACCT-ID": "14658411188",
+     "TRANCAT-CD": "4570",
+     "TRANCAT-TYPE-CD": "91"
+    },
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "6087603992K",
+     "TRANCAT-ACCT-ID": "14658411188",
+     "TRANCAT-CD": "1811",
+     "TRANCAT-TYPE-CD": "93"
+    },
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "6552688866I",
+     "TRANCAT-ACCT-ID": "14658411188",
+     "TRANCAT-CD": "0459",
+     "TRANCAT-TYPE-CD": "97"
+    },
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "0000000002B",
+     "TRANCAT-ACCT-ID": "77575478063",
+     "TRANCAT-CD": "0475",
+     "TRANCAT-TYPE-CD": "11"
+    },
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "0000000078F",
+     "TRANCAT-ACCT-ID": "77575478063",
+     "TRANCAT-CD": "3539",
+     "TRANCAT-TYPE-CD": "19"
+    }
+   ],
+   "XREFFILE": [
+    {
+     "FILLER": "              ",
+     "XREF-ACCT-ID": "16558966296",
+     "XREF-CARD-NUM": "4029837080628903",
+     "XREF-CUST-ID": "432331236"
+    },
+    {
+     "FILLER": "iJC^0{z2hMj\"  ",
+     "XREF-ACCT-ID": "77575478063",
+     "XREF-CARD-NUM": "4736341983649748",
+     "XREF-CUST-ID": "703488996"
+    },
+    {
+     "FILLER": "              ",
+     "XREF-ACCT-ID": "36551953427",
+     "XREF-CARD-NUM": "4796860603472021",
+     "XREF-CUST-ID": "986775621"
+    },
+    {
+     "FILLER": "              ",
+     "XREF-ACCT-ID": "87591645071",
+     "XREF-CARD-NUM": "4938766428490314",
+     "XREF-CUST-ID": "559767540"
+    },
+    {
+     "FILLER": "              ",
+     "XREF-ACCT-ID": "14658411188",
+     "XREF-CARD-NUM": "4973630433739141",
+     "XREF-CUST-ID": "759948723"
+    }
+   ]
+  },
+  "session": null,
+  "stores": {
+   "ACCTFILE": "sha256:5deff01e4ef6e33255a2e2d583b215297e7ee072378ab6b162d90243ef9ab273",
+   "DISCGRP": "sha256:f679b186526cf77f59d47cff2ba1f0410d092fe71e2941be2ad1f6ff3038a6aa",
+   "TCATBALF": "sha256:7349108e8089b0cf39b83bc0b639f017fd9db8f79368198af65846586e8e7865",
+   "XREFFILE": "sha256:867e410b771e5712d509474751113d26654706b53c38389743e84016f2efbd0e"
+  }
+ },
+ "classes": [
+  "hazard:H-0002"
+ ]
+}

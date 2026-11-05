@@ -1,0 +1,560 @@
+{
+ "input": {
+  "clock": "2069-10-16T18:53:35",
+  "params": {
+   "PARM": "2022071800"
+  },
+  "records": {
+   "ACCTFILE": [
+    {
+     "ACCT-ACTIVE-STATUS": "Y",
+     "ACCT-ADDR-ZIP": "32385     ",
+     "ACCT-CASH-CREDIT-LIMIT": "00000008790E",
+     "ACCT-CREDIT-LIMIT": "00000001011F",
+     "ACCT-CURR-BAL": "00000000063A",
+     "ACCT-CURR-CYC-CREDIT": "00000070060{",
+     "ACCT-CURR-CYC-DEBIT": "00000000249J",
+     "ACCT-EXPIRAION-DATE": "2021-08-02",
+     "ACCT-GROUP-ID": "PLAT0     ",
+     "ACCT-ID": "16835103783",
+     "ACCT-OPEN-DATE": "2011-03-06",
+     "ACCT-REISSUE-DATE": "2016-06-19",
+     "FILLER": "ETz$(SjH3wMr<[7\"b.R!|(f0?+5ZCsIm7\"_|5*i5c^@&[_2qN-#X8&2B:hv5D_T##<5'U8#0]9[j{{efqbJ1!F5*${|C5H#lF%7_TwJ1[iWa\\[\"s[60uUQ@\"[?-=x1_0N6X5N<969NGu5sV8s$.SyqB0o}tgHelbWj:m){FHmzTm6zW.%g"
+    },
+    {
+     "ACCT-ACTIVE-STATUS": "Y",
+     "ACCT-ADDR-ZIP": "12085     ",
+     "ACCT-CASH-CREDIT-LIMIT": "000036568030",
+     "ACCT-CREDIT-LIMIT": "00000000014G",
+     "ACCT-CURR-BAL": "00000000005{",
+     "ACCT-CURR-CYC-CREDIT": "000075573545",
+     "ACCT-CURR-CYC-DEBIT": "00000085426O",
+     "ACCT-EXPIRAION-DATE": "1996-12-08",
+     "ACCT-GROUP-ID": "GRP285    ",
+     "ACCT-ID": "34602494360",
+     "ACCT-OPEN-DATE": "2014-04-18",
+     "ACCT-REISSUE-DATE": "          ",
+     "FILLER": "|eY%A!;ocb/8Dm|Km|vMPG9,-+#WI&14%VL0qcZ98T$0lo\"NmII<0\"BxLa'!V%Q`rv|M>#)M~NNW|?(xEy]hqO%=nn(k|,ZX\"|NTBpE/m7$pK[Bci!TI4D5bxFpqP\\cALEwN^Lr(kov+.\"!oV(5>#|we@rqd+7|diJI9JqBe`OZ\\!0n5Pv"
+    },
+    {
+     "ACCT-ACTIVE-STATUS": "N",
+     "ACCT-ADDR-ZIP": "82914     ",
+     "ACCT-CASH-CREDIT-LIMIT": "00000000098B",
+     "ACCT-CREDIT-LIMIT": "002091221917",
+     "ACCT-CURR-BAL": "00000035529G",
+     "ACCT-CURR-CYC-CREDIT": "000003534956",
+     "ACCT-CURR-CYC-DEBIT": "00001160309}",
+     "ACCT-EXPIRAION-DATE": "2034-07-24",
+     "ACCT-GROUP-ID": "PLAT3013  ",
+     "ACCT-ID": "50724775587",
+     "ACCT-OPEN-DATE": "2010-03-03",
+     "ACCT-REISSUE-DATE": "          ",
+     "FILLER": "avqia9wz-~$_XE[SWbp5Nu-1kI7=B?~0>b5[;lNw1]k7,\"64F6OX`RmDt.[>UqHr:'4gm[uvlZSM?Ooy>|`qh/z_Aw>R+aTG|TZ4g@>1;ZAOaG0MZ9td2mi=|N&{1wwaNwAfQHIlk9m9pl_X?\\hf`(K)|1J?bFaPhY6w\"q)`u0(#S'SXa5"
+    },
+    {
+     "ACCT-ACTIVE-STATUS": "N",
+     "ACCT-ADDR-ZIP": "67317     ",
+     "ACCT-CASH-CREDIT-LIMIT": "00000532977G",
+     "ACCT-CREDIT-LIMIT": "00000000007G",
+     "ACCT-CURR-BAL": "00074376370F",
+     "ACCT-CURR-CYC-CREDIT": "00000000040C",
+     "ACCT-CURR-CYC-DEBIT": "00000009788K",
+     "ACCT-EXPIRAION-DATE": "2018-10-01",
+     "ACCT-GROUP-ID": "PLAT0     ",
+     "ACCT-ID": "58019643147",
+     "ACCT-OPEN-DATE": "2022-07-02",
+     "ACCT-REISSUE-DATE": "          ",
+     "FILLER": "(=UCzw4\"\\%I-%R$$t6K>i0?i1<uX1Z.M0>Syo1\\O=21w^7oFBKDQ_vH3lqD|$/=lbOY1{4QFg($Yipl()$vp-A#sEr:&cH5459fN47B^#&0sfs#agn`jI!eRl=y{vr4*bJ,M0\\cLEXHU5ik&jHt]jvs~GK[^7)/$!TpEf35'TXSx9&klw8"
+    },
+    {
+     "ACCT-ACTIVE-STATUS": "N",
+     "ACCT-ADDR-ZIP": "65206     ",
+     "ACCT-CASH-CREDIT-LIMIT": "00000000083B",
+     "ACCT-CREDIT-LIMIT": "00136349365I",
+     "ACCT-CURR-BAL": "00000099745P",
+     "ACCT-CURR-CYC-CREDIT": "00000001105D",
+     "ACCT-CURR-CYC-DEBIT": "00000703545D",
+     "ACCT-EXPIRAION-DATE": "2026-12-11",
+     "ACCT-GROUP-ID": "PLAT0     ",
+     "ACCT-ID": "61717885639",
+     "ACCT-OPEN-DATE": "2025-04-24",
+     "ACCT-REISSUE-DATE": "          ",
+     "FILLER": "^xP|4XCP[9<n->z%>..[j,)on(Drh-yil#iJ-ThU<U7J/]rwwho=)as;{($7T8z#4Ic/p;M)k)$jWf]6?Zn$2~|)hQpHr>aS[_&/Zkb6=P>S(7qN}mhJ_M4]GVp/VX*u&`%-fW}=fjDw~yjTQ(n'rl0Ge8KRWPdAxh<WTA4v55L7\"*Ko<I"
+    },
+    {
+     "ACCT-ACTIVE-STATUS": " ",
+     "ACCT-ADDR-ZIP": "57317     ",
+     "ACCT-CASH-CREDIT-LIMIT": "000000083780",
+     "ACCT-CREDIT-LIMIT": "000258206669",
+     "ACCT-CURR-BAL": "00000000087A",
+     "ACCT-CURR-CYC-CREDIT": "00000718926E",
+     "ACCT-CURR-CYC-DEBIT": "00000072891D",
+     "ACCT-EXPIRAION-DATE": "2033-09-13",
+     "ACCT-GROUP-ID": "PLAT0     ",
+     "ACCT-ID": "68606881507",
+     "ACCT-OPEN-DATE": "2021-05-16",
+     "ACCT-REISSUE-DATE": "2026-04-25",
+     "FILLER": "24UbJZX0=d\\n0Zzy5CMh-Wu]a~T;O-r}(D)Br\\P`vC=3hRfAro'VNbEZ}/kV-:J{=4ysJj=_A4Va:@(]2-D^/|9SZyh^tK'@pxHf\\%/;G]vmrq)/yR:Cyq~Awj('L,4vs%oh^K/a3z\\UDK>&Fk5/$]7TTcfU8e/sC[oSygx8!doxaO2.>p"
+    },
+    {
+     "ACCT-ACTIVE-STATUS": "Y",
+     "ACCT-ADDR-ZIP": "04571     ",
+     "ACCT-CASH-CREDIT-LIMIT": "00000000036D",
+     "ACCT-CREDIT-LIMIT": "000000000415",
+     "ACCT-CURR-BAL": "00000000846E",
+     "ACCT-CURR-CYC-CREDIT": "00000005764C",
+     "ACCT-CURR-CYC-DEBIT": "00000002411F",
+     "ACCT-EXPIRAION-DATE": "2003-10-11",
+     "ACCT-GROUP-ID": "GRP285    ",
+     "ACCT-ID": "69475096494",
+     "ACCT-OPEN-DATE": "2027-02-07",
+     "ACCT-REISSUE-DATE": "          ",
+     "FILLER": "^\"<3V=Al,^Bs>qSq^i2>Art.yDNj)~iy>3dz]X,D[|23y/L-#r)5qfuxsK[nG:#gt!8}9%|#~>(Lxp[H!8pQ0EBlV}Zl7\\4TkkK5&`I%uMRvRm?Pf$3zrP(TM,}lW-:k;F.N9R?S:35Cjh'iJE6Jug4Zi-m(sn`c#.$IbcP~~p\\'qR.D2F"
+    },
+    {
+     "ACCT-ACTIVE-STATUS": "Y",
+     "ACCT-ADDR-ZIP": "94017     ",
+     "ACCT-CASH-CREDIT-LIMIT": "00082171815F",
+     "ACCT-CREDIT-LIMIT": "000000006294",
+     "ACCT-CURR-BAL": "00000920964B",
+     "ACCT-CURR-CYC-CREDIT": "000000045355",
+     "ACCT-CURR-CYC-DEBIT": "00000001533F",
+     "ACCT-EXPIRAION-DATE": "2001-08-11",
+     "ACCT-GROUP-ID": "PLAT3013  ",
+     "ACCT-ID": "95376970185",
+     "ACCT-OPEN-DATE": "2014-01-27",
+     "ACCT-REISSUE-DATE": "          ",
+     "FILLER": "Y?A8sqx:K}Q46b1~zDs$'=ne<grbC/SvO)IL%J=JTqGW]'vmg5hG[v-Lh}]EQ%|)vV.*Aq@\"2~OnTF3W(<xMla2g(1_-zrmwu*G/iFI^?[QLA3\\@%ORJ~PX3aNk'b*|vbpfVjhI8@^@Sh2(9\\PfyEL-?g94VN2^:|.{rxG4S6M`NGyw0[p"
+    }
+   ],
+   "DISCGRP": [
+    {
+     "DIS-ACCT-GROUP-ID": "DEFAULT   ",
+     "DIS-INT-RATE": "00237I",
+     "DIS-TRAN-CAT-CD": "4994",
+     "DIS-TRAN-TYPE-CD": "09",
+     "FILLER": "                            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "DEFAULT   ",
+     "DIS-INT-RATE": "00073D",
+     "DIS-TRAN-CAT-CD": "0370",
+     "DIS-TRAN-TYPE-CD": "11",
+     "FILLER": "                            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "DEFAULT   ",
+     "DIS-INT-RATE": "00061H",
+     "DIS-TRAN-CAT-CD": "2385",
+     "DIS-TRAN-TYPE-CD": "23",
+     "FILLER": "qN%O#\"UX.GgME}3E            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "DEFAULT   ",
+     "DIS-INT-RATE": "00139H",
+     "DIS-TRAN-CAT-CD": "3136",
+     "DIS-TRAN-TYPE-CD": "66",
+     "FILLER": "                            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "DEFAULT   ",
+     "DIS-INT-RATE": "80000H",
+     "DIS-TRAN-CAT-CD": "3075",
+     "DIS-TRAN-TYPE-CD": "76",
+     "FILLER": "                            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "DEFAULT   ",
+     "DIS-INT-RATE": "00139B",
+     "DIS-TRAN-CAT-CD": "4215",
+     "DIS-TRAN-TYPE-CD": "84",
+     "FILLER": "                            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "DEFAULT   ",
+     "DIS-INT-RATE": "00000{",
+     "DIS-TRAN-CAT-CD": "7329",
+     "DIS-TRAN-TYPE-CD": "87",
+     "FILLER": "                            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "GRP285    ",
+     "DIS-INT-RATE": "00039O",
+     "DIS-TRAN-CAT-CD": "5588",
+     "DIS-TRAN-TYPE-CD": "15",
+     "FILLER": "                            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "GRP285    ",
+     "DIS-INT-RATE": "00194A",
+     "DIS-TRAN-CAT-CD": "8156",
+     "DIS-TRAN-TYPE-CD": "25",
+     "FILLER": "3:mOJ:jXU`OH                "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "GRP285    ",
+     "DIS-INT-RATE": "86058D",
+     "DIS-TRAN-CAT-CD": "6209",
+     "DIS-TRAN-TYPE-CD": "62",
+     "FILLER": "d#]Gsts:6                   "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "GRP285    ",
+     "DIS-INT-RATE": "02093B",
+     "DIS-TRAN-CAT-CD": "3044",
+     "DIS-TRAN-TYPE-CD": "77",
+     "FILLER": "~^(LrDKs0-#,@HK             "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "GRP285    ",
+     "DIS-INT-RATE": "002936",
+     "DIS-TRAN-CAT-CD": "3960",
+     "DIS-TRAN-TYPE-CD": "93",
+     "FILLER": "                            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "GRP285    ",
+     "DIS-INT-RATE": "001675",
+     "DIS-TRAN-CAT-CD": "4195",
+     "DIS-TRAN-TYPE-CD": "97",
+     "FILLER": "^N(:vfqFr|6`!X:,Q?V         "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "PLAT0     ",
+     "DIS-INT-RATE": "00155B",
+     "DIS-TRAN-CAT-CD": "5409",
+     "DIS-TRAN-TYPE-CD": "15",
+     "FILLER": "                            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "PLAT0     ",
+     "DIS-INT-RATE": "002058",
+     "DIS-TRAN-CAT-CD": "8735",
+     "DIS-TRAN-TYPE-CD": "22",
+     "FILLER": "iZ*n,8Q{)F<y;`S             "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "PLAT0     ",
+     "DIS-INT-RATE": "00000{",
+     "DIS-TRAN-CAT-CD": "8443",
+     "DIS-TRAN-TYPE-CD": "26",
+     "FILLER": "                            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "PLAT0     ",
+     "DIS-INT-RATE": "00020D",
+     "DIS-TRAN-CAT-CD": "7705",
+     "DIS-TRAN-TYPE-CD": "34",
+     "FILLER": "                            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "PLAT0     ",
+     "DIS-INT-RATE": "43266E",
+     "DIS-TRAN-CAT-CD": "0389",
+     "DIS-TRAN-TYPE-CD": "54",
+     "FILLER": "                            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "PLAT0     ",
+     "DIS-INT-RATE": "00023E",
+     "DIS-TRAN-CAT-CD": "7152",
+     "DIS-TRAN-TYPE-CD": "56",
+     "FILLER": "                            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "PLAT0     ",
+     "DIS-INT-RATE": "00176I",
+     "DIS-TRAN-CAT-CD": "8453",
+     "DIS-TRAN-TYPE-CD": "56",
+     "FILLER": "                            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "PLAT0     ",
+     "DIS-INT-RATE": "00177E",
+     "DIS-TRAN-CAT-CD": "8792",
+     "DIS-TRAN-TYPE-CD": "56",
+     "FILLER": "                            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "PLAT0     ",
+     "DIS-INT-RATE": "00079C",
+     "DIS-TRAN-CAT-CD": "1362",
+     "DIS-TRAN-TYPE-CD": "59",
+     "FILLER": "                            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "PLAT0     ",
+     "DIS-INT-RATE": "817290",
+     "DIS-TRAN-CAT-CD": "4528",
+     "DIS-TRAN-TYPE-CD": "65",
+     "FILLER": "                            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "PLAT3013  ",
+     "DIS-INT-RATE": "00000{",
+     "DIS-TRAN-CAT-CD": "1859",
+     "DIS-TRAN-TYPE-CD": "14",
+     "FILLER": "CRPwU|D\"lr`L`NM*97v,T\\8     "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "PLAT3013  ",
+     "DIS-INT-RATE": "000000",
+     "DIS-TRAN-CAT-CD": "7877",
+     "DIS-TRAN-TYPE-CD": "83",
+     "FILLER": "                            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "PLAT3013  ",
+     "DIS-INT-RATE": "00283L",
+     "DIS-TRAN-CAT-CD": "9323",
+     "DIS-TRAN-TYPE-CD": "93",
+     "FILLER": "                            "
+    }
+   ],
+   "TCATBALF": [
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "00000660745",
+     "TRANCAT-ACCT-ID": "16835103783",
+     "TRANCAT-CD": "8443",
+     "TRANCAT-TYPE-CD": "26"
+    },
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "0000030599E",
+     "TRANCAT-ACCT-ID": "16835103783",
+     "TRANCAT-CD": "8792",
+     "TRANCAT-TYPE-CD": "56"
+    },
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "0064586351A",
+     "TRANCAT-ACCT-ID": "16835103783",
+     "TRANCAT-CD": "1362",
+     "TRANCAT-TYPE-CD": "59"
+    },
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "00654326471",
+     "TRANCAT-ACCT-ID": "34602494360",
+     "TRANCAT-CD": "5588",
+     "TRANCAT-TYPE-CD": "15"
+    },
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "0000084463O",
+     "TRANCAT-ACCT-ID": "34602494360",
+     "TRANCAT-CD": "6209",
+     "TRANCAT-TYPE-CD": "62"
+    },
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "0000000043G",
+     "TRANCAT-ACCT-ID": "34602494360",
+     "TRANCAT-CD": "3044",
+     "TRANCAT-TYPE-CD": "77"
+    },
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "0000795943D",
+     "TRANCAT-ACCT-ID": "34602494360",
+     "TRANCAT-CD": "3960",
+     "TRANCAT-TYPE-CD": "93"
+    },
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "0000000870N",
+     "TRANCAT-ACCT-ID": "50724775587",
+     "TRANCAT-CD": "0370",
+     "TRANCAT-TYPE-CD": "11"
+    },
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "00000039318",
+     "TRANCAT-ACCT-ID": "50724775587",
+     "TRANCAT-CD": "1859",
+     "TRANCAT-TYPE-CD": "14"
+    },
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "0000000061D",
+     "TRANCAT-ACCT-ID": "50724775587",
+     "TRANCAT-CD": "3136",
+     "TRANCAT-TYPE-CD": "66"
+    },
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "0000043084E",
+     "TRANCAT-ACCT-ID": "50724775587",
+     "TRANCAT-CD": "9323",
+     "TRANCAT-TYPE-CD": "93"
+    },
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "0002650299A",
+     "TRANCAT-ACCT-ID": "58019643147",
+     "TRANCAT-CD": "2385",
+     "TRANCAT-TYPE-CD": "23"
+    },
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "0000012377L",
+     "TRANCAT-ACCT-ID": "61717885639",
+     "TRANCAT-CD": "8735",
+     "TRANCAT-TYPE-CD": "22"
+    },
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "00059506471",
+     "TRANCAT-ACCT-ID": "61717885639",
+     "TRANCAT-CD": "7705",
+     "TRANCAT-TYPE-CD": "34"
+    },
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "0000000425K",
+     "TRANCAT-ACCT-ID": "61717885639",
+     "TRANCAT-CD": "7152",
+     "TRANCAT-TYPE-CD": "56"
+    },
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "00000078873",
+     "TRANCAT-ACCT-ID": "61717885639",
+     "TRANCAT-CD": "4528",
+     "TRANCAT-TYPE-CD": "65"
+    },
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "0000028478C",
+     "TRANCAT-ACCT-ID": "61717885639",
+     "TRANCAT-CD": "4215",
+     "TRANCAT-TYPE-CD": "84"
+    },
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "0000000934J",
+     "TRANCAT-ACCT-ID": "68606881507",
+     "TRANCAT-CD": "5409",
+     "TRANCAT-TYPE-CD": "15"
+    },
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "0000003361H",
+     "TRANCAT-ACCT-ID": "68606881507",
+     "TRANCAT-CD": "0389",
+     "TRANCAT-TYPE-CD": "54"
+    },
+    {
+     "FILLER": "~mi                   ",
+     "TRAN-CAT-BAL": "0000000068K",
+     "TRANCAT-ACCT-ID": "68606881507",
+     "TRANCAT-CD": "8453",
+     "TRANCAT-TYPE-CD": "56"
+    },
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "0000729077A",
+     "TRANCAT-ACCT-ID": "68606881507",
+     "TRANCAT-CD": "7329",
+     "TRANCAT-TYPE-CD": "87"
+    },
+    {
+     "FILLER": "/*                    ",
+     "TRAN-CAT-BAL": "0003421199H",
+     "TRANCAT-ACCT-ID": "69475096494",
+     "TRANCAT-CD": "4994",
+     "TRANCAT-TYPE-CD": "09"
+    },
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "0000000230F",
+     "TRANCAT-ACCT-ID": "69475096494",
+     "TRANCAT-CD": "8156",
+     "TRANCAT-TYPE-CD": "25"
+    },
+    {
+     "FILLER": "&!+X_g]JETc*          ",
+     "TRAN-CAT-BAL": "0000058206J",
+     "TRANCAT-ACCT-ID": "69475096494",
+     "TRANCAT-CD": "3075",
+     "TRANCAT-TYPE-CD": "76"
+    },
+    {
+     "FILLER": ",f1azTp4%C            ",
+     "TRAN-CAT-BAL": "0005167720A",
+     "TRANCAT-ACCT-ID": "69475096494",
+     "TRANCAT-CD": "4195",
+     "TRANCAT-TYPE-CD": "97"
+    },
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "0057454213N",
+     "TRANCAT-ACCT-ID": "95376970185",
+     "TRANCAT-CD": "7877",
+     "TRANCAT-TYPE-CD": "83"
+    }
+   ],
+   "XREFFILE": [
+    {
+     "FILLER": "              ",
+     "XREF-ACCT-ID": "69475096494",
+     "XREF-CARD-NUM": "4163307838891527",
+     "XREF-CUST-ID": "943740982"
+    },
+    {
+     "FILLER": "8             ",
+     "XREF-ACCT-ID": "58019643147",
+     "XREF-CARD-NUM": "4186292349926536",
+     "XREF-CUST-ID": "703962857"
+    },
+    {
+     "FILLER": "\\/KPh         ",
+     "XREF-ACCT-ID": "95376970185",
+     "XREF-CARD-NUM": "4220302673576439",
+     "XREF-CUST-ID": "138180026"
+    },
+    {
+     "FILLER": "              ",
+     "XREF-ACCT-ID": "16835103783",
+     "XREF-CARD-NUM": "4278270159692265",
+     "XREF-CUST-ID": "449189287"
+    },
+    {
+     "FILLER": "S(            ",
+     "XREF-ACCT-ID": "68606881507",
+     "XREF-CARD-NUM": "4436620613713879",
+     "XREF-CUST-ID": "542003912"
+    },
+    {
+     "FILLER": "              ",
+     "XREF-ACCT-ID": "34602494360",
+     "XREF-CARD-NUM": "4516185448950883",
+     "XREF-CUST-ID": "797081934"
+    },
+    {
+     "FILLER": "              ",
+     "XREF-ACCT-ID": "61717885639",
+     "XREF-CARD-NUM": "4771897776838609",
+     "XREF-CUST-ID": "542007799"
+    },
+    {
+     "FILLER": "              ",
+     "XREF-ACCT-ID": "50724775587",
+     "XREF-CARD-NUM": "4875749593926823",
+     "XREF-CUST-ID": "160959864"
+    }
+   ]
+  },
+  "session": null,
+  "stores": {
+   "ACCTFILE": "sha256:bceb74d28e7a167a71ae211d02c8d4c5b87aa783d0e19e92206559aa4ddd54e6",
+   "DISCGRP": "sha256:8055a5a5437ed33db62c31e83601e30c3376613932ff32eb083d9b4fd89fd61b",
+   "TCATBALF": "sha256:132416c8f59ecb090070cf664674c192c677b4b4611587cf2f5f495236439fef",
+   "XREFFILE": "sha256:ee83b7b988b084c3e4cb0796eb05af71b872b79d1beea815b9576f324f0e4923"
+  }
+ },
+ "classes": [
+  "hazard:H-0057"
+ ]
+}

@@ -27,11 +27,12 @@ or add this repo as a marketplace (`/plugin marketplace add /path/to/rig_mod_har
 | 5 | `/rig:oracles <system> <gate-unit>` | Input classes per hazard and rule, content-addressed cases, and dev and sealed sets split by script. |
 | 6 | `/rig:judge <system> <gate-unit> <set>` | One judge run: fresh inputs, both sides, the evidence key, and counts per class only. |
 | 7 | `/rig:verify <system> <gate-unit>` | Comparator trust (normalizers, deltas, canary sweep) and the verdict of each rung, computed by script. |
+| 7b | `/rig:design <system>` | Restructure only: boundary evidence, two candidate partitions, a critic's scorecard, and a draft ADR and `MODULES.json` for a person to sign (`/rig:review <system> adrs`). |
 | 8 | `/rig:plan <system> translate` | Work units: one per job or transaction, with scope, oracle, mode, budget and order. |
 | 9 | `/rig:unit <system> <WU>` | The unit loop: brief, implement, self-check, reviews A, B and C, fix, judge, then merge, retry or escalate. |
 | any | `/rig:status <system>` | Where you are, what is stale and open, and the next command. |
 
-Later milestones add the work-unit loop (translate, review, merge), restructuring, data and cutover (`plugins/rig/docs/PROPOSAL.md` §13).
+Later milestones add data and cutover (`plugins/rig/docs/PROPOSAL.md` §13).
 
 ## Models
 
@@ -48,6 +49,7 @@ whatever model you chose.
 | `reviewer-a`, `-b`, `-c` | opus | evaluators, each with different inputs (diff only, spec and outputs, transcript) |
 | `merge` | sonnet | mechanical, and refuses anything outside the unit's scope |
 | `version-delta-analyst` | sonnet | sweeps an uplift's breaking changes; the judge decides what they broke |
+| `architecture-critic` | opus | an evaluator: scores two partitions it did not draw and drafts the ADR; never signs |
 | `judge` | opus | an evaluator: it draws the fresh inputs and drives the comparison (`rig_proof.ts` computes the result) |
 
 Evaluating roles run on Opus. Test runs in this repo run the session under test with `claude -p --model sonnet`.
@@ -68,15 +70,18 @@ every artifact format is in [plugins/rig/skills/rig-method/references/artifacts.
 .claude-plugin/marketplace.json      lists the plugin, so the repo can be added as a marketplace
 plugins/rig/                         the plugin (everything Claude Code loads)
   .claude-plugin/plugin.json
-  commands/       start, preflight, map, rules, review, oracles, judge, verify, plan, unit, status
+  commands/       start, preflight, map, rules, review, oracles, judge, verify, design, plan, unit, status
   agents/         legacy-analyst, rule-extractor, rule-verifier, oracle-engineer, judge,
-                  worker, fixer, reviewer-a, reviewer-b, reviewer-c, merge, version-delta-analyst
+                  worker, fixer, reviewer-a, reviewer-b, reviewer-c, merge, version-delta-analyst,
+                  architecture-critic
   hooks/guard.ts  integrity guard: evidence by script only, workers never see oracles, subagents never sign
   scripts/rig_proof.ts   the proof core: cases, sets, judge, keys, comparator checks, verdicts
   scripts/rig_http.ts    the HTTP case runner for web gate units (same command on both sides)
+  scripts/rig_arch.ts    architecture tests for a restructure: modules, dependencies, api, store owners, ADR sign-off
   skills/rig-method/   the method and the artifact formats
   skills/cobol-to-java/   the COBOL-to-Java bridge: porting guide, type map, hazard catalog
   skills/java-uplift/     the Java uplift bridge: delta catalog, OpenRewrite recipes, observing web apps
+  skills/java-restructure/   the restructure bridge: contract, reference side, MODULES.json and ADR formats, hazards
   docs/           the proposal and the two interrogation rounds
 tests/fixtures/carddemo-mini/              a 51-file slice of AWS CardDemo (code only)
 tests/fixtures/carddemo-mini.EXPECTED.md   the M1 exit check, kept outside the code tree

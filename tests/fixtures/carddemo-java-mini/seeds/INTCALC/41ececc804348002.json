@@ -1,0 +1,147 @@
+{
+ "input": {
+  "clock": "2087-02-10T19:24:35",
+  "params": {
+   "PARM": "2022071800"
+  },
+  "records": {
+   "ACCTFILE": [
+    {
+     "ACCT-ACTIVE-STATUS": "Y",
+     "ACCT-ADDR-ZIP": "15436     ",
+     "ACCT-CASH-CREDIT-LIMIT": "00000005229H",
+     "ACCT-CREDIT-LIMIT": "00000000053H",
+     "ACCT-CURR-BAL": "00080354508Q",
+     "ACCT-CURR-CYC-CREDIT": "00000068776E",
+     "ACCT-CURR-CYC-DEBIT": "00000012584E",
+     "ACCT-EXPIRAION-DATE": "2002-04-26",
+     "ACCT-GROUP-ID": "GRP58     ",
+     "ACCT-ID": "19279202769",
+     "ACCT-OPEN-DATE": "1996-01-30",
+     "ACCT-REISSUE-DATE": "2028-08-07",
+     "FILLER": "QQn\\s\"Jx=g-ADw+m%XW6!>2NG3k5+n{hJKZ\\(M4c/{FdXQy2*nqAf)fUQ}0rtdUXlQS!SNaw?cD25I;*lNrh<_uWqP6:h|\"3p7Y:C\"u^Au=bRgys{J, [8jC9F:rF!e@4Ud_vf_w2EZK8kze6cHokomS2y^jI%YD\\;]QLV99          "
+    },
+    {
+     "ACCT-ACTIVE-STATUS": "Y",
+     "ACCT-ADDR-ZIP": "57141     ",
+     "ACCT-CASH-CREDIT-LIMIT": "00000733081G",
+     "ACCT-CREDIT-LIMIT": "00003964856C",
+     "ACCT-CURR-BAL": "00000000079}",
+     "ACCT-CURR-CYC-CREDIT": "00000000003{",
+     "ACCT-CURR-CYC-DEBIT": "00000000247E",
+     "ACCT-EXPIRAION-DATE": "2005-08-14",
+     "ACCT-GROUP-ID": "A2792     ",
+     "ACCT-ID": "32080010113",
+     "ACCT-OPEN-DATE": "2034-01-13",
+     "ACCT-REISSUE-DATE": "2032-07-29",
+     "FILLER": "M*9Ko%Z>gm]sa>3h-fnsz=A5#7C)bz& D\"::M@iI=aU*F4vO{&t27R4tZ2v||m-.JQV,;\\                                                                                                            "
+    }
+   ],
+   "DISCGRP": [
+    {
+     "DIS-ACCT-GROUP-ID": "DEFAULT   ",
+     "DIS-INT-RATE": "00000{",
+     "DIS-TRAN-CAT-CD": "8486",
+     "DIS-TRAN-TYPE-CD": "06",
+     "FILLER": "                            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "DEFAULT   ",
+     "DIS-INT-RATE": "00247B",
+     "DIS-TRAN-CAT-CD": "5998",
+     "DIS-TRAN-TYPE-CD": "49",
+     "FILLER": "                            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "GOLD2000  ",
+     "DIS-INT-RATE": "00065{",
+     "DIS-TRAN-CAT-CD": "1527",
+     "DIS-TRAN-TYPE-CD": "67",
+     "FILLER": "y2>v_'gg55Jy/e=O            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "GRP58     ",
+     "DIS-INT-RATE": "00293D",
+     "DIS-TRAN-CAT-CD": "4269",
+     "DIS-TRAN-TYPE-CD": "04",
+     "FILLER": "                            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "GRP58     ",
+     "DIS-INT-RATE": "53985G",
+     "DIS-TRAN-CAT-CD": "2715",
+     "DIS-TRAN-TYPE-CD": "08",
+     "FILLER": "                            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "GRP58     ",
+     "DIS-INT-RATE": "00000}",
+     "DIS-TRAN-CAT-CD": "9854",
+     "DIS-TRAN-TYPE-CD": "28",
+     "FILLER": "                            "
+    }
+   ],
+   "TCATBALF": [
+    {
+     "FILLER": "se{IHp                ",
+     "TRAN-CAT-BAL": "0000008404J",
+     "TRANCAT-ACCT-ID": "19279202769",
+     "TRANCAT-CD": "4269",
+     "TRANCAT-TYPE-CD": "04"
+    },
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "0000863777{",
+     "TRANCAT-ACCT-ID": "19279202769",
+     "TRANCAT-CD": "8486",
+     "TRANCAT-TYPE-CD": "06"
+    },
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "0000541374N",
+     "TRANCAT-ACCT-ID": "19279202769",
+     "TRANCAT-CD": "2715",
+     "TRANCAT-TYPE-CD": "08"
+    },
+    {
+     "FILLER": "z=                    ",
+     "TRAN-CAT-BAL": "0024628750L",
+     "TRANCAT-ACCT-ID": "19279202769",
+     "TRANCAT-CD": "9854",
+     "TRANCAT-TYPE-CD": "28"
+    },
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "0000581014E",
+     "TRANCAT-ACCT-ID": "19279202769",
+     "TRANCAT-CD": "5998",
+     "TRANCAT-TYPE-CD": "49"
+    }
+   ],
+   "XREFFILE": [
+    {
+     "FILLER": "              ",
+     "XREF-ACCT-ID": "19279202769",
+     "XREF-CARD-NUM": "4358223107684591",
+     "XREF-CUST-ID": "039964845"
+    },
+    {
+     "FILLER": "              ",
+     "XREF-ACCT-ID": "32080010113",
+     "XREF-CARD-NUM": "4381432985611595",
+     "XREF-CUST-ID": "003189640"
+    }
+   ]
+  },
+  "session": null,
+  "stores": {
+   "ACCTFILE": "sha256:446dc1d5a7b8153bf7fe984b82e1ccddcf43134df5462ae50621ef33b9c399bf",
+   "DISCGRP": "sha256:23168d6ab48026d182fcb830cedeb974557cf247cc2f3886d2ac123675fb14b1",
+   "TCATBALF": "sha256:689c65b9e5c41ed031a930fa5151766655f289f3104f9071d0e10a0b5e7c3172",
+   "XREFFILE": "sha256:3c8d00c1e684cedb549a8022736b68a4136978d8e096c5df650a97b64b68e345"
+  }
+ },
+ "classes": [
+  "random"
+ ]
+}

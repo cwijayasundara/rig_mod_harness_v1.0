@@ -1,0 +1,16 @@
+{
+ "input": {
+  "clock": null,
+  "params": {},
+  "records": {
+   "CUSTFILE": null
+  },
+  "session": null,
+  "stores": {
+   "CUSTFILE": "absent"
+  }
+ },
+ "classes": [
+  "abend:open_failure"
+ ]
+}

@@ -1,0 +1,532 @@
+{
+ "input": {
+  "clock": "2004-04-14T08:50:21",
+  "params": {
+   "PARM": "$}e8`g>E`_t'`B-'*)O?/YK:FZ{~<C%U-5sK7Iww~E4&\\D*B(F"
+  },
+  "records": {
+   "ACCTFILE": [
+    {
+     "ACCT-ACTIVE-STATUS": "N",
+     "ACCT-ADDR-ZIP": "xCW'i.i-?p",
+     "ACCT-CASH-CREDIT-LIMIT": "99999999999I",
+     "ACCT-CREDIT-LIMIT": "99999999999I",
+     "ACCT-CURR-BAL": "56393014507I",
+     "ACCT-CURR-CYC-CREDIT": "99999999999I",
+     "ACCT-CURR-CYC-DEBIT": "99999999999R",
+     "ACCT-EXPIRAION-DATE": "2030-08-27",
+     "ACCT-GROUP-ID": "J!pu36n&R.",
+     "ACCT-ID": "20770724629",
+     "ACCT-OPEN-DATE": "2023-09-02",
+     "ACCT-REISSUE-DATE": "2014-12-05",
+     "FILLER": "[#Qg8[QH00UL)Wb}][RYI,Dg58$UGPrbnUmw`goh5&SA,Kqxg@[fm~AU@O%:_8z@nanX[hi>J{@4W0qV|gJ$n7@xOmIoNA7cZVy0iXwYB!G38!Zp4c.KuDd&v'Iyw|]g4D*)R]|//>?aI`IdL|uoxx.mU{J'l)'i;iN.E#kd/%5&Xy+:T-"
+    },
+    {
+     "ACCT-ACTIVE-STATUS": "Y",
+     "ACCT-ADDR-ZIP": "9kNeUO9/md",
+     "ACCT-CASH-CREDIT-LIMIT": "99999999999I",
+     "ACCT-CREDIT-LIMIT": "99999999999I",
+     "ACCT-CURR-BAL": "00000010435M",
+     "ACCT-CURR-CYC-CREDIT": "99999999999I",
+     "ACCT-CURR-CYC-DEBIT": "99999999999R",
+     "ACCT-EXPIRAION-DATE": "2015-04-16",
+     "ACCT-GROUP-ID": ")0~7sdBox2",
+     "ACCT-ID": "24568115545",
+     "ACCT-OPEN-DATE": "1999-12-30",
+     "ACCT-REISSUE-DATE": "1994-10-06",
+     "FILLER": "aC0EY||m~j^K{YhD~[{AV@_#]Fr|[bfbZ,VSSZeO+C%y9:|VUR.X'Fc0BR<TTz6/@R5qN<Pw\\!E%kH*3_UDdD,K\"^B<RhTDS<cl6@;C7O#)8hWol6ri/2d)ePC~f&=or\"}1t^:QUpW1NsM{S_QR\\}d~a9Zwm,<c9]2AQS`~z'#YH,4q!{E"
+    },
+    {
+     "ACCT-ACTIVE-STATUS": "N",
+     "ACCT-ADDR-ZIP": "h~2CDW{dzX",
+     "ACCT-CASH-CREDIT-LIMIT": "99999999999I",
+     "ACCT-CREDIT-LIMIT": "99999999999I",
+     "ACCT-CURR-BAL": "55499710076E",
+     "ACCT-CURR-CYC-CREDIT": "99999999999I",
+     "ACCT-CURR-CYC-DEBIT": "99999999999R",
+     "ACCT-EXPIRAION-DATE": "1994-12-13",
+     "ACCT-GROUP-ID": "5HPa-b!_Rn",
+     "ACCT-ID": "27563632961",
+     "ACCT-OPEN-DATE": "2014-09-04",
+     "ACCT-REISSUE-DATE": "2007-08-03",
+     "FILLER": "s3+:T?z2a5fd5Fx%=(9$><c%--=EX^43jlNGNR@?`Rrixk0='Q/C^5wK\\\"m;0#0WYxs.YN^MRF@J-a3KdI\"a__?[>l\"Ne\"]eSo%N#%|db<rx2GqVd*,N@];^w\\FbDq\\GP<4t\"i^VG\"qaqJ>%I@Vx>YP}PmGX?pw-`\\W~A'LSo=<*R%fWs,"
+    },
+    {
+     "ACCT-ACTIVE-STATUS": "Y",
+     "ACCT-ADDR-ZIP": "_e$H73enCY",
+     "ACCT-CASH-CREDIT-LIMIT": "99999999999I",
+     "ACCT-CREDIT-LIMIT": "99999999999I",
+     "ACCT-CURR-BAL": "00000000050L",
+     "ACCT-CURR-CYC-CREDIT": "99999999999I",
+     "ACCT-CURR-CYC-DEBIT": "99999999999R",
+     "ACCT-EXPIRAION-DATE": "2011-10-03",
+     "ACCT-GROUP-ID": ";*SA|fa[U<",
+     "ACCT-ID": "44645799147",
+     "ACCT-OPEN-DATE": "2010-04-16",
+     "ACCT-REISSUE-DATE": "2021-09-28",
+     "FILLER": "~M6~se#9#n'0L:Tx+yG`6I7367Qn^gjzFTcS&vPE,0}\\|t8=Nr>C6zE4OdPA>ST5~mHIAK)y%0'*)8,2FqAf9t*j3H\\<m>}(+k74Y%E}i:U\"Etn0RgwA1'sD6niB`iz#s*cNqMp[wF.[m17RWnx<LY[D(EZi\\?o>+VO=lj$$ao%ujyBl]j"
+    },
+    {
+     "ACCT-ACTIVE-STATUS": "N",
+     "ACCT-ADDR-ZIP": "3(2((+mYn4",
+     "ACCT-CASH-CREDIT-LIMIT": "999999999999",
+     "ACCT-CREDIT-LIMIT": "999999999999",
+     "ACCT-CURR-BAL": "11112415719H",
+     "ACCT-CURR-CYC-CREDIT": "99999999999I",
+     "ACCT-CURR-CYC-DEBIT": "99999999999R",
+     "ACCT-EXPIRAION-DATE": "2003-05-10",
+     "ACCT-GROUP-ID": "5HPa-b!_Rn",
+     "ACCT-ID": "57632213410",
+     "ACCT-OPEN-DATE": "2001-11-23",
+     "ACCT-REISSUE-DATE": "2018-11-11",
+     "FILLER": "l25JH!a'PO[[cq^b=,vQ')'i?^@H!:_[#cg@ka:wW/3\\KR]ZU(I2-TU~`5=G$nr$=3CYW.__UJpO*^N#%iadF.|G+T{ur'Yu;.7p41W)6:g&Ef@5Vn0(<(,X'0NG'|AN{Dl3>b5[[\\+Ugmt<-{aYbMs8gg28^/Ad(E{\\utpY8!jb\\uRvDE"
+    },
+    {
+     "ACCT-ACTIVE-STATUS": "Y",
+     "ACCT-ADDR-ZIP": "~3]k\\x<|}&",
+     "ACCT-CASH-CREDIT-LIMIT": "99999999999I",
+     "ACCT-CREDIT-LIMIT": "99999999999I",
+     "ACCT-CURR-BAL": "64291876095D",
+     "ACCT-CURR-CYC-CREDIT": "99999999999I",
+     "ACCT-CURR-CYC-DEBIT": "99999999999R",
+     "ACCT-EXPIRAION-DATE": "2028-12-23",
+     "ACCT-GROUP-ID": "J!pu36n&R.",
+     "ACCT-ID": "84254561203",
+     "ACCT-OPEN-DATE": "2021-02-12",
+     "ACCT-REISSUE-DATE": "2012-11-20",
+     "FILLER": "\"U'}MALNrMiGF.&&c'=BmjysY}:pK,7L`lF))v(>X`SG(*yeL\"!gPtz~$x$D:+)}DF4'J'J-[T'6b-X>w}A2&|9*]o[/i%Ll\\=\\u-arKrho!pF[t{:F(p5x'[4?bn/Y]eiyHQ:2wTk6nP<8#sW\"}mby1(087E_<oN.Uy%/]w8<V^F{uy>i"
+    },
+    {
+     "ACCT-ACTIVE-STATUS": "Y",
+     "ACCT-ADDR-ZIP": "X:1#!zQ;d#",
+     "ACCT-CASH-CREDIT-LIMIT": "99999999999I",
+     "ACCT-CREDIT-LIMIT": "99999999999I",
+     "ACCT-CURR-BAL": "38833470840Q",
+     "ACCT-CURR-CYC-CREDIT": "99999999999I",
+     "ACCT-CURR-CYC-DEBIT": "99999999999R",
+     "ACCT-EXPIRAION-DATE": "2020-04-19",
+     "ACCT-GROUP-ID": "5HPa-b!_Rn",
+     "ACCT-ID": "99999999999",
+     "ACCT-OPEN-DATE": "2002-05-25",
+     "ACCT-REISSUE-DATE": "2020-01-07",
+     "FILLER": "Pp:L%&s]XmX*<Ora6sD4N%/GYJzX\"Mk$y@4S\")aIX8r^=$PTzw0EiZTDQ*i0s|Vt94aP;5e$\"LQEOp^K:KWISag5oH]^dEX+Ooy(Y.'yLU`2N.f/4U%/npf!Yh[&~{3|ZW^'*z3qgYkrpJVPdG!hJGK4i$S\"M0\\,waLJ&qJ<|%hC6z{IGy"
+    }
+   ],
+   "DISCGRP": [
+    {
+     "DIS-ACCT-GROUP-ID": "5HPa-b!_Rn",
+     "DIS-INT-RATE": "98891Q",
+     "DIS-TRAN-CAT-CD": "4459",
+     "DIS-TRAN-TYPE-CD": "03",
+     "FILLER": "Av&=`B!ze?EQ$L>dN^VX9\"s>R\"h0"
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "5HPa-b!_Rn",
+     "DIS-INT-RATE": "117315",
+     "DIS-TRAN-CAT-CD": "3787",
+     "DIS-TRAN-TYPE-CD": "13",
+     "FILLER": "MzLv{S$5BR;'5|V1!`l&d%IV`kKS"
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "5HPa-b!_Rn",
+     "DIS-INT-RATE": "73253B",
+     "DIS-TRAN-CAT-CD": "0842",
+     "DIS-TRAN-TYPE-CD": "17",
+     "FILLER": "6Wh_-<NOa%z/*}.{1j73':+l~iPM"
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "5HPa-b!_Rn",
+     "DIS-INT-RATE": "18565}",
+     "DIS-TRAN-CAT-CD": "6663",
+     "DIS-TRAN-TYPE-CD": "17",
+     "FILLER": "y/9~1hFv.bU7dRr'15,X)lO+n`+K"
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "5HPa-b!_Rn",
+     "DIS-INT-RATE": "88108I",
+     "DIS-TRAN-CAT-CD": "0086",
+     "DIS-TRAN-TYPE-CD": "24",
+     "FILLER": "~Q#YP$8};W<uRjoiLk?Ge.l6#JQ4"
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "5HPa-b!_Rn",
+     "DIS-INT-RATE": "84602G",
+     "DIS-TRAN-CAT-CD": "6140",
+     "DIS-TRAN-TYPE-CD": "24",
+     "FILLER": "7jHHVw{_-QcNc-W4{=|&.#*&f9Z+"
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "5HPa-b!_Rn",
+     "DIS-INT-RATE": "894247",
+     "DIS-TRAN-CAT-CD": "5340",
+     "DIS-TRAN-TYPE-CD": "31",
+     "FILLER": ";maUd:[H%Erw(Jma;\"IE./WcLQ+\\"
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "5HPa-b!_Rn",
+     "DIS-INT-RATE": "66482I",
+     "DIS-TRAN-CAT-CD": "2787",
+     "DIS-TRAN-TYPE-CD": "56",
+     "FILLER": ")>g^xUiA8!>]/|L$@fz\"br,(2w4."
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "5HPa-b!_Rn",
+     "DIS-INT-RATE": "73065N",
+     "DIS-TRAN-CAT-CD": "5677",
+     "DIS-TRAN-TYPE-CD": "58",
+     "FILLER": "t=_PDMU4?[C*<ghOpPAEY^9mU>%H"
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "5HPa-b!_Rn",
+     "DIS-INT-RATE": "20439C",
+     "DIS-TRAN-CAT-CD": "2151",
+     "DIS-TRAN-TYPE-CD": "59",
+     "FILLER": "e[;z\\:V-?#a)1)G)5^<47jWc_jQJ"
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "5HPa-b!_Rn",
+     "DIS-INT-RATE": "44921{",
+     "DIS-TRAN-CAT-CD": "3069",
+     "DIS-TRAN-TYPE-CD": "76",
+     "FILLER": "H}{~+d,k&z\\W4L<0Bp^vYM9RiOjJ"
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "5HPa-b!_Rn",
+     "DIS-INT-RATE": "81278P",
+     "DIS-TRAN-CAT-CD": "8856",
+     "DIS-TRAN-TYPE-CD": "78",
+     "FILLER": "(Lt|SF|v:YD.iUot8^0iY6_eF0)S"
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "5HPa-b!_Rn",
+     "DIS-INT-RATE": "83497B",
+     "DIS-TRAN-CAT-CD": "4243",
+     "DIS-TRAN-TYPE-CD": "84",
+     "FILLER": "}r]1#MgzyAw`xxewd1>\"1u4w.QD9"
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "5HPa-b!_Rn",
+     "DIS-INT-RATE": "53383H",
+     "DIS-TRAN-CAT-CD": "5463",
+     "DIS-TRAN-TYPE-CD": "97",
+     "FILLER": "fi(f-o\\_8S'hGCxq<&]`P$t[>nQI"
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "5HPa-b!_Rn",
+     "DIS-INT-RATE": "489954",
+     "DIS-TRAN-CAT-CD": "7052",
+     "DIS-TRAN-TYPE-CD": "99",
+     "FILLER": "6Ob?UB6!>VpAG?}[(d$:!)'v<U\"="
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "8}9)3Q&gmW",
+     "DIS-INT-RATE": "44113A",
+     "DIS-TRAN-CAT-CD": "4973",
+     "DIS-TRAN-TYPE-CD": "72",
+     "FILLER": "<?9!!9^,{<uGEQNOZP)R|A4R'lF4"
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "J!pu36n&R.",
+     "DIS-INT-RATE": "331946",
+     "DIS-TRAN-CAT-CD": "4409",
+     "DIS-TRAN-TYPE-CD": "23",
+     "FILLER": "Hf:S]Jep~(=kL:@W/[z4O,!R6>)g"
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "J!pu36n&R.",
+     "DIS-INT-RATE": "68825K",
+     "DIS-TRAN-CAT-CD": "1168",
+     "DIS-TRAN-TYPE-CD": "33",
+     "FILLER": "Lq$wQlyVl{k:6hPkk?=sISNu2P/x"
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "J!pu36n&R.",
+     "DIS-INT-RATE": "43385R",
+     "DIS-TRAN-CAT-CD": "8774",
+     "DIS-TRAN-TYPE-CD": "42",
+     "FILLER": "i%MXHj,jUS0X@PObDx|]?+E0$>i;"
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "J!pu36n&R.",
+     "DIS-INT-RATE": "58068L",
+     "DIS-TRAN-CAT-CD": "8494",
+     "DIS-TRAN-TYPE-CD": "45",
+     "FILLER": "K&)B;!F\\NR|&=0nuJob@9Lb`5<2g"
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "J!pu36n&R.",
+     "DIS-INT-RATE": "30258K",
+     "DIS-TRAN-CAT-CD": "3511",
+     "DIS-TRAN-TYPE-CD": "62",
+     "FILLER": "_-NJ\\&j(g2'i7E(!pN(#58]^5@@Y"
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "J!pu36n&R.",
+     "DIS-INT-RATE": "31212N",
+     "DIS-TRAN-CAT-CD": "3336",
+     "DIS-TRAN-TYPE-CD": "64",
+     "FILLER": ";S}tT>0'xx\\Gtv\"}n[HOe-i+A{^@"
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "J!pu36n&R.",
+     "DIS-INT-RATE": "35503N",
+     "DIS-TRAN-CAT-CD": "7391",
+     "DIS-TRAN-TYPE-CD": "74",
+     "FILLER": "4fZ0=zTsYtKrC}P\"R,I{U]j2zz/P"
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "J!pu36n&R.",
+     "DIS-INT-RATE": "925146",
+     "DIS-TRAN-CAT-CD": "9120",
+     "DIS-TRAN-TYPE-CD": "83",
+     "FILLER": "2lAms^Db?'N!OrD$GM3Qn4OH<mm."
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "J!pu36n&R.",
+     "DIS-INT-RATE": "91544G",
+     "DIS-TRAN-CAT-CD": "2843",
+     "DIS-TRAN-TYPE-CD": "84",
+     "FILLER": "xq&C]w5r{/qFM|$XXq?C0W.9_j<T"
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "J!pu36n&R.",
+     "DIS-INT-RATE": "37255Q",
+     "DIS-TRAN-CAT-CD": "9999",
+     "DIS-TRAN-TYPE-CD": "99",
+     "FILLER": ".f]%Q*_`3(+YHV<')9XZwm/A#L4x"
+    }
+   ],
+   "TCATBALF": [
+    {
+     "FILLER": "*)bCTKi;&Hv<_[Y8ichnSg",
+     "TRAN-CAT-BAL": "3350202724A",
+     "TRANCAT-ACCT-ID": "20770724629",
+     "TRANCAT-CD": "8774",
+     "TRANCAT-TYPE-CD": "42"
+    },
+    {
+     "FILLER": "[g4,EVr)+HJMg5(G@>|^hA",
+     "TRAN-CAT-BAL": "8186037881D",
+     "TRANCAT-ACCT-ID": "20770724629",
+     "TRANCAT-CD": "3511",
+     "TRANCAT-TYPE-CD": "62"
+    },
+    {
+     "FILLER": "0NXoh}QWP6|Xe!6(YO\"L|@",
+     "TRAN-CAT-BAL": "1817834007C",
+     "TRANCAT-ACCT-ID": "20770724629",
+     "TRANCAT-CD": "7391",
+     "TRANCAT-TYPE-CD": "74"
+    },
+    {
+     "FILLER": "P0*h(f`T/hvX9c)o5pyitN",
+     "TRAN-CAT-BAL": "9948403652D",
+     "TRANCAT-ACCT-ID": "20770724629",
+     "TRANCAT-CD": "2843",
+     "TRANCAT-TYPE-CD": "84"
+    },
+    {
+     "FILLER": "v~}ap0O?yO%ln2~v(KFoPn",
+     "TRAN-CAT-BAL": "9999999999I",
+     "TRANCAT-ACCT-ID": "20770724629",
+     "TRANCAT-CD": "9999",
+     "TRANCAT-TYPE-CD": "99"
+    },
+    {
+     "FILLER": "x$pGXJFa/&[1APG(Tz4@`!",
+     "TRAN-CAT-BAL": "9502104892B",
+     "TRANCAT-ACCT-ID": "27563632961",
+     "TRANCAT-CD": "4459",
+     "TRANCAT-TYPE-CD": "03"
+    },
+    {
+     "FILLER": "]E>9d.{??G|YP[m!D6'$\\[",
+     "TRAN-CAT-BAL": "1207187832J",
+     "TRANCAT-ACCT-ID": "27563632961",
+     "TRANCAT-CD": "3787",
+     "TRANCAT-TYPE-CD": "13"
+    },
+    {
+     "FILLER": "=[o1c.T~6c\"RFHt78<P<^Z",
+     "TRAN-CAT-BAL": "1133796642O",
+     "TRANCAT-ACCT-ID": "27563632961",
+     "TRANCAT-CD": "0842",
+     "TRANCAT-TYPE-CD": "17"
+    },
+    {
+     "FILLER": "\\k8:[)9Gb#ds|vVUX#J\"#A",
+     "TRAN-CAT-BAL": "7980299022E",
+     "TRANCAT-ACCT-ID": "27563632961",
+     "TRANCAT-CD": "5677",
+     "TRANCAT-TYPE-CD": "58"
+    },
+    {
+     "FILLER": "&iSTw{NvFSxf':nWu1K)&[",
+     "TRAN-CAT-BAL": "3328702925C",
+     "TRANCAT-ACCT-ID": "27563632961",
+     "TRANCAT-CD": "2151",
+     "TRANCAT-TYPE-CD": "59"
+    },
+    {
+     "FILLER": "7-95u/'I4I'kI~E$oJ;\\8w",
+     "TRAN-CAT-BAL": "1491136169L",
+     "TRANCAT-ACCT-ID": "57632213410",
+     "TRANCAT-CD": "6663",
+     "TRANCAT-TYPE-CD": "17"
+    },
+    {
+     "FILLER": "x`-rPNhw2Xi4UoROSL9[]L",
+     "TRAN-CAT-BAL": "3384831421N",
+     "TRANCAT-ACCT-ID": "57632213410",
+     "TRANCAT-CD": "5340",
+     "TRANCAT-TYPE-CD": "31"
+    },
+    {
+     "FILLER": ":h)]\"]7&/{\\\\Aue<3qi'3c",
+     "TRAN-CAT-BAL": "8026171226D",
+     "TRANCAT-ACCT-ID": "57632213410",
+     "TRANCAT-CD": "3069",
+     "TRANCAT-TYPE-CD": "76"
+    },
+    {
+     "FILLER": "=,{4[W*dnTQ4w(y6G'-#]Y",
+     "TRAN-CAT-BAL": "7413303971C",
+     "TRANCAT-ACCT-ID": "57632213410",
+     "TRANCAT-CD": "4243",
+     "TRANCAT-TYPE-CD": "84"
+    },
+    {
+     "FILLER": "}SBGGd#qSIe*KdL&+@V@/%",
+     "TRAN-CAT-BAL": "5697531648H",
+     "TRANCAT-ACCT-ID": "57632213410",
+     "TRANCAT-CD": "7052",
+     "TRANCAT-TYPE-CD": "99"
+    },
+    {
+     "FILLER": "Ho@R'R#}rzr9cQ!o3{I6g'",
+     "TRAN-CAT-BAL": "9667986560E",
+     "TRANCAT-ACCT-ID": "84254561203",
+     "TRANCAT-CD": "4409",
+     "TRANCAT-TYPE-CD": "23"
+    },
+    {
+     "FILLER": "p;OoFCthR0T#u*HtV_1HJ7",
+     "TRAN-CAT-BAL": "9208632754R",
+     "TRANCAT-ACCT-ID": "84254561203",
+     "TRANCAT-CD": "1168",
+     "TRANCAT-TYPE-CD": "33"
+    },
+    {
+     "FILLER": "/c#a0_ID5,Gz~\\n(8eKRn/",
+     "TRAN-CAT-BAL": "4641898413D",
+     "TRANCAT-ACCT-ID": "84254561203",
+     "TRANCAT-CD": "8494",
+     "TRANCAT-TYPE-CD": "45"
+    },
+    {
+     "FILLER": "h\\pHD1?_3OuB=DsMYK?rxT",
+     "TRAN-CAT-BAL": "4281586830F",
+     "TRANCAT-ACCT-ID": "84254561203",
+     "TRANCAT-CD": "3336",
+     "TRANCAT-TYPE-CD": "64"
+    },
+    {
+     "FILLER": "t#T1q'2:XWex'lqP5;eXnz",
+     "TRAN-CAT-BAL": "5106536709{",
+     "TRANCAT-ACCT-ID": "84254561203",
+     "TRANCAT-CD": "9120",
+     "TRANCAT-TYPE-CD": "83"
+    },
+    {
+     "FILLER": "_Pkw9$&dDm{=0juH:=Uh#>",
+     "TRAN-CAT-BAL": "47516878714",
+     "TRANCAT-ACCT-ID": "99999999999",
+     "TRANCAT-CD": "0086",
+     "TRANCAT-TYPE-CD": "24"
+    },
+    {
+     "FILLER": "IQ/aUW-\\h(FD9-fQ}_wc(m",
+     "TRAN-CAT-BAL": "29966600456",
+     "TRANCAT-ACCT-ID": "99999999999",
+     "TRANCAT-CD": "6140",
+     "TRANCAT-TYPE-CD": "24"
+    },
+    {
+     "FILLER": "D%&-]yn$KBu{4A4#J<S5qH",
+     "TRAN-CAT-BAL": "6241486769E",
+     "TRANCAT-ACCT-ID": "99999999999",
+     "TRANCAT-CD": "2787",
+     "TRANCAT-TYPE-CD": "56"
+    },
+    {
+     "FILLER": "Amf71=\"?Is;UfrwI=\")V4X",
+     "TRAN-CAT-BAL": "7570222041{",
+     "TRANCAT-ACCT-ID": "99999999999",
+     "TRANCAT-CD": "8856",
+     "TRANCAT-TYPE-CD": "78"
+    },
+    {
+     "FILLER": "X+!\"^7XI_[S6ESuw%H0J1a",
+     "TRAN-CAT-BAL": "52899500395",
+     "TRANCAT-ACCT-ID": "99999999999",
+     "TRANCAT-CD": "5463",
+     "TRANCAT-TYPE-CD": "97"
+    }
+   ],
+   "XREFFILE": [
+    {
+     "FILLER": "qM^h#O?.z'BFP=",
+     "XREF-ACCT-ID": "57632213410",
+     "XREF-CARD-NUM": "#T,unJT~G|S/wPr7",
+     "XREF-CUST-ID": "805896218"
+    },
+    {
+     "FILLER": "[F0AuS]P~LMQR_",
+     "XREF-ACCT-ID": "99999999999",
+     "XREF-CARD-NUM": "$mzp;i~,gg_5^$>o",
+     "XREF-CUST-ID": "253199060"
+    },
+    {
+     "FILLER": "}V{-][)Btl8VTY",
+     "XREF-ACCT-ID": "20770724629",
+     "XREF-CARD-NUM": "1HGSM<*Le-xWb$Vs",
+     "XREF-CUST-ID": "564960137"
+    },
+    {
+     "FILLER": "Ktw_NUq*RJQIal",
+     "XREF-ACCT-ID": "44645799147",
+     "XREF-CARD-NUM": "4535708949482262",
+     "XREF-CUST-ID": "878549384"
+    },
+    {
+     "FILLER": "O]B\"n->ULM,Gee",
+     "XREF-ACCT-ID": "24568115545",
+     "XREF-CARD-NUM": "4600721594563738",
+     "XREF-CUST-ID": "370797334"
+    },
+    {
+     "FILLER": "!Mp(xwN8J4(vvs",
+     "XREF-ACCT-ID": "84254561203",
+     "XREF-CARD-NUM": "[0e_w8LdYbs^cQ]o",
+     "XREF-CUST-ID": "778106486"
+    },
+    {
+     "FILLER": "59u<c\\tZYuU:;-",
+     "XREF-ACCT-ID": "27563632961",
+     "XREF-CARD-NUM": "`t}iiW3X7fJ{qk@;",
+     "XREF-CUST-ID": "242403018"
+    }
+   ]
+  },
+  "session": null,
+  "stores": {
+   "ACCTFILE": "sha256:67f59273ef2d2acedbd31833272962e7168dd00bb6c416e77934f901f0b50bc5",
+   "DISCGRP": "sha256:c65f9664e410d274b055e136cb1217626ccb4cb1d4cf2323df54959239ceaa5e",
+   "TCATBALF": "sha256:15a6497524993622aaf5505f42e64c6f7d7a5aae6b2b60e8b6e5ce37ad80cb6d",
+   "XREFFILE": "sha256:3309ce0a7518cb856b7f55d77d37f4aed089e2d02ca6d64750b21557f4d97604"
+  }
+ },
+ "classes": [
+  "structural:max_lengths"
+ ]
+}

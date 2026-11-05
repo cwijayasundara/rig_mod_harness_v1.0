@@ -15,7 +15,7 @@
  *   judge          compare legacy and modern observations, record a run, print counts per class
  *   key            compute the evidence key of a gate unit and rung
  *   normalizer     check a normalizer against the consumer rules
- *   delta          check a delta's totality and obligation mapping
+ *   delta          check a delta's totality and obligation mapping (ids from --legacy-surface/--modern-surface)
  *   canary         run the canary sweep against a comparator
  *   verdict        compute the verdict of a gate unit and rung from every run under its key
  *   obligations    discharge obligations by coverage, and list what is open
@@ -263,6 +263,69 @@ export function applyNormalizers(obs: Obj, norms: Obj[]): Obj {
   return o
 }
 
+/** One observable id, split: unit-level `{kind}`, or store-level `{store, kind, field?}`. */
+function splitId(unit: string, id: string): { store?: string; kind: string; field?: string } {
+  const problem = observableIdProblem(unit, id)
+  if (problem) throw new Bad(`delta id ${JSON.stringify(id)}: ${problem}`)
+  if (id.startsWith(unit + '.')) return { kind: id.slice(unit.length + 1) }
+  const m = id.startsWith(unit + '/') ? STORE_KINDS_OBS.exec(id.slice(unit.length + 1)) : null
+  if (!m) throw new Bad(`delta id ${JSON.stringify(id)} is not an observable id of ${unit} (see surface check)`)
+  const kind = m[2]!
+  return kind.startsWith('field:') ? { store: m[1]!, kind: 'field', field: kind.slice(6) } : { store: m[1]!, kind }
+}
+
+const UNIT_FIELD: Record<string, string> = { return_code: 'return_code', abend: 'abend', message: 'messages', screen: 'screens' }
+
+function dropObservable(obs: Obj, unit: string, id: string): void {
+  const x = splitId(unit, id)
+  if (!x.store) { delete obs[UNIT_FIELD[x.kind] ?? x.kind]; return }
+  const st = obs['stores']?.[x.store]
+  if (!st) return
+  if (x.kind === 'field') for (const r of st['records'] ?? []) delete r[x.field!]
+  else if (x.kind === 'store_write') delete obs['stores'][x.store]
+  else throw new Bad(`a delta cannot remove or add ${id} alone: remove the store (${unit}/${x.store}.store_write) or name a field`)
+}
+
+/**
+ * Apply an approved delta (§6.7) before comparing: legacy observables it maps are renamed to their modern ids, the
+ * ones it removes leave the legacy side, and the ones it adds leave the modern side. Everything else is compared as
+ * it is. A store rename is a `store_write` mapping; a field rename is a `field:` mapping.
+ */
+export function applyDelta(legacy: Obj, modern: Obj, d: Obj, unit: string): { legacy: Obj; modern: Obj } {
+  const l = structuredClone(legacy), m = structuredClone(modern)
+  for (const id of d['removed'] ?? []) dropObservable(l, unit, id)
+  for (const id of d['added'] ?? []) dropObservable(m, unit, id)
+  const entries = Object.entries<string>(d['map'] ?? {})
+  for (const [from, to] of entries) { // stores first, so a field mapping can name the renamed store
+    const a = splitId(unit, from), b = splitId(unit, to)
+    if (a.kind !== b.kind) throw new Bad(`delta maps ${from} to ${to}: a mapping keeps the kind of observable`)
+    if (a.kind === 'store_write' && a.store !== b.store && l['stores']?.[a.store!]) {
+      l['stores'][b.store!] = l['stores'][a.store!]
+      delete l['stores'][a.store!]
+    }
+  }
+  for (const [from, to] of entries) {
+    const a = splitId(unit, from), b = splitId(unit, to)
+    if (a.kind !== 'field' || a.field === b.field) continue
+    for (const r of l['stores']?.[b.store!]?.['records'] ?? []) {
+      if (a.field! in r) { r[b.field!] = r[a.field!]; delete r[a.field!] }
+    }
+  }
+  return { legacy: l, modern: m }
+}
+
+/** Approved deltas only: a delta nobody approved changes nothing it compares (§11 gate 5). */
+export function approvedDeltas(paths: string[]): Obj[] {
+  return paths.map((p) => {
+    const d = load(p)
+    if (!d['approved_by']) throw new Bad(`delta ${p} is not approved (approved_by); run /rig:review <system> normalizers`)
+    return d
+  })
+}
+
+const withDeltas = (legacy: Obj, modern: Obj, deltas: Obj[], unit: string) =>
+  deltas.reduce((acc, d) => applyDelta(acc.legacy, acc.modern, d, unit), { legacy, modern })
+
 /** The name a gate unit's observable ids start with: `job:INTCALC` → `INTCALC`, `http:GET /owners` → `GET /owners`. */
 export const unitName = (gateUnit: string): string => gateUnit.includes(':') ? gateUnit.slice(gateUnit.indexOf(':') + 1) : gateUnit
 
@@ -400,7 +463,7 @@ const bump = (o: Record<string, number>, k: string) => { o[k] = (o[k] ?? 0) + 1 
 
 /** Compare every case of the run, write the run with its coverage, and return counts per class only. */
 export function judge(ws: WS, setName: string, key: string, legacyDir: string, modernDir: string, freshIn: string[],
-                      comparator: string | undefined, normalizers: Obj[], envId: string): Obj {
+                      comparator: string | undefined, normalizers: Obj[], envId: string, deltas: Obj[] = []): Obj {
   const s = load(ws.setPath(setName))
   const unit = unitName(String(s['gate_unit']))
   const known = new Set<string>([...s['dev'], ...s['sealed']])
@@ -429,7 +492,8 @@ export function judge(ws: WS, setName: string, key: string, legacyDir: string, m
       const ok = (modern['crash'] ?? null) === null
       r = { case: id, classes: c['classes'], pass: ok, compared: [], property_only: true }
     } else {
-      const cmpd = runComparator(comparator, applyNormalizers(legacy, normalizers), applyNormalizers(modern, normalizers), unit, tmp)
+      const d = withDeltas(applyNormalizers(legacy, normalizers), applyNormalizers(modern, normalizers), deltas, unit)
+      const cmpd = runComparator(comparator, d.legacy, d.modern, unit, tmp)
       r = { case: id, classes: c['classes'], pass: cmpd.equal, compared: cmpd.compared }
       for (const oid of cmpd.compared) bump(coverage.observables, oid)
     }
@@ -446,7 +510,8 @@ export function judge(ws: WS, setName: string, key: string, legacyDir: string, m
 
   const runId = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + '-' + randomUUID().replaceAll('-', '').slice(0, 6)
   dump(join(ws.evidence, key, runId, 'run.json'), {
-    run_id: runId, key, set: setName, gate_unit: s['gate_unit'], mode: s['mode'], environment: envId, results, coverage,
+    run_id: runId, key, set: setName, gate_unit: s['gate_unit'], mode: s['mode'], environment: envId,
+    deltas: deltas.map((d) => d['id'] ?? null), results, coverage,
   })
 
   // Failing fresh inputs join the sealed set for good (§5.3 rule 4). Sealed cases never move.
@@ -474,7 +539,7 @@ export function judge(ws: WS, setName: string, key: string, legacyDir: string, m
  * Self-check (§5.2): compare the observations of the given cases and return counts per class. Nothing is recorded: a
  * self-check is not evidence. Cases are files `<case-id>.json` holding {input, expected, classes}, as handed to a worker.
  */
-export function compareOnly(casesDir: string, modernDir: string, comparator: string | undefined, unit: string, tmp: string): Obj {
+export function compareOnly(casesDir: string, modernDir: string, comparator: string | undefined, unit: string, tmp: string, deltas: Obj[] = []): Obj {
   const counts = new Map<string, { class: string; passed: number; total: number }>()
   let passed = 0, total = 0
   for (const f of ls(casesDir).filter((x) => x.endsWith('.json'))) {
@@ -482,7 +547,8 @@ export function compareOnly(casesDir: string, modernDir: string, comparator: str
     const mpath = join(modernDir, f)
     if (!isFile(mpath)) throw new Bad(`no modern observation for ${f}`)
     if (c['expected'] == null) continue
-    const ok = runComparator(comparator, c['expected'], load(mpath), unit, tmp).equal
+    const d = withDeltas(c['expected'], load(mpath), deltas, unit)
+    const ok = runComparator(comparator, d.legacy, d.modern, unit, tmp).equal
     total++
     if (ok) passed++
     for (const cl of (c['classes'] ?? ['unclassified']) as string[]) {
@@ -1003,7 +1069,7 @@ export function main(argv: string[]): number {
     options: Object.fromEntries([
       'ws', 'system', 'input', 'expected', 'classes', 'origin', 'set', 'gate-unit', 'mode', 'pool', 'required', 'generators',
       'key', 'legacy-dir', 'modern-dir', 'fresh', 'comparator', 'normalizers', 'env', 'rung', 'legacy-root', 'modern',
-      'comparators', 'packs', 'environment', 'file', 'legacy-ids', 'modern-ids', 'samples', 'correlated', 'requirements', 'derived', 'exhaustive',
+      'comparators', 'packs', 'environment', 'file', 'legacy-ids', 'modern-ids', 'samples', 'correlated', 'requirements', 'derived', 'exhaustive', 'deltas', 'legacy-surface', 'modern-surface',
     ].map((k) => [k, { type: 'string' as const }]).concat([['write-obligations', { type: 'boolean' as const }], ['help', { type: 'boolean' as const }]])),
   })
   const [command, sub] = positionals
@@ -1021,10 +1087,11 @@ export function main(argv: string[]): number {
       const st = buildSet(ws, s('set')!, s('gate-unit')!, s('mode')!, ids(s('pool')), s('required') ? load(s('required')!) : {}, s('generators') ? load(s('generators')!) : {}, ids(s('exhaustive')))
       out = { set: st['name'], dev: st['dev'].length, sealed: st['sealed'].length, hash: setHash(st) }
     } else if (command === 'compare') {
-      out = compareOnly(s('legacy-dir')!, s('modern-dir')!, s('comparator'), unitName(String(s('gate-unit') ?? '')), join(ws.root, '.rig-tmp'))
+      // Self-check is not evidence: a draft delta may be tried here before a person approves it.
+      out = compareOnly(s('legacy-dir')!, s('modern-dir')!, s('comparator'), unitName(String(s('gate-unit') ?? '')), join(ws.root, '.rig-tmp'), ids(s('deltas')).map(load))
       ok = out['passed'] === out['total']
     } else if (command === 'judge') {
-      out = judge(ws, s('set')!, s('key')!, s('legacy-dir')!, s('modern-dir')!, ids(s('fresh')), s('comparator'), ids(s('normalizers')).map(load), s('env') ?? 'default')
+      out = judge(ws, s('set')!, s('key')!, s('legacy-dir')!, s('modern-dir')!, ids(s('fresh')), s('comparator'), ids(s('normalizers')).map(load), s('env') ?? 'default', approvedDeltas(ids(s('deltas'))))
       ok = out['passed'] === out['total']
     } else if (command === 'key') {
       out = evidenceKey(ws, s('gate-unit')!, s('rung')!, s('legacy-root')!, ids(s('modern')), s('set'), ids(s('comparators')), JSON.parse(s('packs') ?? '{}'), JSON.parse(s('environment') ?? '{}'))
@@ -1033,7 +1100,8 @@ export function main(argv: string[]): number {
       out = { legal: errs.length === 0, reasons: errs }
       ok = errs.length === 0
     } else if (command === 'delta') {
-      const errs = checkDelta(ws, load(s('file')!), ids(s('legacy-ids')), ids(s('modern-ids')))
+      const surfIds = (f: string | undefined, fallback: string[]) => f ? (load(f)['observables'] ?? []).map((o: Obj) => String(o['id'])) : fallback
+      const errs = checkDelta(ws, load(s('file')!), surfIds(s('legacy-surface'), ids(s('legacy-ids'))), surfIds(s('modern-surface'), ids(s('modern-ids'))))
       out = { total: errs.length === 0, reasons: errs }
       ok = errs.length === 0
     } else if (command === 'canary') {

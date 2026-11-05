@@ -27,8 +27,10 @@ script's counts and class descriptions only.
    ```
    node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.ts judge --ws . --system $system --set $set --key <key> \
      --legacy-dir <legacy obs> --modern-dir <modern obs> --fresh <fresh case ids> --env <environment id> \
-     [--comparator exact|"<cmd>"] [--normalizers <approved files>]
+     [--comparator exact|"<cmd>"] [--normalizers <approved files>] [--deltas <approved DELTA files>]
    ```
+   A restructure unit passes every approved delta its ADR declares (`--deltas`), the same files as in the key's
+   `--comparators`. The script refuses a delta nobody approved.
 5. Delete `work/$system/judge/obs/<run>/` after the run. The run's results and coverage are kept by the script.
 
 Return the script's JSON unchanged: counts per class with descriptions. Never an input, an expected output, a diff or

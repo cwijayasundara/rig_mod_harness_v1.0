@@ -1,0 +1,91 @@
+{
+ "input": {
+  "clock": "2006-02-20T15:36:52",
+  "params": {
+   "PARM": "2022071800"
+  },
+  "records": {
+   "ACCTFILE": [
+    {
+     "ACCT-ACTIVE-STATUS": "Y",
+     "ACCT-ADDR-ZIP": "06307     ",
+     "ACCT-CASH-CREDIT-LIMIT": "00035027980D",
+     "ACCT-CREDIT-LIMIT": "00099417124G",
+     "ACCT-CURR-BAL": "00000019046I",
+     "ACCT-CURR-CYC-CREDIT": "000000001608",
+     "ACCT-CURR-CYC-DEBIT": "00000011473C",
+     "ACCT-EXPIRAION-DATE": "2023-10-12",
+     "ACCT-GROUP-ID": "GRP895    ",
+     "ACCT-ID": "68452017677",
+     "ACCT-OPEN-DATE": "2030-05-03",
+     "ACCT-REISSUE-DATE": "2005-09-28",
+     "FILLER": "}EpZ1nM1S%`vS_<Ui\\<oVdH5ep9<r],%HU5NUVmC6 5FdC^cp%V\\GTm!/_{5a %`3jL<qW.^bnoJ*'a7d\\x@pRdeH\"3'c4DYLPE=@3B%?8]ij'$BzT/\"5G`4D|Xaw/jdT*T8 9|1xU)Fvx\\                                   "
+    },
+    {
+     "ACCT-ACTIVE-STATUS": " ",
+     "ACCT-ADDR-ZIP": "06707     ",
+     "ACCT-CASH-CREDIT-LIMIT": "000903871287",
+     "ACCT-CREDIT-LIMIT": "00000000140H",
+     "ACCT-CURR-BAL": "00000005092E",
+     "ACCT-CURR-CYC-CREDIT": "00000000437D",
+     "ACCT-CURR-CYC-DEBIT": "00000000087L",
+     "ACCT-EXPIRAION-DATE": "1998-04-18",
+     "ACCT-GROUP-ID": "STD4      ",
+     "ACCT-ID": "89044425507",
+     "ACCT-OPEN-DATE": "2001-04-17",
+     "ACCT-REISSUE-DATE": "2021-10-22",
+     "FILLER": "                                                                                                                                                                                  "
+    }
+   ],
+   "DISCGRP": [
+    {
+     "DIS-ACCT-GROUP-ID": "DEFAULT   ",
+     "DIS-INT-RATE": "00000{",
+     "DIS-TRAN-CAT-CD": "2736",
+     "DIS-TRAN-TYPE-CD": "07",
+     "FILLER": "                            "
+    },
+    {
+     "DIS-ACCT-GROUP-ID": "G9633     ",
+     "DIS-INT-RATE": "00244E",
+     "DIS-TRAN-CAT-CD": "2364",
+     "DIS-TRAN-TYPE-CD": "89",
+     "FILLER": "                            "
+    }
+   ],
+   "TCATBALF": [
+    {
+     "FILLER": "                      ",
+     "TRAN-CAT-BAL": "0000000005A",
+     "TRANCAT-ACCT-ID": "89044425507",
+     "TRANCAT-CD": "2736",
+     "TRANCAT-TYPE-CD": "07"
+    }
+   ],
+   "XREFFILE": [
+    {
+     "FILLER": "              ",
+     "XREF-ACCT-ID": "89044425507",
+     "XREF-CARD-NUM": "4019215851054897",
+     "XREF-CUST-ID": "392286805"
+    },
+    {
+     "FILLER": "              ",
+     "XREF-ACCT-ID": "68452017677",
+     "XREF-CARD-NUM": "4535886935216948",
+     "XREF-CUST-ID": "487374367"
+    }
+   ]
+  },
+  "session": null,
+  "stores": {
+   "ACCTFILE": "sha256:20b9211db42eeafaa322bb7f06b848f14720659473e93a66b9abd7f2bb4f89f3",
+   "DISCGRP": "sha256:dad540f5c4a52bd1ded8d856ee78da6d242ad74302a45b8cb9cbadce692aeb8a",
+   "TCATBALF": "sha256:3abc41af2fb138151404a1583a975cd3f587e633ec0bb13513b30ad506aee7ed",
+   "XREFFILE": "sha256:740dd13de0b35e6aa3ccc778e601bfc22a828f9b3f895dc2627c99027622f925"
+  }
+ },
+ "classes": [
+  "branch:default_group"
+ ]
+}

@@ -59,6 +59,8 @@ analysis/<system>/
   hazards.json                        hazard sites found in the code
   rules/BR-*.yaml                     business rule cards
   attestations.yaml                   what people attested: consumers, resolutions
+  decomposition/                      restructure: affinity, options, SCORECARD.md, MODULES.json, signoffs.json
+  ADR-*.md                            architecture decisions, signed by a person
 oracles/<system>/cases/ sets/ normalizers/ deltas/    oracle cases and sets (sealed ones never shown to workers)
 evidence/<system>/<key>/<run-id>/run.json             judge runs with coverage, append-only
 obligations/<system>/OBL-*.json                       named gaps a person accepted, discharged only by coverage
@@ -86,7 +88,8 @@ stay inside it.
 2. Attesting external consumers, and that a consumer list is complete.
 3. Resolving an unresolved edge (what a dynamic call can really reach), unless a trace proves it.
 4. Confirming P0 and P1 rule cards.
-5. Every later gate in `${CLAUDE_PLUGIN_ROOT}/docs/PROPOSAL.md` §11 (deltas, normalizers, provisional merges, cutover).
+5. Signing the target architecture ADRs and `MODULES.json` (`decomposition/signoffs.json`).
+6. Every later gate in `${CLAUDE_PLUGIN_ROOT}/docs/PROPOSAL.md` §11 (deltas, normalizers, provisional merges, cutover).
 
 ## Verdict words
 

@@ -1,0 +1,59 @@
+{
+ "input": {
+  "clock": null,
+  "params": {},
+  "records": {
+   "CUSTFILE": [
+    {
+     "CUST-ADDR-COUNTRY-CD": "W[%",
+     "CUST-ADDR-LINE-1": "W-gb#:V_hS`[Dd'-WPv\\c0A]yQ.OCTeFD2<V,tuHb{LZ/Q|o!&",
+     "CUST-ADDR-LINE-2": "w4;eRAs[g%CKIjFeP@%onna^J-lB'6e}T&N_-:Xq}mEjuQRII\"",
+     "CUST-ADDR-LINE-3": "TDd|ZARv?+96pmoXFXXWn!=FY9IkH|NY7\"Jaw1eHrb{ZB#rlv,",
+     "CUST-ADDR-STATE-CD": "?S",
+     "CUST-ADDR-ZIP": "zhqAL|VJbL",
+     "CUST-DOB-YYYY-MM-DD": "l+vZ1,{2O2",
+     "CUST-EFT-ACCOUNT-ID": "fLOeai0./M",
+     "CUST-FICO-CREDIT-SCORE": "016",
+     "CUST-FIRST-NAME": "FAKEFIRSTYSGWYVRQCDTDKQMC",
+     "CUST-GOVT-ISSUED-ID": "E;egeq?5r\\Yd$$we*-qx",
+     "CUST-ID": "106703890",
+     "CUST-LAST-NAME": "FAKELASTHRKRPYAYPXYKFDIXM",
+     "CUST-MIDDLE-NAME": "FAKEMIDUIYOCUSMCBNUXKZSSE",
+     "CUST-PHONE-NUM-1": "lAD\\1yv7F;FV&}W",
+     "CUST-PHONE-NUM-2": "xqL`7D3;CpXrY`l",
+     "CUST-PRI-CARD-HOLDER-IND": "0",
+     "CUST-SSN": "983602869",
+     "FILLER": "!F`dnB`6fe%w@3_,5%x\\>~y+ujpQv-%p2zc9pQny.Fa4d4$)RPZfL7],B[TUG8zM`1`1I38FO&t~aS0SW4j[y6=#'L3^qk13S3\"mf0im']SItGblu)S^c57sy<1M\\m\\RM6mv^0.8-Iz!>.''dO+02J(KJjW%#@M'q`3eZ&H,"
+    },
+    {
+     "CUST-ADDR-COUNTRY-CD": "&97",
+     "CUST-ADDR-LINE-1": "4GR+zdoUnF(Lkn[Ylw$)>H;i{dDYn`;2QKd.;FC{I8kYcrx[XG",
+     "CUST-ADDR-LINE-2": "ob_o{(:y[3qdf}R`}[iU&&iv@|43K68#:(IXHLapHR6({O5QK2",
+     "CUST-ADDR-LINE-3": "Dz%,?_YZCD:$cQ,m.A4N0w~BFUB7r%\"{a:hyoR8f90?S)1nvo:",
+     "CUST-ADDR-STATE-CD": "IG",
+     "CUST-ADDR-ZIP": "*FQT[hwi*T",
+     "CUST-DOB-YYYY-MM-DD": "`IyyUI:ruH",
+     "CUST-EFT-ACCOUNT-ID": "s=.-XI!YaR",
+     "CUST-FICO-CREDIT-SCORE": "670",
+     "CUST-FIRST-NAME": "FAKEFIRSTCDCKXFRFNGYQNFHM",
+     "CUST-GOVT-ISSUED-ID": "-9/3DXL%@(IWvr$9o2vh",
+     "CUST-ID": "999999999",
+     "CUST-LAST-NAME": "FAKELASTYSLXGYNSONODJYXON",
+     "CUST-MIDDLE-NAME": "FAKEMIDBUZLYZYFKHJSHOLXDR",
+     "CUST-PHONE-NUM-1": "tG[Mg-<W#{XP^Sq",
+     "CUST-PHONE-NUM-2": "$nudS$dx$[-W+D:",
+     "CUST-PRI-CARD-HOLDER-IND": "O",
+     "CUST-SSN": "976583852",
+     "FILLER": "-p\"yIL9'H9W%;[P8koEU@75Z$]|Msg.!~5.Ocis:EOw4\\hiD/g4NG>iG_w[;og=dC_`Ji/<H*@FPr)W,8?2YK/(os!Y@/z'$cG/Jc9iH/q==,F||5Up.RdXZA2e=^<*)\"v*wCy_>AiHa\"gU/lj}Ls\".DFfJ|$NZ{6,,4_thS"
+    }
+   ]
+  },
+  "session": null,
+  "stores": {
+   "CUSTFILE": "sha256:161a5aeeb69a0348eeb16e7f8131ad948073b8aa767389764796699f38b7e45d"
+  }
+ },
+ "classes": [
+  "structural:max_lengths"
+ ]
+}

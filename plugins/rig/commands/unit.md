@@ -42,16 +42,19 @@ first line's `ts`) has passed, go to **escalate**.
    cite both, and flag it in your report*. Self-check never covers those classes. (M3 exit run 1: two dev cases taught
    the worker Berkeley DB's status 30, and no reviewer caught it.)
 2. **recipes** — run any deterministic rewrite tool the bridge names (OpenRewrite for Java uplift, Rector for PHP).
-   COBOL to Java has none: log `skipped`.
+   COBOL to Java has none: log `skipped`. A restructure has none either; the worker moves the code.
 3. **implement** — dispatch the `worker` agent with the brief path and the unit file. It writes only in `target_scope`.
 4. **self-check** — build it, then run every dev case through the worker's runner into `work/$system/$unit/self/<id>.json`
    and run `node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.ts compare --ws . --system $system --gate-unit <gu>
    --legacy-dir work/$system/$unit/dev --modern-dir work/$system/$unit/self`. A build failure or a failing dev case goes
    back to **implement** with the counts per class (this is not a new attempt). After three tries, **retry**.
+   A **restructure** unit also runs `node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_arch.ts check --ws . --system $system
+   --root <modern source root> --scope <target_scope paths>`, and passes any draft deltas to `compare --deltas`. Each
+   violation goes back to **implement** with its rule, file and line (it is shape, not oracle, so the worker may see it).
 5. **review A** — write `work/$system/$unit/review-a/diff.patch` (the change in `target_scope` since the last merge, or
    the whole tree on a first attempt). Dispatch `reviewer-a` with only that path.
 6. **review B** — write `work/$system/$unit/review-b/`, holding `spec.md` (the rule cards, the surface, the brief's
-   contract, and `PREFLIGHT.md` check 4), plus the dev outputs of both sides (`legacy/` and `modern/`, one file per case). Dispatch `reviewer-b`.
+   contract, and `PREFLIGHT.md` check 4; for a restructure also `MODULES.json` and the signed ADR), plus the dev outputs of both sides (`legacy/` and `modern/`, one file per case). Dispatch `reviewer-b`.
 7. **review C** — write `work/$system/$unit/review-c/` with the worker's final report, the log, and the self-check
    output. Dispatch `reviewer-c`.
    On attempt 2 and later the packets are `review-a<n>/`, `review-b<n>/`, `review-c<n>/` (`review-a2/`), so earlier
@@ -63,7 +66,8 @@ first line's `ts`) has passed, go to **escalate**.
    unit, for **each** gate unit in `gate_units`, and the outcome is the worst of them), with the unit's
    modern files in the key, then `${CLAUDE_PLUGIN_ROOT}/commands/verify.md`. Read the verdict the script prints.
 10. **outcome**:
-    - **merged** — the verdict is PROVEN for every required rung. Dispatch the `merge` agent.
+    - **merged** — the verdict is PROVEN for every required rung (and, for a restructure, `rig_arch.ts check`
+      passes for the unit's scope). Dispatch the `merge` agent.
     - **provisional** — the verdict is PROVISIONAL, and every obligation it names has `accepted_by`. Dispatch `merge`
       with the obligation ids. If an obligation is not accepted, stop and ask a person (`/rig:review $system obligations`).
     - **retry** — a class failed. Start a new attempt at **brief**, with the counts per class.

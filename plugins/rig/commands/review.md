@@ -1,12 +1,13 @@
 ---
 description: A person confirms rule cards, attests consumers and resolves unresolved edges — the human gates of the Understand phase
-argument-hint: <system> [rules|consumers|unresolved|normalizers|caps|obligations]
+argument-hint: <system> [rules|consumers|unresolved|normalizers|caps|obligations|adrs]
 arguments: system what
 ---
 
 Load the `rig-method` skill first. You record decisions; you never make them. Write only
 `analysis/$system/rules/*.yaml` (status and review fields), `analysis/$system/attestations.yaml`, and the matching
-`status` fields in `unresolved.json` and `surfaces/`.
+`status` fields in `unresolved.json` and `surfaces/`, `analysis/$system/decomposition/signoffs.json`, and the
+`Status:` line of an ADR.
 
 Ask with AskUserQuestion, one item per question and at most four per pop-up, and show the evidence in each question:
 the card or site, its citations, and the cited lines. Every question has a *Not now* option. Record answers verbatim
@@ -47,6 +48,16 @@ For each `oracles/$system/caps/CAP-*.json` with an empty `signed_by`: show the c
 its evidence (the PREFLIGHT row), how many cases it would take out of pass and fail, and the obligation it creates.
 Ask *Sign: the oracle cannot be trusted for this class here*, *Reject*, or *Not now*. Sign writes the person's name
 and the date. Rejecting deletes nothing: write `"rejected_by"` and leave it unsigned.
+
+## ADRs (`adrs`)
+
+For each `analysis/$system/ADR-*.md` with `Status: proposed`: show the decision, the scorecard
+(`decomposition/SCORECARD.md`), the modules with what each owns, every store conflict, and the deltas it declares.
+Ask *Sign this ADR and MODULES.json*, *Choose the other option* (the critic redrafts; nothing is signed), *Reject*,
+or *Not now*. Sign: set `Status: accepted` in the ADR first, then run `node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_arch.ts
+hash --ws . --system $system` and append `{adr, adr_sha256, modules_sha256, signed_by, signed_on}` to
+`decomposition/signoffs.json` with the hashes it printed. Any later edit to the ADR or `MODULES.json` voids the
+signature. Reject writes `Status: rejected` and signs nothing.
 
 ## Obligations (`obligations`)
 

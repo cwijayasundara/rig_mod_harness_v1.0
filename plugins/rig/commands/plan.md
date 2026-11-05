@@ -32,6 +32,15 @@ An **uplift** unit covers one deployable. It has `gate_units: [<every route or j
 `version-delta-analyst` agent first. Every catalog hit is listed under `hazards`. Each gate unit keeps its own surface
 and is judged on its own.
 
+A **restructure** unit (step `restructure`, skill `java-restructure`) needs the signed decomposition first:
+`node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_arch.ts check --ws . --system $system --root <current source root>` must show
+no `signoff` violation (the other violations are what the units will fix). If it does, stop and name
+`/rig:review $system adrs`. Plan one unit per module of `MODULES.json`, in dependency order (`shared` first, the
+entry module last), or one unit for the whole tree when it has fewer than about 30 source files. Each unit has
+`gate_units` (every gate unit whose runtime closure holds a file it moves), `module`, `target_scope` (the module's
+package folders under `modernized/`), `hazards` (the R-* hazards of `references/restructure.md` found in its files),
+`deltas` (the DELTA ids its ADR declares, or `[]`), and `reference: legacy/$system` (the tree the step started from).
+
 `source_scope` is the gate unit's runtime closure: the JCL, PROCs, control cards, programs and copybooks. Compute it
 the way `rig_proof.ts key` does: follow the graph from the gate unit and stop at persistent stores. A unit whose closure
 has an open `missing_source` entry cannot be translated: list it in `PLAN.md` as blocked, with the entry id.
