@@ -149,3 +149,12 @@ describe('rig_arch: surface stores (M5 session 1)', () => {
     assert.deepEqual(A.check(spec, GOOD, SIGNED, H, ['CUSTFILE', 'ACCTDATA']), [])
   })
 })
+
+describe('rig_arch: surface store ids (M5 session 1 on carddemo-mini)', () => {
+  test('dotted store names stay whole; ids outside the grammar name no store', () => {
+    assert.equal(A.surfaceStore('REMOTE.welcome.txt.store_write'), 'REMOTE.welcome.txt')
+    assert.equal(A.surfaceStore('ACCTDATA.field:ACCT-ID'), 'ACCTDATA')
+    assert.equal(A.surfaceStore('return_code'), null)
+    assert.equal(A.surfaceStore('SYSOUT.message'), null)
+  })
+})

@@ -49,7 +49,7 @@ first line's `ts`) has passed, go to **escalate**.
    --legacy-dir work/$system/$unit/dev --modern-dir work/$system/$unit/self`. A build failure or a failing dev case goes
    back to **implement** with the counts per class (this is not a new attempt). After three tries, **retry**.
    A **restructure** unit also runs `node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_arch.ts check --ws . --system $system
-   --root <modern source root> --scope <target_scope paths>`, and passes any draft deltas to `compare --deltas`. Each
+   --root <modern source root> --scope <target_scope paths> --gate-units <the unit's gate_units>`, and passes any draft deltas to `compare --deltas`. Each
    violation goes back to **implement** with its rule, file and line (it is shape, not oracle, so the worker may see it).
 5. **review A** — write `work/$system/$unit/review-a/diff.patch` (the change in `target_scope` since the last merge, or
    the whole tree on a first attempt). Dispatch `reviewer-a` with only that path.

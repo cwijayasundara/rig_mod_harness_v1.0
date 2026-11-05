@@ -6,7 +6,7 @@
  * rules of the signed decomposition against a source tree, mechanically. The judge proves behaviour; this proves shape.
  *
  *     node rig_arch.ts check --ws <workspace> --system <name> --root <source root> [--modules <MODULES.json>]
- *                            [--scope <path prefixes, comma-separated>]
+ *                            [--scope <path prefixes, comma-separated>] [--gate-units <ids, comma-separated>]
  *     node rig_arch.ts hash  --ws <workspace> --system <name> [--modules <MODULES.json>]
  *
  * `check` fails (exit 1) on any violation:
@@ -21,6 +21,8 @@
  *   signoff        the ADRs and MODULES.json are not signed by a person, or changed since they were signed
  * With --scope (a restructure unit moving one module), file violations count only for files under those prefixes;
  * module, store_owner and signoff violations always count. The rest are listed under `outside_scope`.
+ * With --gate-units, only those gate units' surfaces are checked for unnamed stores (a unit restructures the code of its
+ * gate units; an unknown store of another job stays that job's open item, Rule A).
  * `hash` prints the hashes a person's sign-off records (`/rig:review <system> adrs`).
  *
  * MODULES.json (analysis/<system>/decomposition/MODULES.json, the chosen partition, drafted by the architecture
@@ -88,6 +90,14 @@ export function stripJava(src: string, strings: boolean): string {
 }
 
 const lineOf = (text: string, idx: number) => text.slice(0, idx).split('\n').length
+
+/**
+ * The store of a store-level observable id (after `<unit>/`), parsed as the comparator writes it, so a dotted store
+ * name (`REMOTE.welcome.txt.store_write`) stays whole. An id outside that grammar names no store here; `rig_proof.ts
+ * surface check` reports it.
+ */
+export const surfaceStore = (rest: string): string | null =>
+  /^(.+)\.(store_write|cardinality|record_order|store_semantics|field:[^\s:]+)$/.exec(rest)?.[1] ?? null
 
 export function moduleOf(pkg: string, modules: Obj): string | null {
   let best: string | null = null, len = -1
@@ -199,7 +209,7 @@ export function check(spec: Obj, files: { path: string; text: string }[], signof
 export function main(argv: string[]): number {
   const { values: a, positionals } = parseArgs({
     args: argv, allowPositionals: true, strict: true,
-    options: { ws: { type: 'string' }, system: { type: 'string' }, root: { type: 'string' }, modules: { type: 'string' }, scope: { type: 'string' }, help: { type: 'boolean' } },
+    options: { ws: { type: 'string' }, system: { type: 'string' }, root: { type: 'string' }, modules: { type: 'string' }, scope: { type: 'string' }, 'gate-units': { type: 'string' }, help: { type: 'boolean' } },
   })
   const [command] = positionals
   if (a.help || !command) { console.log(readFileSync(fileURLToPath(import.meta.url), 'utf8').split('*/')[0]); return 0 }
@@ -223,8 +233,11 @@ export function main(argv: string[]): number {
       const surfDir = join(ws, 'analysis', a.system, 'surfaces')
       const surfaceStores = existsSync(surfDir) ? readdirSync(surfDir).filter((x) => x.endsWith('.json')).flatMap((x) => {
         const sf = load(join(surfDir, x))
+        const want = (a['gate-units'] ?? '').split(',').map((g) => g.trim()).filter(Boolean)
+        if (want.length > 0 && !want.includes(String(sf['gate_unit']))) return []
         const u = String(sf['gate_unit'] ?? '').replace(/^[^:]*:/, '')
-        return (sf['observables'] ?? []).map((o: Obj) => String(o['id'])).filter((id: string) => id.startsWith(u + '/')).map((id: string) => id.slice(u.length + 1).split('.')[0]!)
+        return (sf['observables'] ?? []).map((o: Obj) => String(o['id'])).filter((id: string) => id.startsWith(u + '/'))
+          .map((id: string) => surfaceStore(id.slice(u.length + 1))).filter((x: string | null): x is string => x !== null)
       }) : []
       const v = check(spec, files, existsSync(signoffsPath) ? load(signoffsPath) : null, h, surfaceStores)
       const per: Obj = {}
