@@ -544,6 +544,18 @@ describe('oracle caps', () => {
   })
 })
 
+test('compare (self-check) counts per class and records no evidence', () => {
+  const dev = join(t.dir, 'dev')
+  mkdirSync(dev)
+  P.dump(join(dev, 'a.json'), { input: inp(), expected: obs([{ v: '1' }]), classes: ['random'] })
+  P.dump(join(dev, 'b.json'), { input: inp(), expected: obs([{ v: '2' }]), classes: ['random'] })
+  P.dump(join(t.dir, 'M', 'a.json'), obs([{ v: '1' }]))
+  P.dump(join(t.dir, 'M', 'b.json'), obs([{ v: '9' }]))
+  const out = P.compareOnly(dev, join(t.dir, 'M'), 'exact', UNIT, join(t.dir, 'tmp'))
+  assert.deepEqual(out, { passed: 1, total: 2, classes: [{ class: 'random', passed: 1, total: 2 }] })
+  assert.equal([...P.allRuns(t.ws)].length, 0)
+})
+
 // Owned elsewhere (no script to test):
 //   round 2 #10 capability preflight -> commands/preflight.md (smoke runs, per construct)
 //   round 2 #11 generalisation check -> deleted in v0.3; nothing to test

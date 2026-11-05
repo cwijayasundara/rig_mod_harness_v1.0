@@ -125,7 +125,10 @@ target without ROUNDED), `high_order_truncation` (a result that can exceed the t
 `size_error`, `ebcdic_collation` (sort keys, alphanumeric comparisons with `<` `>`, START or READ NEXT on character
 keys), `redefines`, `packed_in_char`, `invalid_packed` (COMP-3 fields read from input), `group_move_filler`,
 `month_length`, `day_of_week` (`ACCEPT FROM DAY-OF-WEEK`: COBOL Monday=1, Java `Calendar` Sunday=1), `century_window`
-(`ACCEPT FROM DATE` without YYYYMMDD, two-digit years), `run_mode` (a PARM or control card that selects a branch).
+(`ACCEPT FROM DATE` without YYYYMMDD, two-digit years), `run_mode` (a PARM or control card that selects a branch),
+`file_status` (a status the program tests or prints), `abend` (`CEE3ABD`, return codes), `display_bytes` (DISPLAY of
+groups, zoned and edited fields). The bridge skill for the language pair has each one's generator (for COBOL to
+Java, `cobol-to-java/references/hazards.md`).
 
 ## rules/BR-*.yaml
 

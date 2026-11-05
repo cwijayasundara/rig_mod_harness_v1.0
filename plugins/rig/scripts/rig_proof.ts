@@ -11,6 +11,7 @@
  * Commands
  *   case add       add a case (content-addressed by its canonical input)
  *   set build      build or extend a dev/sealed oracle set for a gate unit
+ *   compare        self-check: compare observations of given cases, print counts per class, record nothing
  *   judge          compare legacy and modern observations, record a run, print counts per class
  *   key            compute the evidence key of a gate unit and rung
  *   normalizer     check a normalizer against the consumer rules
@@ -439,6 +440,31 @@ export function judge(ws: WS, setName: string, key: string, legacyDir: string, m
   // Counts and class descriptions only: never an input, an expected output, or a diff.
   return { run_id: runId, classes: [...counts.values()].sort((a, b) => a.class.localeCompare(b.class)),
            passed: results.filter((r) => r['pass']).length, total: results.length }
+}
+
+/**
+ * Self-check (§5.2): compare the observations of the given cases and return counts per class. Nothing is recorded: a
+ * self-check is not evidence. Cases are files `<case-id>.json` holding {input, expected, classes}, as handed to a worker.
+ */
+export function compareOnly(casesDir: string, modernDir: string, comparator: string | undefined, unit: string, tmp: string): Obj {
+  const counts = new Map<string, { class: string; passed: number; total: number }>()
+  let passed = 0, total = 0
+  for (const f of ls(casesDir).filter((x) => x.endsWith('.json'))) {
+    const c = load(join(casesDir, f))
+    const mpath = join(modernDir, f)
+    if (!isFile(mpath)) throw new Bad(`no modern observation for ${f}`)
+    if (c['expected'] == null) continue
+    const ok = runComparator(comparator, c['expected'], load(mpath), unit, tmp).equal
+    total++
+    if (ok) passed++
+    for (const cl of (c['classes'] ?? ['unclassified']) as string[]) {
+      const k = counts.get(cl) ?? { class: cl, passed: 0, total: 0 }
+      k.total++
+      if (ok) k.passed++
+      counts.set(cl, k)
+    }
+  }
+  return { passed, total, classes: [...counts.values()].sort((a, b) => a.class.localeCompare(b.class)) }
 }
 
 // ---------------------------------------------------------------------------
@@ -945,6 +971,9 @@ export function main(argv: string[]): number {
     } else if (command === 'set' && sub === 'build') {
       const st = buildSet(ws, s('set')!, s('gate-unit')!, s('mode')!, ids(s('pool')), s('required') ? load(s('required')!) : {}, s('generators') ? load(s('generators')!) : {}, ids(s('exhaustive')))
       out = { set: st['name'], dev: st['dev'].length, sealed: st['sealed'].length, hash: setHash(st) }
+    } else if (command === 'compare') {
+      out = compareOnly(s('legacy-dir')!, s('modern-dir')!, s('comparator'), String(s('gate-unit') ?? '').split(':').at(-1)!, join(ws.root, '.rig-tmp'))
+      ok = out['passed'] === out['total']
     } else if (command === 'judge') {
       out = judge(ws, s('set')!, s('key')!, s('legacy-dir')!, s('modern-dir')!, ids(s('fresh')), s('comparator'), ids(s('normalizers')).map(load), s('env') ?? 'default')
       ok = out['passed'] === out['total']
