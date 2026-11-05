@@ -16,14 +16,14 @@ script's counts and class descriptions only.
    `<case-id>.json`, to `evidence/$system/.obs/<run>/legacy/` and `.../modern/`.
 3. **Evidence key** for the rung (V3 differential, or V4 fresh inputs):
    ```
-   python3 ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.py key --ws . --system $system --gate-unit $gate_unit --rung V3 \
-     --legacy-root legacy/$system --modern <every modern file the job runs: code, config, batch XML, migrations> \
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.ts key --ws . --system $system --gate-unit $gate_unit --rung V3 \
+     --legacy-root legacy/$system --modern <every modern file the job runs: source, the compiled output that actually ran (classes, jars), config, batch XML, migrations, the runner script> \
      --set $set --comparators <approved normalizer and delta files> --packs '{"cobol-zos":"<ver>"}' \
      --environment '{"collation":"EBCDIC","TRUNC":"STD","NUMPROC":"NOPFD","jdk":"21"}'
    ```
 4. **Judge**:
    ```
-   python3 ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.py judge --ws . --system $system --set $set --key <key> \
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.ts judge --ws . --system $system --set $set --key <key> \
      --legacy-dir <legacy obs> --modern-dir <modern obs> --fresh <fresh case ids> --env <environment id> \
      [--comparator exact|"<cmd>"] [--normalizers <approved files>]
    ```

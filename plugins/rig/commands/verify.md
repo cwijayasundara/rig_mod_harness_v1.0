@@ -12,10 +12,10 @@ notes a build left behind: recompute everything from `evidence/`, `oracles/` and
 For every normalizer and delta the runs used:
 
 ```
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.py normalizer --ws . --system $system --file <NORM-*.json>
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.py delta --ws . --system $system --file <DELTA-*.json> \
+node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.ts normalizer --ws . --system $system --file <NORM-*.json>
+node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.ts delta --ws . --system $system --file <DELTA-*.json> \
   --legacy-ids <legacy observables in scope> --modern-ids <modern observables>
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.py canary --ws . --system $system --gate-unit $gate_unit \
+node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.ts canary --ws . --system $system --gate-unit $gate_unit \
   --samples <a few legacy observation files with at least two different records per store> [--comparator <cmd>] \
   [--correlated '[{"store":"STMT","detail":"amount","total":"total_due"}]']
 ```
@@ -33,15 +33,15 @@ Write `evidence/$system/requirements/<gate-unit>-<rung>.json`:
 - `hazards`: every hazard in `hazards.json` within the gate unit's programs.
 - `capped`: each difference between the reference environment and production from `PREFLIGHT.md`, as
   `{hazard, observables}`.
-- `calendar_events` (V10 only): run `rig_proof.py calendar --gate-unit $gate_unit --derived <events from scheduler
+- `calendar_events` (V10 only): run `rig_proof.ts calendar --gate-unit $gate_unit --derived <events from scheduler
   definitions, PARMs and control cards>` and use its `required`.
 
 ## 3 — Verdict
 
 ```
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.py verdict --ws . --system $system --gate-unit $gate_unit --rung <R> \
+node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.ts verdict --ws . --system $system --gate-unit $gate_unit --rung <R> \
   --key <current key> --requirements <file> --write-obligations
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.py obligations --ws . --system $system
+node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.ts obligations --ws . --system $system
 ```
 
 Recompute the key first, with the same command `/rig:judge` used. If code or configuration changed since the runs,

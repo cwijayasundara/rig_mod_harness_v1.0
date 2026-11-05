@@ -20,8 +20,8 @@ READ/WRITE/REWRITE/DELETE/STARTBR, SEND/RECEIVE MAP, WRITEQ/READQ), `EXEC SQL`, 
 `OPEN`, `EXEC PGM=` and `EXEC PROC=`, `DD` with `DSN=` or `SYSOUT=`, in-stream `SYSIN`/`SYSTSIN` control statements, and
 scheduler job entries. COBOL source is fixed format: columns 1-6 are sequence numbers, column 7 `*` or `/` is a comment,
 `-` continues the line, and text after column 72 is ignored. JCL text after column 71 is ignored. A grep that counts
-comment lines must be filtered. For a large tree, write a small script under `analysis/$system/tools/` that does the
-sweep and prints the counts, and run it. That way the sweep can be re-run and its count checked.
+comment lines must be filtered. For a large tree, write a small TypeScript script under `analysis/$system/tools/` (run with `node`, no
+dependencies) that does the sweep and prints the counts, and run it. That way the sweep can be re-run and its count checked.
 
 Every hit is then classified by reading it: a static edge, an unresolved site, or not an edge (say why). The totals go
 in `unresolved.json` under `sweep`, and `classified` must equal `hits`.

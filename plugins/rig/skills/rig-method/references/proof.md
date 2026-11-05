@@ -1,6 +1,6 @@
 # RIG proof formats and the proof script
 
-`${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.py` decides every proof question: which cases are sealed, whether a run
+`${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.ts` decides every proof question: which cases are sealed, whether a run
 passed, what it covered, the evidence key, and the verdict. Claude writes the inputs to it and runs both sides, but
 never writes a verdict, a pass or a coverage count by hand. Every command prints JSON and exits 0 (check passed),
 1 (check failed) or 2 (bad input).
@@ -31,7 +31,7 @@ ids]}`. It must name what it compared (Rule B).
 
 ## Set (`oracles/<system>/sets/<name>.json`, written by `set build` and `judge`)
 
-`dev`, `sealed` (case ids, chosen by hash), `required_classes` (`{class: description}`), `generators`
+`dev`, `sealed` (case ids, chosen by hash), `exhaustive_classes`, `required_classes` (`{class: description}`), `generators`
 (`{class: definition}`), `failed_classes` (the last run's). The set hash covers ids and generator definitions, never
 seeds.
 
@@ -55,7 +55,7 @@ internal consumer has cited evidence. A person fills `approved_by`.
 
 ## Run (`evidence/<system>/<key>/<run-id>/run.json`, written by `judge`, append-only)
 
-Per case: `classes`, `pass`, `compared`, `fresh`, `property_only` (recorded mode, generated input). Coverage:
+Per case: `classes`, `pass`, `compared`, `fresh`, `property_only` (recorded mode, generated input: no legacy output exists, so it passes unless the modern side crashed. An abend is behaviour, not a crash: write an unhandled failure of the modern code as `"crash": "<what>"` in its observation). Coverage:
 `observables`, `classes`, `hazards`, `calendar_events` (derived from each case's clock and run-mode params),
 `mismatches`. Never edit or delete a run.
 

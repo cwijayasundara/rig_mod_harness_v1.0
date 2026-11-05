@@ -67,7 +67,7 @@ Artifact formats are in [references/artifacts.md](references/artifacts.md) (anal
 
 ## The proof script decides
 
-`${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.py` computes sealed splits, judge results, evidence keys, coverage and every
+`${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.ts` computes sealed splits, judge results, evidence keys, coverage and every
 verdict. Never write a verdict, a pass count or a coverage number yourself: run the script and quote it.
 
 ## Gate units

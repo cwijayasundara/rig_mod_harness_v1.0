@@ -48,14 +48,14 @@ plugins/rig/                         the plugin (everything Claude Code loads)
   .claude-plugin/plugin.json
   commands/       start, preflight, map, rules, review, oracles, judge, verify, status
   agents/         legacy-analyst, rule-extractor, rule-verifier, oracle-engineer, judge
-  scripts/rig_proof.py   the proof core: cases, sets, judge, keys, comparator checks, verdicts
+  scripts/rig_proof.ts   the proof core: cases, sets, judge, keys, comparator checks, verdicts
   skills/rig-method/   the method and the artifact formats
   docs/           the proposal and the two interrogation rounds
 tests/fixtures/carddemo-mini/              a 51-file slice of AWS CardDemo (code only)
 tests/fixtures/carddemo-mini.EXPECTED.md   the M1 exit check, kept outside the code tree
-tests/check_map.py                         scores a /rig:map run against EXPECTED.md
-tests/proof/                               regression tests for rig_proof.py, one per interrogation root cause
-tests/repros/                              the interrogation repro scripts (round 1 and round 2)
+tests/check_map.ts                         scores a /rig:map run against EXPECTED.md
+tests/proof/                               regression tests for rig_proof.ts, one per interrogation root cause
+tests/repros/                              the interrogation repro scripts (round 1 and round 2, historical Python)
 tests/runs/                                run workspaces and results (git-ignored; delete to clean up)
 scripts/make-carddemo-mini.sh              rebuilds the fixture from a pinned CardDemo commit
 ```
@@ -66,7 +66,7 @@ workspace inside it could not write its results.
 ## Testing
 
 ```sh
-python3 -m unittest discover -s tests/proof -v     # the proof core, no tokens spent
+node --test tests/proof/     # the proof core, no tokens spent
 ```
 
 
@@ -78,7 +78,7 @@ spending much:
 R=tests/runs/$(date +%F)-map && mkdir -p $R/legacy && ln -s ../../../fixtures/carddemo-mini $R/legacy/carddemo
 cd $R && claude --plugin-dir ../../../plugins/rig
 > /rig:map carddemo
-cd ../../.. && python3 tests/check_map.py $R/analysis/carddemo
+cd ../../.. && node tests/check_map.ts $R/analysis/carddemo
 ```
 
 The check compares the run with [tests/fixtures/carddemo-mini.EXPECTED.md](tests/fixtures/carddemo-mini.EXPECTED.md),

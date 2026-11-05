@@ -34,7 +34,7 @@ cards, SYSIN), `clock` (ISO date-time the run sees), `stores` (snapshot of each 
 `session` (CICS commarea, or null). Write each to a file and add it:
 
 ```
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.py case add --ws . --system $system \
+node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.ts case add --ws . --system $system \
   --input <file> --classes <c1,c2> --origin recorded|characterization|hazard|rule_negation|random [--expected <obs>]
 ```
 
@@ -44,10 +44,15 @@ mode: only recorded production I/O has `expected`, and generated inputs have non
 ## 3 — Set
 
 ```
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.py set build --ws . --system $system --set <name> \
+node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.ts set build --ws . --system $system --set <name> \
   --gate-unit $gate_unit --mode <mode> --pool @<file of case ids> \
-  --required oracles/$system/sets/<name>.classes.json --generators oracles/$system/sets/<name>.generators.json
+  --required oracles/$system/sets/<name>.classes.json --generators oracles/$system/sets/<name>.generators.json \
+  [--exhaustive <classes whose whole input domain is in the pool>]
 ```
+
+A class is **exhaustive** when every possible input of it is already a case (the one empty file, the four values of a
+one-byte flag). Name it with `--exhaustive` and say why in the class description. It is then exempt from the
+fresh-input rules, and its cases re-run every time instead.
 
 The script picks the sealed cases by input hash (at least 20 or 25% in executable mode, 25% in recorded mode). Never
 choose them, never move one, and never show a sealed case to anyone who works on `modernized/`.

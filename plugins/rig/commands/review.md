@@ -37,7 +37,7 @@ know leaves it open.
 ## Normalizers and deltas (`normalizers`)
 
 For each file in `oracles/$system/normalizers/` and `deltas/` with an empty `approved_by`, first run
-`rig_proof.py normalizer` (or `delta`) and show its result. An illegal one cannot be approved: say why and move on.
+`rig_proof.ts normalizer` (or `delta`) and show its result. An illegal one cannot be approved: say why and move on.
 For a legal one, show what it erases or maps and its justification, then ask *Approve* or *Reject*. Approve writes
 the person's name to `approved_by`.
 
