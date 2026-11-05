@@ -29,6 +29,26 @@ Values are strings exactly as a consumer sees them. The built-in `exact` compara
 custom comparator is a command `<cmd> legacy.json modern.json` that prints `{"equal": bool, "compared": [observable
 ids]}`. It must name what it compared (Rule B).
 
+The ids it records are the grammar in `artifacts.md` ("Observable ids"): `<U>.screen`, `<U>/<store>.field:<name>`,
+and so on. A surface whose ids differ is never covered, whatever the runs show.
+
+### HTTP runner
+
+For an HTTP gate unit, run each case on each side with the shipped runner instead of writing one:
+
+```
+node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_http.ts run --case <case.json> --out <dir>/<case-id>.json \
+  --start 'JAVA_HOME=<jdk> "$JAVA_HOME/bin/java" -jar <app.jar> --server.port={port} --spring.datasource.url=jdbc:h2:file:{workdir}/db/app' \
+  --stores-cmd '<command that prints {"<table>": {"records": [...]}} after shutdown>' --message-class help-inline
+```
+
+Only `--start` differs between legacy and modern. The header of `rig_http.ts` gives every step. It fixes the
+environment, `Host` and the order of requests. It records a request that hangs as `{status: null, timeout: true}`,
+an app that does not start as `abend`, and the exit code as `return_code`. Exit 3 (nothing written) means the run
+could not be trusted. Clock: with `clock` set, pass `--clock-wrap` (for example `faketime '{clock}'`). Otherwise
+the case runs only on that UTC day. Write the stores command for the application's database (for H2, the H2 jar's
+`RunScript` with `CSVWRITE` per table, ordered by primary key).
+
 ## Set (`oracles/<system>/sets/<name>.json`, written by `set build` and `judge`)
 
 `dev`, `sealed` (case ids, chosen by hash), `exhaustive_classes`, `required_classes` (`{class: description}`), `generators`

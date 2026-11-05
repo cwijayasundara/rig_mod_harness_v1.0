@@ -13,7 +13,9 @@ script's counts and class descriptions only.
    the run. Executable mode: run legacy on them for expected outputs.
 2. **Run both sides** on every case of the set plus the fresh ones. Each side runs the whole gate unit, seeded from
    the case's store snapshots, never mixing legacy and modern in one run. Write one observation file per case,
-   `<case-id>.json`, to `evidence/$system/.obs/<run>/legacy/` and `.../modern/`.
+   `<case-id>.json`, to `work/$system/judge/obs/<run>/legacy/` and `.../modern/`. This is the judge's scratch folder: the
+   guard hides it from the worker and the fixer. Never write under `evidence/`; only the script writes there.
+   For an HTTP gate unit, run each side with `rig_http.ts` (see `references/proof.md`, "HTTP runner").
 3. **Evidence key** for the rung (V3 differential, or V4 fresh inputs):
    ```
    node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.ts key --ws . --system $system --gate-unit $gate_unit --rung V3 \
@@ -27,7 +29,7 @@ script's counts and class descriptions only.
      --legacy-dir <legacy obs> --modern-dir <modern obs> --fresh <fresh case ids> --env <environment id> \
      [--comparator exact|"<cmd>"] [--normalizers <approved files>]
    ```
-5. Delete the observation folders after the run. The run's results and coverage are kept by the script.
+5. Delete `work/$system/judge/obs/<run>/` after the run. The run's results and coverage are kept by the script.
 
 Return the script's JSON unchanged: counts per class with descriptions. Never an input, an expected output, a diff or
 a case id. A failing sealed case stays sealed. The worker gets new dev cases from the failing class, generated in

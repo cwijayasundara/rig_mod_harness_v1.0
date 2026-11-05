@@ -49,6 +49,9 @@ Read [references/deltas.md](references/deltas.md) before planning, implementing 
   - `stores`: the rows of each table the scenario writes, read after the scenario, ordered by primary key, with
     `record_order` meaning the order the application lists them in, not the storage order.
   - `messages`: validation and error messages a user sees, extracted from the page.
+- **Runner:** `${CLAUDE_PLUGIN_ROOT}/scripts/rig_http.ts`, the same command on both sides (`references/proof.md` in
+  `rig-method`, "HTTP runner"). Surface ids are `GET /owners.screen`, `GET /owners/owners.field:telephone`, with
+  scenarios as labels, never in the id.
 - **Normalizers** are rarely legal here (§6.2): a browser user is a consumer whose list is never complete. Values that
   must vary (a CSRF token, a session id, a generated timestamp) are masked only with a normalizer a person approves,
   after `rig_proof.ts normalizer` says it is legal.

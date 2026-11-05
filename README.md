@@ -73,6 +73,7 @@ plugins/rig/                         the plugin (everything Claude Code loads)
                   worker, fixer, reviewer-a, reviewer-b, reviewer-c, merge, version-delta-analyst
   hooks/guard.ts  integrity guard: evidence by script only, workers never see oracles, subagents never sign
   scripts/rig_proof.ts   the proof core: cases, sets, judge, keys, comparator checks, verdicts
+  scripts/rig_http.ts    the HTTP case runner for web gate units (same command on both sides)
   skills/rig-method/   the method and the artifact formats
   skills/cobol-to-java/   the COBOL-to-Java bridge: porting guide, type map, hazard catalog
   skills/java-uplift/     the Java uplift bridge: delta catalog, OpenRewrite recipes, observing web apps

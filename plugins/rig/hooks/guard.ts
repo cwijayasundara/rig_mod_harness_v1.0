@@ -8,8 +8,10 @@
  *    Accepting, signing and attesting are a person's decisions, recorded by the main session in /rig:review.
  * 3. `rig:worker` and `rig:fixer` never read `oracles/`, `evidence/`, `obligations/`, or the judge's and reviewers'
  *    folders under `work/`. They learn about failures only through the counts per class the loop hands them.
- * 4. `rig:reviewer-a` reads only its packet `work/<system>/<WU>/review-a/` (the diff), and `rig:reviewer-b` reads only
- *    `work/<system>/<WU>/review-b/` and the legacy tree.
+ * 4. `rig:reviewer-a` reads only its packet `work/<system>/<WU>/review-a<n>/` (the diff), and `rig:reviewer-b` reads
+ *    only `work/<system>/<WU>/review-b<n>/` and the legacy tree. `<n>` is empty for attempt 1 and the attempt number
+ *    after that (`review-a2/`). Either may also read Claude Code's own saved tool output (`~/.claude/projects/…/
+ *    tool-results/`), which is where a long result of its own tool call is put.
  *
  * The guard is a second line of defence: the commands already say all this. It matches paths in file tools exactly
  * and in Bash commands by pattern, so a determined script could still get round it. The hard boundary is the
@@ -26,7 +28,9 @@ const READ_TOOLS = new Set(['Read', 'Grep', 'Glob'])
 
 const SCRIPT_ONLY = [/^evidence\//, /^oracles\/[^/]+\/cases\//, /^oracles\/[^/]+\/sets\//]
 const PERSON_ONLY = [/^obligations\//, /^oracles\/[^/]+\/caps\//, /^analysis\/[^/]+\/attestations\.yaml$/]
-const HIDDEN_FROM_WORKERS = [/^oracles(\/|$)/, /^evidence(\/|$)/, /^obligations(\/|$)/, /^work\/[^/]+\/[^/]+\/(judge|review-[abc])(\/|$)/]
+const HIDDEN_FROM_WORKERS = [/^oracles(\/|$)/, /^evidence(\/|$)/, /^obligations(\/|$)/, /^work\/[^/]+\/([^/]+\/)?(judge|review-[abc]\d*)(\/|$)/]
+/** Claude Code saves a long tool result here and the agent reads it back. It is outside the workspace. */
+const TOOL_RESULTS = /\/\.claude\/projects\/[^/]+\/[^/]+\/(subagents\/[^/]+\/)?tool-results\/[^/]+$/
 
 const role = (agentType?: string) => (agentType ?? '').replace(/^rig:/, '')
 
@@ -100,7 +104,7 @@ export function decide(inp: Input, root: string): string | null {
   const written = tool === 'Bash' ? shellWrites(cmd) : []
   if (tool === 'Bash' && !viaProofScript) {
     const p = written.find((f) => SCRIPT_ONLY.some((r) => r.test(f)))
-    if (p && !/^evidence\/[^/]+\/\.obs\//.test(p)) return `${p} is written only by rig_proof.ts; this command looks like it writes there`
+    if (p) return `${p} is written only by rig_proof.ts; this command looks like it writes there`
   }
 
   // 2. person-only decisions
@@ -126,9 +130,12 @@ export function decide(inp: Input, root: string): string | null {
   // 4. reviewers see only their packet
   if (who === 'reviewer-a' || who === 'reviewer-b') {
     if (READ_TOOLS.has(tool) || tool === 'Bash') {
-      const packet = who === 'reviewer-a' ? /^work\/[^/]+\/[^/]+\/review-a(\/|$)/ : /^(work\/[^/]+\/[^/]+\/review-b(\/|$)|legacy(\/|$))/
+      const packet = who === 'reviewer-a' ? /^work\/[^/]+\/[^/]+\/review-a\d*(\/|$)/ : /^(work\/[^/]+\/[^/]+\/review-b\d*(\/|$)|legacy(\/|$))/
       const touched = tool === 'Bash' ? shellPaths : files
       const all = tool === 'Bash' ? touched : files
+      const t = inp.tool_input ?? {}
+      const named = [t['file_path'], t['path']].filter((x): x is string => typeof x === 'string' && x !== '')
+      if (tool === 'Read' && named.length === 1 && TOOL_RESULTS.test(normalize(named[0]!))) return null
       if (tool !== 'Bash' && files.length === 0 && READ_TOOLS.has(tool)) return `${who} must name a path inside its packet`
       const p = all.find((f) => !packet.test(f))
       if (p) return `${who} reads only its packet; ${p} is outside it`

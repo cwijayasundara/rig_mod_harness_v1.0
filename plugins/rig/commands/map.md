@@ -71,6 +71,10 @@ representation when the bytes matter (sign convention, padding, scale). Also add
 `complete: false` with `incomplete_because` naming each failing condition. Never set `complete: true` unless
 `attestations.yaml` holds the person's attestation for that store and conditions 1 and 2 are cited.
 
+Ids follow the grammar in `references/artifacts.md` (the ids the comparator records; scenario labels go in
+`scenarios`). Run `node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.ts surface check --ws . --system $system --file <surface>`
+on every surface and fix each id it lists before you finish.
+
 ## 5 — Hazards
 
 Sweep for every catalog entry in `references/artifacts.md` (`hazards.json`) and record each site with the observables

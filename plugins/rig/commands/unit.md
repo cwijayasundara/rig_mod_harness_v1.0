@@ -54,6 +54,8 @@ first line's `ts`) has passed, go to **escalate**.
    contract, and `PREFLIGHT.md` check 4), plus the dev outputs of both sides (`legacy/` and `modern/`, one file per case). Dispatch `reviewer-b`.
 7. **review C** — write `work/$system/$unit/review-c/` with the worker's final report, the log, and the self-check
    output. Dispatch `reviewer-c`.
+   On attempt 2 and later the packets are `review-a<n>/`, `review-b<n>/`, `review-c<n>/` (`review-a2/`), so earlier
+   packets stay as they were. The guard lets each reviewer read only these names; any other folder name locks it out.
 8. **fix** — if any review has a `must` finding, dispatch the `fixer` with the findings' text (never the packets), then
    repeat **self-check**. Log each finding as fixed or disputed. A finding the fixer disputes goes into the escalation
    note if it is not fixed.

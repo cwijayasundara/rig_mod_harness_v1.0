@@ -100,6 +100,25 @@ Observable kinds: `field`, `record_order`, `cardinality`, `store_write`, `store_
 `message`, `screen`, `timing`. Every output store gets at least `store_write`, `record_order`, `cardinality` and one
 `field` per elementary field of its record. Every gate unit gets `return_code` and `abend`.
 
+**Observable ids** are exactly the ids the comparator records, so that a verdict can tell what was compared. `<U>` is
+the gate unit without its prefix (`job:INTCALC` → `INTCALC`, `http:GET /owners` → `GET /owners`):
+
+| Level | Id | Kinds |
+|---|---|---|
+| unit | `<U>.<kind>` | `return_code`, `abend`, `message`, `screen`, `timing` |
+| store | `<U>/<store>.<kind>` | `store_write`, `cardinality`, `record_order`, `store_semantics` |
+| field | `<U>/<store>.field:<name>` | one per field |
+
+Nothing else goes in an id. A scenario (which page, which status, which error) is a label in `"scenarios"` on the
+observable, never a suffix: `{ "id": "GET /owners.screen", "kind": "screen", "scenarios": ["200-html-list",
+"302-single-match", "500-bad-page"] }`. For an HTTP route, `<store>` is the table name. Check every surface with
+`node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.ts surface check --ws . --system <s> --file surfaces/<file>.json`; it lists
+each id the comparator would never record. The M4 exit run wrote `http:GET /owners.screen:200-html-list`, and every
+route came out NOT_PROVEN with "never compared" although every case passed.
+
+The gate unit's graph node is `job:<name>`, `transaction:<name>` for `tx:<name>`, and `endpoint:<METHOD> <path>` for
+`http:<METHOD> <path>`. `rig_proof.ts key` refuses a gate unit whose node is not in `graph.json`.
+
 `complete` starts `false` and becomes `true` only when all three hold, each cited:
 
 1. every program that can read the store is resolved (no open `unresolved` entry in the system can reach it),

@@ -20,6 +20,7 @@
  *   verdict        compute the verdict of a gate unit and rung from every run under its key
  *   obligations    discharge obligations by coverage, and list what is open
  *   calendar       required calendar events for a gate unit and which runs covered them
+ *   surface check  check that every observable id on a surface is one the comparator records
  *
  * Every command prints JSON and exits 0 when its check passes, 1 when it fails, 2 on bad input.
  */
@@ -262,6 +263,33 @@ export function applyNormalizers(obs: Obj, norms: Obj[]): Obj {
   return o
 }
 
+/** The name a gate unit's observable ids start with: `job:INTCALC` → `INTCALC`, `http:GET /owners` → `GET /owners`. */
+export const unitName = (gateUnit: string): string => gateUnit.includes(':') ? gateUnit.slice(gateUnit.indexOf(':') + 1) : gateUnit
+
+const UNIT_KINDS = new Set(['return_code', 'abend', 'message', 'screen', 'timing'])
+const STORE_KINDS_OBS = /^(.+)\.(store_write|cardinality|record_order|store_semantics|field:[^\s:]+)$/
+
+/**
+ * Why an observable id is not one the comparator records, or null when it is. The grammar is exactly what
+ * exactCompare emits: `<U>.<kind>` for unit-level kinds, `<U>/<store>.<kind>` and `<U>/<store>.field:<name>`
+ * for store-level ones. A scenario label (`screen:200-html-list`) is not part of an id; it goes in `scenarios`.
+ */
+export function observableIdProblem(gateUnit: string, id: string): string | null {
+  const u = unitName(gateUnit)
+  if (id.startsWith(u + '.')) {
+    const kind = id.slice(u.length + 1)
+    if (UNIT_KINDS.has(kind)) return null
+    const base = kind.split(':')[0]!
+    if (UNIT_KINDS.has(base)) return `"${kind}" carries a suffix; the comparator records ${u}.${base} (put the label in "scenarios")`
+    return `unknown unit-level kind "${kind}" (one of ${[...UNIT_KINDS].join(', ')})`
+  }
+  if (id.startsWith(u + '/')) {
+    if (STORE_KINDS_OBS.test(id.slice(u.length + 1))) return null
+    return `store-level ids are ${u}/<store>.store_write|cardinality|record_order|store_semantics|field:<name>`
+  }
+  return `ids of ${gateUnit} start with "${u}." or "${u}/"`
+}
+
 export type Comparison = { equal: boolean; compared: string[]; diffs: string[] }
 
 /** Compare every observable. Cardinality and order are separate observables. */
@@ -374,7 +402,7 @@ const bump = (o: Record<string, number>, k: string) => { o[k] = (o[k] ?? 0) + 1 
 export function judge(ws: WS, setName: string, key: string, legacyDir: string, modernDir: string, freshIn: string[],
                       comparator: string | undefined, normalizers: Obj[], envId: string): Obj {
   const s = load(ws.setPath(setName))
-  const unit = String(s['gate_unit']).split(':').slice(1).join(':') || s['gate_unit']
+  const unit = unitName(String(s['gate_unit']))
   const known = new Set<string>([...s['dev'], ...s['sealed']])
   const fresh = uniqSorted(freshIn.filter((id) => !known.has(id)))
   const cases = uniqSorted([...known, ...fresh])
@@ -475,13 +503,32 @@ const FOLLOW = new Set(['contains', 'runs', 'expands', 'includes', 'calls', 'tra
   'has_record', 'uses_psb', 'maps_to', 'reads', 'writes', 'binds', 'accesses_unknown', 'submits'])
 const STORE_KINDS = new Set(['dataset', 'table', 'mq_queue', 'td_queue', 'external', 'sysout'])
 
+/** Gate-unit prefixes and the graph node kind each one names (`tx:CC00` is the node `transaction:CC00`). */
+const GATE_NODE_KIND: Record<string, string> = { job: 'job', tx: 'transaction', http: 'endpoint' }
+
+/**
+ * The graph node a gate unit starts from. Rule A: a gate unit with no node fails closed, because an empty closure
+ * would give a key that hashes no legacy file and stays the same whatever the legacy code is (M4 exit run).
+ */
+export function gateNode(g: Obj, gateUnit: string): string {
+  const ids = new Set<string>(g['nodes'].map((n: Obj) => n['id']))
+  const i = gateUnit.indexOf(':')
+  const kind = GATE_NODE_KIND[gateUnit.slice(0, i)]
+  if (i < 0 || !kind) throw new Bad(`gate unit ${gateUnit} must start with job:, tx: or http:`)
+  const id = `${kind}:${gateUnit.slice(i + 1)}`
+  if (ids.has(id)) return id
+  if (ids.has(gateUnit)) return gateUnit
+  throw new Bad(`gate unit ${gateUnit} has no node ${id} in graph.json; the key would hash no legacy file`)
+}
+
 /** Legacy files in the gate unit's runtime closure, from graph.json. Stores are the boundary. */
 export function runtimeClosure(ws: WS, gateUnit: string): string[] {
   const g = load(join(ws.analysis, 'graph.json'))
   const out = new Map<string, Obj[]>()
   for (const e of g['edges']) out.set(e['from'], [...(out.get(e['from']) ?? []), e])
   const nodes = new Map<string, Obj>(g['nodes'].map((n: Obj) => [n['id'], n]))
-  const stack = [gateUnit, ...g['edges'].filter((e: Obj) => e['kind'] === 'schedules' && e['to'] === gateUnit).map((e: Obj) => e['from'])]
+  const start = gateNode(g, gateUnit)
+  const stack = [start, ...g['edges'].filter((e: Obj) => e['kind'] === 'schedules' && e['to'] === start).map((e: Obj) => e['from'])]
   const seen = new Set<string>()
   while (stack.length > 0) {
     const id = stack.pop()!
@@ -889,7 +936,9 @@ export function verdict(ws: WS, gateUnit: string, rung: string, key: string, req
   const obsReq: string[] = req['observables'] ?? []
   const gaps: Gap[] = []
   for (const oid of obsReq) {
-    if ((cov.observables[oid] ?? 0) < 1) gaps.push({ observables: [oid], requirement: 'class:any', reason: `observable ${oid} was never compared` })
+    const bad = observableIdProblem(gateUnit, oid)
+    if (bad) gaps.push({ observables: [oid], requirement: 'class:any', reason: `observable ${oid} is not an id the comparator records: ${bad}` })
+    else if ((cov.observables[oid] ?? 0) < 1) gaps.push({ observables: [oid], requirement: 'class:any', reason: `observable ${oid} was never compared` })
   }
   for (const [cl, n] of Object.entries((req['classes'] ?? {}) as Record<string, number>)) {
     if ((cov.classes[cl] ?? 0) < n) gaps.push({ observables: obsReq, requirement: `class:${cl}`, reason: `class ${cl}: ${cov.classes[cl] ?? 0} of ${n} inputs` })
@@ -972,7 +1021,7 @@ export function main(argv: string[]): number {
       const st = buildSet(ws, s('set')!, s('gate-unit')!, s('mode')!, ids(s('pool')), s('required') ? load(s('required')!) : {}, s('generators') ? load(s('generators')!) : {}, ids(s('exhaustive')))
       out = { set: st['name'], dev: st['dev'].length, sealed: st['sealed'].length, hash: setHash(st) }
     } else if (command === 'compare') {
-      out = compareOnly(s('legacy-dir')!, s('modern-dir')!, s('comparator'), String(s('gate-unit') ?? '').split(':').at(-1)!, join(ws.root, '.rig-tmp'))
+      out = compareOnly(s('legacy-dir')!, s('modern-dir')!, s('comparator'), unitName(String(s('gate-unit') ?? '')), join(ws.root, '.rig-tmp'))
       ok = out['passed'] === out['total']
     } else if (command === 'judge') {
       out = judge(ws, s('set')!, s('key')!, s('legacy-dir')!, s('modern-dir')!, ids(s('fresh')), s('comparator'), ids(s('normalizers')).map(load), s('env') ?? 'default')
@@ -988,7 +1037,7 @@ export function main(argv: string[]): number {
       out = { total: errs.length === 0, reasons: errs }
       ok = errs.length === 0
     } else if (command === 'canary') {
-      out = canarySweep(ids(s('samples')).map(load), s('comparator'), String(s('gate-unit') ?? '').split(':').at(-1)!, JSON.parse(s('correlated') ?? '[]'), join(ws.evidence, '.tmp'))
+      out = canarySweep(ids(s('samples')).map(load), s('comparator'), unitName(String(s('gate-unit') ?? '')), JSON.parse(s('correlated') ?? '[]'), join(ws.evidence, '.tmp'))
       ok = out['trusted']
     } else if (command === 'verdict') {
       out = verdict(ws, s('gate-unit')!, s('rung')!, s('key')!, s('requirements') ? load(s('requirements')!) : {}, Boolean(a['write-obligations']))
@@ -1003,6 +1052,13 @@ export function main(argv: string[]): number {
       for (const run of allRuns(ws)) if (run['gate_unit'] === s('gate-unit')) for (const e of run['coverage']['calendar_events']) seen.add(e)
       out = { required: need, covered: need.filter((e) => seen.has(e)), missing: need.filter((e) => !seen.has(e)) }
       ok = out['missing'].length === 0
+    } else if (command === 'surface' && sub === 'check') {
+      const surf = load(s('file')!)
+      const problems = (surf['observables'] ?? []).map((o: Obj) => ({ id: o['id'], problem: observableIdProblem(surf['gate_unit'], String(o['id'])) }))
+        .filter((p: Obj) => p.problem !== null)
+      const dup = uniqSorted((surf['observables'] ?? []).map((o: Obj) => o['id']).filter((x: string, i: number, a: string[]) => a.indexOf(x) !== i))
+      out = { gate_unit: surf['gate_unit'], observables: (surf['observables'] ?? []).length, problems, duplicates: dup }
+      ok = problems.length === 0 && dup.length === 0
     } else {
       throw new Bad(`unknown command ${[command, sub].filter(Boolean).join(' ')}`)
     }

@@ -25,8 +25,11 @@ describe('script-only paths', () => {
     assert.match(call('Bash', { command: 'echo {} > evidence/sys/K/r/run.json' }) ?? '', /rig_proof/)
     assert.equal(call('Bash', { command: 'node /p/scripts/rig_proof.ts judge --ws . --system sys --set S' }), null)
   })
-  test('observation scratch folders are allowed', () => {
-    assert.equal(call('Bash', { command: 'mkdir -p evidence/sys/.obs/r1/legacy' }), null)
+  test('observations go in the judge scratch folder, never under evidence (M4: judges cleaned evidence/.obs)', () => {
+    assert.match(call('Bash', { command: 'rm -rf evidence/sys/.obs' }) ?? '', /rig_proof/)
+    assert.equal(call('Bash', { command: 'mkdir -p work/sys/judge/obs/r1/legacy' }, 'rig:judge'), null)
+    assert.equal(call('Bash', { command: 'rm -rf work/sys/judge/obs/r1' }, 'rig:judge'), null)
+    assert.match(call('Read', { file_path: 'work/sys/judge/obs/r1/legacy/x.json' }, 'rig:worker') ?? '', /hidden/)
   })
   test('reading evidence is fine for the main session', () => {
     assert.equal(call('Read', { file_path: '/ws/evidence/sys/K/r/run.json' }), null)
