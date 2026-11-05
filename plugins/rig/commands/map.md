@@ -52,6 +52,13 @@ Build `graph.json` from the classified sites, reading the code around each one:
 - **Java web**: an `endpoint` node per route (`endpoint:GET /owners/{ownerId}`) with `entry` to its handler
   `class`/method, `sends` to each `template` it renders, `reads`/`writes` to each `table` its repositories touch (through
   `@Entity` mappings), and `config` nodes for the properties that change behaviour. A route's gate unit is the endpoint.
+- **Java code (any Java system, batch or web)**: one `class` node per top-level type (`class:carddemo.Cbact04c`,
+  `loc` its file), a `calls` edge for each class whose method it calls and a `uses` edge for each class it only
+  references as a type (field, parameter, `new`, `catch`). Each edge lists the method-level pairs in
+  `attrs.methods` (`["run -> Zoned.decode", ...]`), each with its `path:line`. A Java **batch** entry point gets a
+  `job` node per job it runs (`job:INTCALC`, from the dispatch on `args` or the main class), an `entry` edge to the
+  class it starts, and `reads`/`writes` to a `dataset` node for each file it opens, named by the environment
+  variable or DD (`DD_ACCTFILE` gives `dataset:ACCTFILE`), with the open mode cited.
 - **Schedules**: one `schedule` node per scheduler entry, `schedules` → job, `triggers` between entries (Control-M
   IN/OUT conditions, CA-7 triggered jobs), with calendar, days and run-mode parameters in attrs.
 

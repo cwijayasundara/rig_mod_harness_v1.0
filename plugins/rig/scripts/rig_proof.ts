@@ -566,7 +566,7 @@ export function compareOnly(casesDir: string, modernDir: string, comparator: str
 // ---------------------------------------------------------------------------
 
 const FOLLOW = new Set(['contains', 'runs', 'expands', 'includes', 'calls', 'transfers', 'links', 'starts', 'entry',
-  'has_record', 'uses_psb', 'maps_to', 'reads', 'writes', 'binds', 'accesses_unknown', 'submits'])
+  'has_record', 'uses_psb', 'uses', 'maps_to', 'reads', 'writes', 'binds', 'accesses_unknown', 'submits'])
 const STORE_KINDS = new Set(['dataset', 'table', 'mq_queue', 'td_queue', 'external', 'sysout'])
 
 /** Gate-unit prefixes and the graph node kind each one names (`tx:CC00` is the node `transaction:CC00`). */

@@ -36,7 +36,8 @@ Edge kinds: `includes`, `calls` (static CALL), `transfers` (XCTL), `links` (LINK
 `runs` (step to program), `contains`, `expands` (step to PROC), `binds` (step to dataset through a DD, attrs `dd`,
 `disp`), `reads`, `writes`, `accesses_unknown`, `defines`, `deletes`, `submits` (internal reader), `transmits`
 (FTP and similar, to an `external` node), `sends`/`receives` (screens), `entry` (transaction to program), `maps_to`
-(CICS file to dataset, PSB to IMS database), `schedules`, `triggers`, `has_record`, `declares`,
+(CICS file to dataset, PSB to IMS database; Java batch job to its entry class), `uses` (a Java class referencing another as a type;
+`calls` and `uses` carry the method-level pairs in `attrs.methods`), `schedules`, `triggers`, `has_record`, `declares`,
 `reaches_unresolved`.
 
 A node that is referenced but has no source in the tree gets `"attrs": { "source": "missing" }`. That is an unknown,
