@@ -45,7 +45,8 @@ commands/        start, preflight, map, rules, review, status
 agents/          legacy-analyst, rule-extractor, rule-verifier
 skills/rig-method/   the method and the artifact formats
 docs/            the proposal and the two interrogation rounds
-tests/fixtures/carddemo-mini/   a 52-file slice of AWS CardDemo, with EXPECTED.md
+tests/fixtures/carddemo-mini/   a 51-file slice of AWS CardDemo (code only)
+tests/fixtures/carddemo-mini.EXPECTED.md   the M1 exit check, kept outside the code tree
 scripts/make-carddemo-mini.sh   rebuilds the fixture from a pinned CardDemo commit
 ```
 
@@ -61,5 +62,5 @@ claude --plugin-dir /path/to/rig_mod_harness_v1.0
 > /rig:start carddemo --source /path/to/rig_mod_harness_v1.0/tests/fixtures/carddemo-mini
 ```
 
-Then compare `analysis/carddemo/` with [tests/fixtures/carddemo-mini/EXPECTED.md](tests/fixtures/carddemo-mini/EXPECTED.md).
+Then compare `analysis/carddemo/` with [tests/fixtures/carddemo-mini.EXPECTED.md](tests/fixtures/carddemo-mini.EXPECTED.md).
 That file is the M1 exit check.

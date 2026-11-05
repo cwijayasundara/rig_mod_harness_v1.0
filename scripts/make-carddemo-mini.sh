@@ -1,5 +1,8 @@
 #!/bin/sh
 # Rebuild tests/fixtures/carddemo-mini from AWS CardDemo at a pinned commit.
+# Only legacy code goes in that folder: the answer key (carddemo-mini.EXPECTED.md)
+# and the provenance note (carddemo-mini.SOURCE.md) sit beside it, so a run on
+# the fixture cannot see them.
 # Files are copied unmodified, except three slices: the CA-7 listing (first
 # four jobs), LISTCAT (first entries), and CARDDEMO.CSD (definitions that the
 # chosen programs use).
@@ -55,11 +58,11 @@ awk 'BEGIN { keep = 0 }
   !/^ ?DEFINE / && /^ ?[A-Z*]/ && !/^ +/ { keep = 0 }
   keep' "$SRC/app/csd/CARDDEMO.CSD" > "$OUT/app/csd/CARDDEMO.CSD"
 
-cat > "$OUT/SOURCE.md" <<MD
+cat > "$OUT.SOURCE.md" <<MD
 # carddemo-mini
 
 A small subset of [AWS CardDemo]($REPO) at commit \`$COMMIT\`, used as the M1 test fixture.
-Apache-2.0, see LICENSE and NOTICE. Rebuild with \`scripts/make-carddemo-mini.sh\`.
+Apache-2.0, see carddemo-mini/LICENSE and NOTICE. Rebuild with \`scripts/make-carddemo-mini.sh\`.
 
 Unmodified copies, except: \`CardDemo.ca7\` (lines 1-125), \`LISTCAT.txt\` (lines 1-121), and
 \`CARDDEMO.CSD\` (only the DEFINE blocks for CC00, CM00, COSGN00C, COMEN01C, their mapsets, USRSEC and JOBS).

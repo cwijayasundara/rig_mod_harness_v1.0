@@ -1,8 +1,11 @@
 # What `/rig:map` must find in carddemo-mini
 
 This is the M1 exit check. Run the plugin on this fixture, then compare `analysis/<system>/` with this list. Every
-line is verified against the source (paths are relative to this folder). A miss on any item marked **must** means the
+line is verified against the source (paths are relative to `carddemo-mini/`). This file sits outside the fixture
+on purpose, so the run under test cannot read it. A miss on any item marked **must** means the
 map is wrong, whatever else it got right.
+
+A multi-line statement may be cited at its first line (`EXEC CICS`) or at the line with the operand: both count.
 
 ## Unresolved (Rule A): every one must appear in `unresolved.json` with `status: open`
 
@@ -13,11 +16,13 @@ map is wrong, whatever else it got right.
 | `app/cbl/COMEN01C.cbl:202` `XCTL PROGRAM(CDEMO-TO-PROGRAM)` | dynamic_transfer | commarea field, written at `:97` and `:199` and by callers. Candidate `COSGN00C` |
 | `app/app-vsam-mq/cbl/CODATE01.cbl:182`, `:216`, `:251` `CALL 'MQOPEN'` | dynamic_queue | object name moved from variables (`:176`, `:210`, `:245`). `INPUT-QUEUE-NAME` comes from the trigger message, `MQOD-OBJECTNAME` is in the missing copybook `CMQODV`. Candidates `CARD.DEMO.REPLY.DATE` (`:147`), `CARD.DEMO.ERROR` (`:243`) |
 | `CBTRN03C`, run by `app/proc/REPROC.prc` step `STEP10R` through `app/jcl/TRANREPT.jcl` | missing_source | no source in the tree, so every DD of that step is `accesses_unknown` |
-| `MVSWAIT` (`app/cbl/COBSWAIT.cbl:38`), `CEE3ABD` (`app/cbl/CBACT04C.cbl:632`, `app/cbl/CBCUS01C.cbl:158`) | missing_source | system or assembler routines with no source here. Static calls, but the target is unknown |
+| `MVSWAIT` (`app/cbl/COBSWAIT.cbl:38`) | missing_source | an assembler routine with no source here. A static call, but the target is unknown |
 | copybooks `DFHAID`, `DFHBMSCA` (COSGN00C, COMEN01C), `SQLCA` (COBTUPDT), `CMQGMOV` `CMQPMOV` `CMQMDV` `CMQODV` `CMQV` `CMQTML` (CODATE01) | missing_copybook | IBM-supplied, not in the tree |
 | CSD `TDQUEUE(JOBS)`, `TYPE(EXTRA) DDNAME(INREADER)`, `app/csd/CARDDEMO.CSD` | job_submission | an extrapartition queue described as "SUBMIT JOBS FROM CICS". No writer in this fixture, but what it submits is unknown |
 
 ## Resolved: must **not** be left open
+
+`CEE3ABD` (`app/cbl/CBACT04C.cbl:632`, `app/cbl/CBCUS01C.cbl:158`) may be `source: vendor` with its documented effect (abend the run, which feeds the `abend` observable), or `missing_source`. Either passes.
 
 | Site | Resolution |
 |---|---|
@@ -30,7 +35,7 @@ map is wrong, whatever else it got right.
 ## Edges that must exist
 
 - `job:INTRDRJ1` step `STEP01` (IEBGENER, `SYSUT2 SYSOUT=(A,INTRDR)`) **submits** `job:INTRDRJ2` (`SYSUT1 DSN=AWS.M2.CARDDEMO.JCL(INTRDRJ2)`).
-- `job:FTPJCLS` (member `FTPJCL.JCL`) **transmits** `AWS.M2.CARDEMO.FTP.TEST` to an `external` node for the FTP host. The control cards hold a user and password: they must be masked in every artifact.
+- `job:FTPJCLS` (member `FTPJCL.JCL`), from its step or from the dataset node, **transmits** `AWS.M2.CARDEMO.FTP.TEST` to an `external` node for the FTP host. The control cards hold a user and password: they must be masked in every artifact, including sweep dumps and files written by the run's own scripts.
 - `job:MNTTRDB2` `STEP1` (IKJEFT01) **runs** `program:COBTUPDT` (from `SYSTSIN RUN PROGRAM(COBTUPDT) PLAN(CARDDEMO)`), which **writes** `table:CARDDEMO.TRANSACTION_TYPE` (INSERT, UPDATE, DELETE) and **reads** DD `INPFILE`.
 - `job:UNLDPADB` `STEP01` (DFSRRC00, `PARM='DLI,PAUDBUNL,PAUTBUNL,...'`) **runs** `program:PAUDBUNL` with `psb:PAUTBUNL` → `ims_db:DBPAUTP0`.
 - `job:TRANREPT` step `STEP05R` **expands** `proc:REPROC`. Its IDCAMS step reads the control member `REPROCT` (`app/ctl/REPROCT.ctl`, `REPRO INFILE(FILEIN) OUTFILE(FILEOUT)`), with `FILEIN` overridden to `AWS.M2.CARDDEMO.TRANSACT.VSAM.KSDS` and `FILEOUT` to the GDG `AWS.M2.CARDDEMO.TRANSACT.BKUP(+1)`.

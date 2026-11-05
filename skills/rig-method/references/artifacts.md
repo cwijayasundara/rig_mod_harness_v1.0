@@ -42,6 +42,11 @@ Edge kinds: `includes`, `calls` (static CALL), `transfers` (XCTL), `links` (LINK
 A node that is referenced but has no source in the tree gets `"attrs": { "source": "missing" }`. That is an unknown,
 not an error, and it must also appear in `unresolved.json`.
 
+A system utility or vendor routine whose behaviour is documented (SORT, IDCAMS, IEBGENER, FTP, IKJEFT01, DFSRRC00,
+`CEE3ABD`) may instead get `"attrs": { "source": "vendor", "semantics": "<what it does to the surface>", "doc": "<manual
+or reference>" }`. Its documented effect is used (SORT reads SORTIN and writes SORTOUT; CEE3ABD abends the run). A
+vendor routine with no documented behaviour, or one whose effect on the surface you are not sure of, is `missing`.
+
 ## unresolved.json
 
 Every edge whose target analysis cannot prove. One entry per site.
