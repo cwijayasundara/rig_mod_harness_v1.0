@@ -34,7 +34,8 @@ first line's `ts`) has passed, go to **escalate**.
    `work/$system/$unit/dev/`. Executable mode: on a retry, also add new dev cases that you generate from each failing
    class, with legacy expected outputs. Sealed cases never leave `oracles/`.
 
-   **Never teach the reference environment's quirks.** For every class or observable that `PREFLIGHT.md` check 4 lists
+   **Never teach the reference environment's quirks.** Match mechanically: list every class of the set, and every
+   hazard id and observable, against each row of `PREFLIGHT.md` check 4 and each cap. For every class or observable that `PREFLIGHT.md` check 4 lists
    under an environment difference, or that a cap names, do **not** copy its dev cases. The expected outputs come from
    a reference that is not production. In the brief, list each such class with its environment difference and say:
    *production behaviour unknown: implement what the legacy code and the documented target-platform behaviour say,
@@ -66,5 +67,8 @@ first line's `ts`) has passed, go to **escalate**.
     - **escalate** — the budget is used up, a failure has an environment cause (draft an oracle cap, see
       `verify.md`), or a dispute is unresolved. Write `work/$system/$unit/ESCALATION.md`: what was tried, the
       counts per class, the reviewers' open findings, and the decision a person must make.
+
+Guard denials are recorded by the hook in `.rig/guard.jsonl`. Copy them into the unit's report; never report "no
+denials" without reading that file.
 
 End every run of this command with the unit's state, the stage reached, and the next command.

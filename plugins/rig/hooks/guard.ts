@@ -16,7 +16,7 @@
  * operating system (a sandbox, or separate checkouts).
  */
 
-import { readFileSync } from 'node:fs'
+import { appendFileSync, mkdirSync, readFileSync } from 'node:fs'
 import { isAbsolute, join, normalize, relative, sep } from 'node:path'
 
 type Input = { tool_name?: string; tool_input?: Record<string, unknown>; agent_type?: string; cwd?: string }
@@ -34,7 +34,14 @@ const role = (agentType?: string) => (agentType ?? '').replace(/^rig:/, '')
 function pathsOf(inp: Input, root: string): string[] {
   const t = inp.tool_input ?? {}
   const raw = [t['file_path'], t['notebook_path'], t['path']].filter((x): x is string => typeof x === 'string' && x !== '')
-  if (inp.tool_name === 'Glob' && typeof t['pattern'] === 'string') raw.push(String(t['pattern']))
+  // A Glob pattern is relative to its path (or the working directory): check the joined form, not the bare pattern.
+  if (inp.tool_name === 'Glob' && typeof t['pattern'] === 'string') {
+    const pat = String(t['pattern'])
+    const base = typeof t['path'] === 'string' && t['path'] !== '' ? String(t['path']) : ''
+    const joined = isAbsolute(pat) ? pat : base ? join(base, pat) : pat
+    if (base) raw.splice(raw.indexOf(base), 1)
+    raw.push(joined.replace(/\/\*\*?(\/.*)?$|\/[^/]*[*?[][^/]*(\/.*)?$/, '') || joined)
+  }
   return raw.map((p) => rel(isAbsolute(p) ? p : join(inp.cwd ?? root, p), root)).filter((p): p is string => p !== null)
 }
 
@@ -119,7 +126,7 @@ export function decide(inp: Input, root: string): string | null {
   // 4. reviewers see only their packet
   if (who === 'reviewer-a' || who === 'reviewer-b') {
     if (READ_TOOLS.has(tool) || tool === 'Bash') {
-      const packet = who === 'reviewer-a' ? /^work\/[^/]+\/[^/]+\/review-a\// : /^(work\/[^/]+\/[^/]+\/review-b\/|legacy\/)/
+      const packet = who === 'reviewer-a' ? /^work\/[^/]+\/[^/]+\/review-a(\/|$)/ : /^(work\/[^/]+\/[^/]+\/review-b(\/|$)|legacy(\/|$))/
       const touched = tool === 'Bash' ? shellPaths : files
       const all = tool === 'Bash' ? touched : files
       if (tool !== 'Bash' && files.length === 0 && READ_TOOLS.has(tool)) return `${who} must name a path inside its packet`
@@ -140,6 +147,12 @@ function main(): void {
   const root = process.env['CLAUDE_PROJECT_DIR'] ?? inp.cwd ?? process.cwd()
   const reason = decide(inp, root)
   if (reason === null) return
+  // Every denial is recorded by the guard itself, so a run's report cannot leave one out (M3 exit run 2 did).
+  try {
+    mkdirSync(join(root, '.rig'), { recursive: true })
+    appendFileSync(join(root, '.rig', 'guard.jsonl'), JSON.stringify({ ts: new Date().toISOString(), agent_type: inp.agent_type ?? null,
+      tool: inp.tool_name, input: JSON.stringify(inp.tool_input ?? {}).slice(0, 300), reason }) + '\n')
+  } catch { /* recording must never turn a deny into an allow */ }
   process.stdout.write(JSON.stringify({
     hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: `RIG guard: ${reason}` },
   }))

@@ -2,6 +2,7 @@
 
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { describe, test } from 'node:test'
 
@@ -9,6 +10,8 @@ import { decide } from '../../plugins/rig/hooks/guard.ts'
 
 const ROOT = '/ws'
 const GUARD = resolve(import.meta.dirname, '../../plugins/rig/hooks/guard.ts')
+const ROOTDIR = resolve(import.meta.dirname, '../..')
+mkdirSync(join(ROOTDIR, 'tests', 'runs'), { recursive: true })
 const call = (tool: string, input: Record<string, unknown>, agent?: string) =>
   decide({ tool_name: tool, tool_input: input, cwd: ROOT, ...(agent && { agent_type: agent }) }, ROOT)
 
@@ -82,6 +85,10 @@ describe('reviewers see only their packet', () => {
     assert.match(call('Read', { file_path: 'legacy/carddemo/app/cbl/X.cbl' }, 'rig:reviewer-a') ?? '', /outside/)
     assert.match(call('Read', { file_path: 'modernized/x/Main.java' }, 'rig:reviewer-a') ?? '', /outside/)
   })
+  test('a packet folder named without a trailing slash is inside the packet (M3 exit run 2)', () => {
+    assert.equal(call('Glob', { pattern: '*', path: 'work/sys/WU-1/review-b' }, 'rig:reviewer-b'), null)
+    assert.equal(call('Grep', { pattern: 'x', path: 'work/sys/WU-1/review-a' }, 'rig:reviewer-a'), null)
+  })
   test('reviewer B: its packet and the legacy tree', () => {
     assert.equal(call('Read', { file_path: 'work/sys/WU-1/review-b/spec.md' }, 'rig:reviewer-b'), null)
     assert.equal(call('Read', { file_path: 'legacy/carddemo/app/cbl/X.cbl' }, 'rig:reviewer-b'), null)
@@ -91,7 +98,13 @@ describe('reviewers see only their packet', () => {
 
 test('the hook prints a deny decision on stdout', () => {
   const input = JSON.stringify({ tool_name: 'Write', tool_input: { file_path: join('/ws', 'evidence/sys/K/r/run.json') }, cwd: '/ws' })
-  const out = spawnSync(process.execPath, [GUARD], { input, encoding: 'utf8', env: { ...process.env, CLAUDE_PROJECT_DIR: '/ws' } })
+  const dir = mkdtempSync(join(ROOTDIR, 'tests', 'runs', 'guard-test-'))
+  const input2 = JSON.stringify({ tool_name: 'Write', tool_input: { file_path: join(dir, 'evidence/sys/K/r/run.json') }, cwd: dir })
+  const out = spawnSync(process.execPath, [GUARD], { input: input2, encoding: 'utf8', env: { ...process.env, CLAUDE_PROJECT_DIR: dir } })
+  const logged = readFileSync(join(dir, '.rig', 'guard.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l))
+  rmSync(dir, { recursive: true, force: true })
+  assert.equal(logged.length, 1)
+  assert.match(logged[0].reason, /rig_proof/)
   assert.equal(out.status, 0)
   const d = JSON.parse(out.stdout)
   assert.equal(d.hookSpecificOutput.permissionDecision, 'deny')

@@ -7,6 +7,10 @@ model: sonnet
 
 You get a work unit, its brief, and a list of findings, each with an id, a severity, and the reviewer's text. For each
 `must` finding: check it against the legacy code. If it holds, fix it with the smallest change, citing the legacy line.
+A reviewer's suggested behaviour is not evidence. Change an observable behaviour only to what the legacy code or the
+target platform's documentation shows, cited. If neither settles it, leave the behaviour as it is and mark the finding
+`disputed: production behaviour unknown`. (M3 exit run 2: a reviewer's undocumented suggestion was applied and made a
+class fail.)
 If it does not hold, dispute it with the legacy line that shows why. Rebuild and rerun the dev cases afterwards.
 
 The same limits as the worker apply: write only in `target_scope`, never read `oracles/`, `evidence/`, `obligations/`
