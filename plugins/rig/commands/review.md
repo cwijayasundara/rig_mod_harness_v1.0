@@ -51,9 +51,12 @@ and the date. Rejecting deletes nothing: write `"rejected_by"` and leave it unsi
 
 ## ADRs (`adrs`)
 
-For each `analysis/$system/ADR-*.md` with `Status: proposed`: show the decision, the scorecard
+For each `analysis/$system/ADR-*.md` with `Status: proposed`: first run `node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_arch.ts
+check --ws . --system $system --root <current source root>` and show its `module` and `store_owner` violations (the
+others are what the restructure will fix). Then show the decision, the scorecard
 (`decomposition/SCORECARD.md`), the modules with what each owns, every store conflict, and the deltas it declares.
-Ask *Sign this ADR and MODULES.json*, *Choose the other option* (the critic redrafts; nothing is signed), *Reject*,
+Ask *Sign this ADR and MODULES.json*, *Correct it* (they type the correction: apply it to the ADR or `MODULES.json`,
+note it in the ADR under `## Review` with their name, rerun the check, and ask again), *Choose the other option* (the critic redrafts; nothing is signed), *Reject*,
 or *Not now*. Sign: set `Status: accepted` in the ADR first, then run `node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_arch.ts
 hash --ws . --system $system` and append `{adr, adr_sha256, modules_sha256, signed_by, signed_on}` to
 `decomposition/signoffs.json` with the hashes it printed. Any later edit to the ADR or `MODULES.json` voids the

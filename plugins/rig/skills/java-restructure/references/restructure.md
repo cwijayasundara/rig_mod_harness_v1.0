@@ -15,7 +15,8 @@
 A package belongs to the module that lists it or its longest listed prefix. `api` lists the packages other modules
 may use; a module with an empty `api` is used by nobody. `markers` are strings that only code touching the store
 contains (its DD or environment name, its table name, its repository class). Every store on a surface has exactly
-one owner. `rig_arch.ts check` enforces all of it; its header lists the rules.
+one owner. When the surface names a store differently from the code (surface `ACCTDATA`, DD `ACCTFILE`), list the
+surface name in `"surface_names": ["ACCTDATA"]`; `rig_arch.ts check` fails on a surface store MODULES.json does not name. `rig_arch.ts check` enforces all of it; its header lists the rules.
 
 The options `/rig:design` writes (`option-business.json`, `option-data.json`) add `assign` (`{current file:
 module}`, every source file once) and `rationale` (`{module: one line}`).

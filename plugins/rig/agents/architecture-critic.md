@@ -24,8 +24,10 @@ For each criterion, give the number and the `graph.json` edges or `path:line` si
    mutable static state, initialisation order, package-private access, class or package names that reach an output.
 6. **Move cost.** Files that move, and classes that must change visibility.
 
-Run `node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_arch.ts check` against a scratch copy of each option only if you build
-one under `work/<system>/tmp/`; never touch `legacy/` or `modernized/`.
+Score from the graph and the code; never compile an option or run cases (the judge proves behaviour, later and
+properly). You may copy the sources to `work/<system>/tmp/<option>/` with only the package moves applied and run
+`node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_arch.ts check --modules <that option's file>` on it; never touch `legacy/` or
+`modernized/`.
 
 ## Write
 

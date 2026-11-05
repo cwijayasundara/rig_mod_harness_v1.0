@@ -140,3 +140,12 @@ describe('guard: ADR sign-offs are a person\'s', () => {
     assert.equal(decide({ tool_name: 'Write', tool_input: { file_path: '/ws/analysis/cd/ADR-0001.md' }, cwd: '/ws', agent_type: 'rig:architecture-critic' }, '/ws'), null)
   })
 })
+
+describe('rig_arch: surface stores (M5 session 1)', () => {
+  test('a store on a surface that MODULES.json does not name fails; surface_names resolves it', () => {
+    assert.match(A.check(SPEC, GOOD, SIGNED, H, ['CUSTFILE', 'ACCTDATA'])[0]!.detail, /ACCTDATA is on a surface/)
+    const spec = structuredClone(SPEC) as any
+    spec.stores.ACCTFILE.surface_names = ['ACCTDATA']
+    assert.deepEqual(A.check(spec, GOOD, SIGNED, H, ['CUSTFILE', 'ACCTDATA']), [])
+  })
+})

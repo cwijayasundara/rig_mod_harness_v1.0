@@ -15,7 +15,8 @@
  *   module         a depends_on that names no module, or a cycle in depends_on
  *   dependency     module A references module B, and B is not in A's depends_on
  *   api            a reference to a class of another module outside that module's api packages
- *   store_owner    a store with no owning module, or more than one
+ *   store_owner    a store with no owning module, or more than one, or a store on a surface that MODULES.json does
+ *                  not name (directly or in a store's `surface_names`)
  *   store_access   a store's marker appears in a file outside its owning module
  *   signoff        the ADRs and MODULES.json are not signed by a person, or changed since they were signed
  * With --scope (a restructure unit moving one module), file violations count only for files under those prefixes;
@@ -107,7 +108,7 @@ export function hashes(modulesPath: string, adrDir: string, adrs: string[]): Obj
   return out
 }
 
-export function check(spec: Obj, files: { path: string; text: string }[], signoffs: Obj[] | null, h: Obj): Violation[] {
+export function check(spec: Obj, files: { path: string; text: string }[], signoffs: Obj[] | null, h: Obj, surfaceStores: string[] = []): Violation[] {
   const v: Violation[] = []
   const modules: Obj = spec['modules'] ?? {}
   const base = String(spec['base_package'] ?? '')
@@ -140,6 +141,8 @@ export function check(spec: Obj, files: { path: string; text: string }[], signof
     if ((owner[s] ?? []).length !== 1) v.push({ rule: 'store_owner', detail: `store ${s} has ${(owner[s] ?? []).length} owning modules (${(owner[s] ?? []).join(', ') || 'none'}); it needs exactly one` })
   }
   for (const s of Object.keys(owner)) if (!(s in (spec['stores'] ?? {}))) v.push({ rule: 'store_owner', detail: `store ${s} is owned but has no markers under "stores"` })
+  const named = new Set(Object.entries<Obj>(spec['stores'] ?? {}).flatMap(([k, st]) => [k, ...(st['surface_names'] ?? [])]))
+  for (const s of [...new Set(surfaceStores)].sort()) if (!named.has(s)) v.push({ rule: 'store_owner', detail: `store ${s} is on a surface but MODULES.json does not name it (add it, or list it in a store's surface_names)` })
 
   // files
   const classModule = new Map<string, string>() // fully qualified class -> module
@@ -217,7 +220,13 @@ export function main(argv: string[]): number {
       const files = walk(root, '.java').map((p) => ({ path: relative(ws, p), text: readFileSync(p, 'utf8') }))
       if (files.length === 0) throw new Bad(`no .java files under ${root}`)
       const signoffsPath = join(dec, 'signoffs.json')
-      const v = check(spec, files, existsSync(signoffsPath) ? load(signoffsPath) : null, h)
+      const surfDir = join(ws, 'analysis', a.system, 'surfaces')
+      const surfaceStores = existsSync(surfDir) ? readdirSync(surfDir).filter((x) => x.endsWith('.json')).flatMap((x) => {
+        const sf = load(join(surfDir, x))
+        const u = String(sf['gate_unit'] ?? '').replace(/^[^:]*:/, '')
+        return (sf['observables'] ?? []).map((o: Obj) => String(o['id'])).filter((id: string) => id.startsWith(u + '/')).map((id: string) => id.slice(u.length + 1).split('.')[0]!)
+      }) : []
+      const v = check(spec, files, existsSync(signoffsPath) ? load(signoffsPath) : null, h, surfaceStores)
       const per: Obj = {}
       for (const f of files) {
         const pkg = /^\s*package\s+([\w.]+)\s*;/m.exec(stripJava(f.text, true))?.[1] ?? ''
