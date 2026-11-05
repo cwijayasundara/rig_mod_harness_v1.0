@@ -762,6 +762,7 @@ export function discharge(ws: WS): Obj[] {
     let hits = 0, mismatches = 0
     const by = new Set<string>()
     for (const run of runs) {
+      if (ob['exclude_environment'] && run['environment'] === ob['exclude_environment']) continue // the capped environment
       for (const r of run['results']) {
         if (!(ob['observables'] as string[]).some((o) => r['compared'].includes(o))) continue
         if (!exercises(r, run, ob['requirement'])) continue
@@ -776,10 +777,28 @@ export function discharge(ws: WS): Obj[] {
 }
 
 // ---------------------------------------------------------------------------
+// Oracle caps (§6.8): a person rules that the reference environment cannot be trusted for one class
+// ---------------------------------------------------------------------------
+//
+// oracles/<system>/caps/CAP-*.json:
+//   {"id", "gate_unit", "class", "environment", "observables", "reason", "signed_by", "signed_on"}
+// A signed cap takes that class's comparisons in that environment out of pass and fail, and turns them into a gap that
+// only evidence from another environment can discharge. An unsigned cap changes nothing.
+
+export function loadCaps(ws: WS, gateUnit: string): { signed: Obj[]; unsigned: Obj[] } {
+  const dir = join(ws.oracles, 'caps')
+  const all = ls(dir).filter((f) => /^CAP-.*\.json$/.test(f)).map((f) => load(join(dir, f))).filter((c) => c['gate_unit'] === gateUnit)
+  return { signed: all.filter((c) => c['signed_by']), unsigned: all.filter((c) => !c['signed_by']) }
+}
+
+const cappedBy = (caps: Obj[], r: Obj, env: string) =>
+  caps.find((c) => c['environment'] === env && (r['classes'] as string[]).includes(c['class']))
+
+// ---------------------------------------------------------------------------
 // Verdicts (§6.5)
 // ---------------------------------------------------------------------------
 
-type Gap = { observables: string[]; requirement: string; reason: string }
+type Gap = { observables: string[]; requirement: string; reason: string; exclude_environment?: string }
 
 /** PROVEN / PROVISIONAL / NOT_PROVEN / FLAKY from every run under the key. Reruns never clear a failure. */
 export function verdict(ws: WS, gateUnit: string, rung: string, key: string, req: Obj, writeObligations: boolean): Obj {
@@ -797,8 +816,22 @@ export function verdict(ws: WS, gateUnit: string, rung: string, key: string, req
   for (const f of ls(join(ws.evidence, 'signoffs'))) {
     if (f.endsWith('.json')) { const s = load(join(ws.evidence, 'signoffs', f)); signoffs.set(s['case'], s) }
   }
+  const caps = loadCaps(ws, gateUnit)
+  const capHits = new Map<string, { cap: Obj; cases: Set<string> }>()
   const outcomes = new Map<string, [boolean, string][]>()
-  for (const run of runs) for (const r of run['results']) outcomes.set(r['case'], [...(outcomes.get(r['case']) ?? []), [r['pass'], run['environment']]])
+  for (const run of runs) {
+    for (const r of run['results']) {
+      const cap = cappedBy(caps.signed, r, run['environment'])
+      if (cap) { // the oracle cannot be trusted here: neither a pass nor a failure
+        const h = capHits.get(cap['id']) ?? { cap, cases: new Set<string>() }
+        h.cases.add(r['case'])
+        capHits.set(cap['id'], h)
+        continue
+      }
+      outcomes.set(r['case'], [...(outcomes.get(r['case']) ?? []), [r['pass'], run['environment']]])
+    }
+  }
+  const capNote = caps.unsigned.length > 0 ? [`unsigned cap(s) ignored: ${caps.unsigned.map((c) => c['id']).join(', ')}`] : []
   if ([...outcomes.values()].reduce((n, v) => n + v.length, 0) === 0) {
     return { verdict: 'NOT_PROVEN', reasons: ['the runs executed zero cases'], gaps: [] }
   }
@@ -814,8 +847,8 @@ export function verdict(ws: WS, gateUnit: string, rung: string, key: string, req
       flaky.push(id)
     } else if (!passes.has(true)) failed.push(id)
   }
-  if (flaky.length > 0) return { verdict: 'FLAKY', reasons: [`${flaky.length} case(s) both pass and fail under the same key`], cases: flaky.length, gaps: [] }
-  if (failed.length > 0) return { verdict: 'NOT_PROVEN', reasons: [`${failed.length} case(s) fail under the current key`], gaps: [] }
+  if (flaky.length > 0) return { verdict: 'FLAKY', reasons: [`${flaky.length} case(s) both pass and fail under the same key`, ...capNote], cases: flaky.length, gaps: [] }
+  if (failed.length > 0) return { verdict: 'NOT_PROVEN', reasons: [`${failed.length} case(s) fail under the current key`, ...capNote], gaps: [] }
 
   const cov = { observables: {} as Record<string, number>, classes: {} as Record<string, number>, hazards: {} as Record<string, number>, calendar: new Set<string>() }
   const freshByClass: Record<string, number> = {}
@@ -849,30 +882,37 @@ export function verdict(ws: WS, gateUnit: string, rung: string, key: string, req
   for (const ev of (req['calendar_events'] ?? []) as string[]) {
     if (!cov.calendar.has(ev)) gaps.push({ observables: obsReq, requirement: `calendar:${ev}`, reason: `calendar event ${ev} not covered` })
   }
+  for (const { cap, cases } of capHits.values()) {
+    gaps.push({ observables: cap['observables'], requirement: `class:${cap['class']}`, exclude_environment: cap['environment'],
+      reason: `${cap['id']}: class ${cap['class']} is capped in ${cap['environment']} (${cases.size} case(s) not counted); needs evidence from another environment` })
+  }
   for (const cap of (req['capped'] ?? []) as Obj[]) { // reference fidelity (§6.8)
     gaps.push({ observables: cap['observables'], requirement: `hazard:${cap['hazard']}`, reason: `environment differs from production: ${cap['hazard']}` })
   }
   const recorded = runs.some((r) => r['mode'] === 'recorded')
   const obligations = loadObligations(ws)
   const matches = (o: Obj, g: Gap) => o['requirement'] === g.requirement && g.observables.every((x) => o['observables'].includes(x))
+    && (o['exclude_environment'] ?? null) === (g.exclude_environment ?? null)
   if (writeObligations) {
     for (const g of gaps) {
       if (obligations.some((o) => matches(o, g))) continue
-      const id = 'OBL-' + sha(canon([gateUnit, g.requirement, [...g.observables].sort()])).slice(0, 8)
+      const id = 'OBL-' + sha(canon([gateUnit, g.requirement, [...g.observables].sort(), g.exclude_environment ?? null])).slice(0, 8)
       const ob = { id, observables: [...g.observables].sort(), requirement: g.requirement, min_count: 1, reason: g.reason,
-                   created_by: `${gateUnit} ${rung}`, accepted_by: null, status: 'open' }
+                   created_by: `${gateUnit} ${rung}`, accepted_by: null, status: 'open',
+                   ...(g.exclude_environment ? { exclude_environment: g.exclude_environment } : {}) }
       dump(join(ws.obligations, `${id}.json`), ob)
       obligations.push(ob)
     }
   }
   const unaccepted = gaps.filter((g) => !obligations.some((o) => matches(o, g) && o['accepted_by']))
-  const base = { runs: runs.length, cases: outcomes.size, infra_cleared: infra.length, gaps }
-  if (unaccepted.length > 0) return { ...base, verdict: 'NOT_PROVEN', reasons: unaccepted.map((g) => g.reason) }
+  const base = { runs: runs.length, cases: outcomes.size, infra_cleared: infra.length,
+    capped: [...capHits.values()].map(({ cap, cases }) => ({ cap: cap['id'], class: cap['class'], cases: cases.size })), gaps }
+  if (unaccepted.length > 0) return { ...base, verdict: 'NOT_PROVEN', reasons: [...unaccepted.map((g) => g.reason), ...capNote] }
   if (gaps.length > 0 || recorded) {
     const why = recorded && gaps.length === 0 ? ['recorded mode reaches PROVISIONAL at most'] : []
-    return { ...base, verdict: 'PROVISIONAL', reasons: [...why, ...gaps.map((g) => g.reason)] }
+    return { ...base, verdict: 'PROVISIONAL', reasons: [...why, ...gaps.map((g) => g.reason), ...capNote] }
   }
-  return { ...base, verdict: 'PROVEN', reasons: [] }
+  return { ...base, verdict: 'PROVEN', reasons: capNote }
 }
 
 // ---------------------------------------------------------------------------

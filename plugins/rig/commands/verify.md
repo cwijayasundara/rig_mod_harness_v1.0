@@ -20,6 +20,11 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.ts canary --ws . --system $system -
   [--correlated '[{"store":"STMT","detail":"amount","total":"total_due"}]']
 ```
 
+If a class fails because the reference environment behaves unlike production (you can cite the difference, as in
+`PREFLIGHT.md` check 4), never change the port or the oracle to make it pass. Write an unsigned
+`oracles/$system/caps/CAP-*.json` (format in `references/proof.md`) and list it for a person to sign with
+`/rig:review $system caps`.
+
 An illegal normalizer, a delta that is not total or leaves an obligation unmapped, or a comparator that misses a
 canary, makes every rung that used it NOT_PROVEN.
 

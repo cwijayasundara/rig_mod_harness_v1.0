@@ -1,6 +1,6 @@
 ---
 description: A person confirms rule cards, attests consumers and resolves unresolved edges — the human gates of the Understand phase
-argument-hint: <system> [rules|consumers|unresolved|normalizers|obligations]
+argument-hint: <system> [rules|consumers|unresolved|normalizers|caps|obligations]
 arguments: system what
 ---
 
@@ -41,10 +41,17 @@ For each file in `oracles/$system/normalizers/` and `deltas/` with an empty `app
 For a legal one, show what it erases or maps and its justification, then ask *Approve* or *Reject*. Approve writes
 the person's name to `approved_by`.
 
+## Oracle caps (`caps`)
+
+For each `oracles/$system/caps/CAP-*.json` with an empty `signed_by`: show the class, the environment, the reason and
+its evidence (the PREFLIGHT row), how many cases it would take out of pass and fail, and the obligation it creates.
+Ask *Sign: the oracle cannot be trusted for this class here*, *Reject*, or *Not now*. Sign writes the person's name
+and the date. Rejecting deletes nothing: write `"rejected_by"` and leave it unsigned.
+
 ## Obligations (`obligations`)
 
 For each obligation with an empty `accepted_by`: show the requirement, the observables, the reason, and what would
 discharge it. Ask *Accept: merge provisionally and discharge later* or *Reject: the gap must be covered first*.
-Accept writes the person's name to `accepted_by`.
+Accept writes the person's name to `accepted_by`. Reject writes `decision: rejected`, `decided_by` and the date, and leaves `accepted_by` empty.
 
 End with the counts still open and `/rig:status $system`.

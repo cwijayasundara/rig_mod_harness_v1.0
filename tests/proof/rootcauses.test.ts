@@ -489,6 +489,61 @@ describe('content addressing', () => {
   })
 })
 
+// ---------------------------------------------------------------------------
+// M2 exit run: the reference environment cannot be trusted for one class (§6.8, signed oracle cap)
+// ---------------------------------------------------------------------------
+describe('oracle caps', () => {
+  let ids: string[]
+  let bad: string[]
+  const row = [{ v: '1' }]
+  const cap = (signed: boolean) => P.dump(join(t.ws.oracles, 'caps', 'CAP-1.json'), { id: 'CAP-1', gate_unit: GU, class: 'abend:open_failure',
+    environment: 'gnucobol-bdb', observables: [`${UNIT}.abend`], reason: 'BDB status 30 is not z/OS behaviour', signed_by: signed ? 'a person' : null })
+  beforeEach(() => {
+    ids = t.pool(24)
+    bad = [200, 201].map((i) => t.case(i, ['abend:open_failure']))
+    P.buildSet(t.ws, 'S', GU, 'executable', [...ids, ...bad], {}, {})
+    for (const c of ids) t.observe(c, obs(row), obs(row))
+    for (const c of bad) t.observe(c, { ...obs([]), abend: 'U999', return_code: null }, { ...obs(row), abend: null })
+    t.judge('S', { env: 'gnucobol-bdb' })
+  })
+
+  test('an unsigned cap changes nothing, and says so', () => {
+    cap(false)
+    const v = P.verdict(t.ws, GU, 'V3', 'K1', {}, false)
+    assert.equal(v['verdict'], 'NOT_PROVEN')
+    assert.ok(v['reasons'].some((r: string) => r.includes('2 case(s) fail')))
+    assert.ok(v['reasons'].some((r: string) => r.includes('unsigned cap(s) ignored: CAP-1')))
+  })
+  test('a signed cap turns the class into an obligation, which a person must still accept', () => {
+    cap(true)
+    const v = P.verdict(t.ws, GU, 'V3', 'K1', {}, true)
+    assert.equal(v['verdict'], 'NOT_PROVEN')
+    assert.ok(v['reasons'].some((r: string) => r.includes('CAP-1')), v['reasons'].join('\n'))
+    assert.deepEqual(v['capped'], [{ cap: 'CAP-1', class: 'abend:open_failure', cases: 2 }])
+    for (const f of readdirSync(t.ws.obligations)) P.dump(join(t.ws.obligations, f), { ...P.load(join(t.ws.obligations, f)), accepted_by: 'a person' })
+    assert.equal(P.verdict(t.ws, GU, 'V3', 'K1', {}, false)['verdict'], 'PROVISIONAL')
+  })
+  test('runs in the capped environment never discharge it; another environment can', () => {
+    cap(true)
+    P.verdict(t.ws, GU, 'V3', 'K1', {}, true)
+    t.clearFailed('S')
+    for (const c of bad) t.observe(c, { ...obs([]), abend: 'U999', return_code: null }, { ...obs([]), abend: 'U999', return_code: null })
+    t.judge('S', { key: 'K2', env: 'gnucobol-bdb' })
+    assert.ok(P.discharge(t.ws).every((o) => o['status'] === 'open'))
+    t.judge('S', { key: 'K3', env: 'zos-test-lpar' })
+    assert.ok(P.discharge(t.ws).every((o) => o['status'] === 'discharged'))
+  })
+  test('a cap covers only its own class: other failures still block', () => {
+    cap(true)
+    t.clearFailed('S')
+    t.observe(ids[0]!, obs(row), obs([{ v: '2' }]))
+    t.judge('S', { env: 'gnucobol-bdb' })
+    const v = P.verdict(t.ws, GU, 'V3', 'K1', {}, false) // the case passed in the first run and fails now
+    assert.equal(v['verdict'], 'FLAKY')
+    assert.ok(v['reasons'].some((r: string) => r.includes('1 case(s) both pass and fail')))
+  })
+})
+
 // Owned elsewhere (no script to test):
 //   round 2 #10 capability preflight -> commands/preflight.md (smoke runs, per construct)
 //   round 2 #11 generalisation check -> deleted in v0.3; nothing to test

@@ -65,6 +65,20 @@ Per case: `classes`, `pass`, `compared`, `fresh`, `property_only` (recorded mode
 `accepted_by` (a person, through `/rig:review`), `status`. Discharged only by runs that exercised the requirement on
 those observables, at least `min_count` times with no mismatch, in any environment and any later gate unit.
 
+## Oracle cap (`oracles/<system>/caps/CAP-*.json`)
+
+```json
+{ "id": "CAP-001", "gate_unit": "job:READCUST", "class": "abend:open_failure", "environment": "gnucobol-3.2-bdb",
+  "observables": ["READCUST.message", "READCUST.abend", "READCUST.return_code"],
+  "reason": "BDB returns status 30 for a non-indexed file; z/OS behaviour differs and is unverified",
+  "evidence": "analysis/<system>/PREFLIGHT.md check 4, env:open_failure_semantics", "signed_by": null, "signed_on": null }
+```
+
+A person rules that the reference environment cannot be trusted for one input class (§6.8). Once signed, that class's
+comparisons in that environment count as neither pass nor fail. The verdict lists them under `capped` and adds a gap
+whose obligation (`exclude_environment`) only runs in **another** environment can discharge. Unsigned, a cap changes
+nothing, and the verdict says it was ignored. A cap never covers another class, and never removes a sealed case.
+
 ## Infrastructure sign-off (`evidence/<system>/signoffs/*.json`)
 
 `{"case": "<id>", "signed_by": "<person>", "reason": "..."}`. It clears a case that passes and fails under one key

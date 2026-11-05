@@ -428,6 +428,12 @@ The harness enforces three rules on obligations:
 
 Every execution environment declares how it differs from production, for example collation, `TRUNC`, `NUMPROC`, and invalid packed data handling. The Pack configures the environment to match where it can. Each difference that remains caps the affected observables at PROVISIONAL, and the harness creates an obligation that names the hazard. Only coverage of that hazard, on a matching environment or in production, discharges it.
 
+When a difference makes the oracle itself untrustworthy for an input class, a person signs an **oracle cap** for that
+class and that environment. The class's comparisons there count as neither pass nor fail. The gap becomes an
+obligation that only evidence from another environment can discharge. This was added after the M2 exit run: GnuCOBOL's
+Berkeley DB handler returns status 30 for a non-indexed file where z/OS behaves differently, so those sealed cases
+could neither pass nor be removed.
+
 ---
 
 ## 7. The transform path
@@ -612,7 +618,7 @@ v0.3 is the last paper revision. The next step is the plugin, and the 48 repro s
 |---|---|---|
 | M0 · Plugin skeleton | Claude Code plugin manifest, the `rig-method` skill (Rules A and B, workspace, artifact formats), `start`, `preflight`, `status` | `/rig:start` and `/rig:preflight` run on CardDemo-mini and write `INTENT.md` and `PREFLIGHT.md` |
 | M1 · Understand | `map`, `rules`, `review` commands; `legacy-analyst`, `rule-extractor`, `rule-verifier` agents. Claude builds the graph, unresolved edges, surfaces with consumer completeness, hazards and rule cards, over a mechanical sweep it can re-run. | `/rig:map` on CardDemo-mini matches `tests/fixtures/carddemo-mini.EXPECTED.md`: every dynamic site in `unresolved.json`, no consumer list complete |
-| M2 · Proof core | `scripts/rig_proof.ts` (content-addressed cases, both modes, judge contract, normalizer rules, total comparators and the full canary set, per-rung evidence keys, coverage records, verdict engine, obligations, calendar minimum window); `oracles`, `judge`, `verify` commands; `oracle-engineer` and `judge` agents | **Every interrogation root cause the proof core owns has a regression test in `tests/proof/` that the attack fails** (38 tests, replaying the repros in `tests/repros/`). One CardDemo-mini job PROVEN in executable mode (GnuCOBOL). One job PROVISIONAL in recorded mode. |
+| M2 · Proof core | `scripts/rig_proof.ts` (content-addressed cases, both modes, judge contract, normalizer rules, total comparators and the full canary set, per-rung evidence keys, coverage records, verdict engine, obligations, calendar minimum window); `oracles`, `judge`, `verify` commands; `oracle-engineer` and `judge` agents | **Every interrogation root cause the proof core owns has a regression test in `tests/proof/` that the attack fails** (38 tests, replaying the repros in `tests/repros/`). One CardDemo-mini job PROVEN in executable mode (GnuCOBOL). One job PROVISIONAL in recorded mode. **Status 2026-11-05:** the script and its 47 tests are done. On CardDemo-mini, every READCUST class passes except `abend:open_failure`, whose oracle GnuCOBOL cannot provide (Berkeley DB status 30). The owner rejected all eight environment obligations, so PROVEN and PROVISIONAL now wait for z/OS or test-LPAR evidence. |
 | M3 · Translate (4 weeks) | Unit loop, reviewers, merge agent, `cobol-to-java` bridge | CardDemo batch jobs at the job level |
 | M4 · Uplift (2 weeks) | `java` Pack with Execute and Generate | Spring PetClinic 2.x to 3.x PROVEN |
 | M5 · Restructure (4 weeks) | Decomposition, ADRs, deltas with obligation mapping | CardDemo as a modular monolith |
