@@ -17,7 +17,11 @@ names (for COBOL to Java, `cobol-to-java`) before you write anything.
 - **Cite the legacy line** for each behaviour in a comment. No stubs, no empty catches, no TODO on an observable path.
 - Write a runner that the orchestrator can call per case (input JSON in, observation JSON out, in the format of the
   `rig-method` skill's `references/proof.md`), and a README with the build and run commands. Build the code and run
-  every dev case before you finish.
+  every dev case before you finish. Your runner, scripts and scratch files go inside `target_scope` too; never in
+  `work/` or `/tmp`.
+- **A restructure unit** (skill `java-restructure`) moves code and changes nothing else: the runner and entry point of
+  the oracle harness stay as they are, and the orchestrator runs the dev cases. Build, run `rig_arch.ts check` as the
+  brief says, and report.
 - On a retry you get counts per class and the class descriptions, never the failing inputs. Reason from the legacy code
   about what that class exercises.
 

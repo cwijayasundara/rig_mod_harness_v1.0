@@ -29,6 +29,9 @@ first line's `ts`) has passed, go to **escalate**.
    - the rule cards in scope, the hazards in scope with their catalog rows
    - the description of every required input class
    - on a retry, the judge's counts per class from the last run, and nothing else about the failures
+   - never a path under `oracles/` or `evidence/`, or a command that runs one: the worker cannot see them. When the
+     oracle harness runs the modern side (restructure, or a unit whose runner is the harness's), the brief gives the
+     worker the build command and the entry class the harness launches, and **self-check** runs the dev cases.
 
    Copy the **dev** cases (`oracles/$system/sets/<set>.json` → `dev`), as `{input, expected, classes}`, to
    `work/$system/$unit/dev/`. Executable mode: on a retry, also add new dev cases that you generate from each failing

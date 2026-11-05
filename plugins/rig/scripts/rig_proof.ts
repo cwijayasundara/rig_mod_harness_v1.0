@@ -494,6 +494,10 @@ export function judge(ws: WS, setName: string, key: string, legacyDir: string, m
     } else {
       const d = withDeltas(applyNormalizers(legacy, normalizers), applyNormalizers(modern, normalizers), deltas, unit)
       const cmpd = runComparator(comparator, d.legacy, d.modern, unit, tmp)
+      // Its ids must be the surface grammar, or coverage silently misses every surface id (M5 exit run: judge passed
+      // 67/67 and the verdict then said "never compared").
+      const badIds = cmpd.compared.map((id) => [id, observableIdProblem(unit, id)]).filter(([, p]) => p !== null)
+      if (badIds.length > 0) throw new Bad(`comparator ${JSON.stringify(comparator ?? 'exact')} reports ids outside the observable id grammar: ${badIds.slice(0, 3).map(([id, p]) => `${id} (${p})`).join('; ')}`)
       r = { case: id, classes: c['classes'], pass: cmpd.equal, compared: cmpd.compared }
       for (const oid of cmpd.compared) bump(coverage.observables, oid)
     }

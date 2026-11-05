@@ -158,3 +158,26 @@ describe('rig_arch: surface store ids (M5 session 1 on carddemo-mini)', () => {
     assert.equal(A.surfaceStore('SYSOUT.message'), null)
   })
 })
+
+describe('M5 exit run gaps', () => {
+  test('the judge refuses a comparator reporting ids outside the grammar, instead of leaving them uncovered', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rig-m5-'))
+    try {
+      const ws = new P.WS(dir, 'cd')
+      const c = P.addCase(ws, { records: {}, params: {}, clock: null, stores: {}, session: null }, ['random'], 'characterization', null)
+      mkdirSync(join(ws.oracles, 'sets'), { recursive: true })
+      writeFileSync(ws.setPath('S'), JSON.stringify({ name: 'S', gate_unit: 'job:READCUST', mode: 'executable', dev: [], sealed: [c['id']], required_classes: {} }))
+      for (const side of ['l', 'm']) { mkdirSync(join(dir, side)); writeFileSync(join(dir, side, c['id'] + '.json'), '{}') }
+      const cmp = join(dir, 'cmp.ts')
+      writeFileSync(cmp, "console.log(JSON.stringify({equal: true, compared: ['READCUST/return_code']}))\n")
+      assert.throws(() => P.judge(ws, 'S', 'k', join(dir, 'l'), join(dir, 'm'), [], `node ${cmp}`, [], 'e'), /outside the observable id grammar/)
+      writeFileSync(cmp, "console.log(JSON.stringify({equal: true, compared: ['READCUST.return_code']}))\n")
+      assert.equal(P.judge(ws, 'S', 'k', join(dir, 'l'), join(dir, 'm'), [], `node ${cmp}`, [], 'e')['passed'], 1)
+    } finally { rmSync(dir, { recursive: true, force: true }) }
+  })
+  test('reviewer-b may grep its own saved tool output', () => {
+    const p = '/Users/x/.claude/projects/-ws/35554835-8e20/tool-results/toolu_014D.txt'
+    assert.equal(decide({ tool_name: 'Grep', tool_input: { pattern: 'CYC', path: p }, cwd: '/ws', agent_type: 'rig:reviewer-b' }, '/ws'), null)
+    assert.match(decide({ tool_name: 'Grep', tool_input: { pattern: 'x', path: '/ws/oracles/cd' }, cwd: '/ws', agent_type: 'rig:reviewer-b' }, '/ws')!, /outside it/)
+  })
+})

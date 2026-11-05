@@ -136,7 +136,7 @@ export function decide(inp: Input, root: string): string | null {
       const all = tool === 'Bash' ? touched : files
       const t = inp.tool_input ?? {}
       const named = [t['file_path'], t['path']].filter((x): x is string => typeof x === 'string' && x !== '')
-      if (tool === 'Read' && named.length === 1 && TOOL_RESULTS.test(normalize(named[0]!))) return null
+      if ((tool === 'Read' || tool === 'Grep') && named.length === 1 && TOOL_RESULTS.test(normalize(named[0]!))) return null
       if (tool !== 'Bash' && files.length === 0 && READ_TOOLS.has(tool)) return `${who} must name a path inside its packet`
       const p = all.find((f) => !packet.test(f))
       if (p) return `${who} reads only its packet; ${p} is outside it`
