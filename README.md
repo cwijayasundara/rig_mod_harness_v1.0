@@ -31,6 +31,22 @@ or add this repo as a marketplace (`/plugin marketplace add /path/to/rig_mod_har
 
 Later milestones add the work-unit loop (translate, review, merge), restructuring, data and cutover (`plugins/rig/docs/PROPOSAL.md` §13).
 
+## Models
+
+Each agent names its model, following the model tiers in the proposal (§9). The session that runs a command uses
+whatever model you chose.
+
+| Agent | Model | Why |
+|---|---|---|
+| `legacy-analyst` | sonnet | reading and classifying sites at volume |
+| `rule-extractor` | sonnet | volume work, and a different model from the verifier |
+| `rule-verifier` | opus | an independent second opinion on another model |
+| `oracle-engineer` | opus | the oracle decides what the proof can see, so it gets the strongest model |
+| `judge` | opus | an evaluator: it draws the fresh inputs and drives the comparison (`rig_proof.ts` computes the result) |
+
+Evaluating roles run on Opus. Test runs in this repo run the session under test with `claude -p --model sonnet`.
+The evaluation of a run is on Opus: `tests/check_map.ts` plus a review of the run's output by an Opus session.
+
 ## Two rules
 
 - **Rule A, unknown fails closed.** A dynamic call, a consumer list nobody attested, or a capability nobody ran is

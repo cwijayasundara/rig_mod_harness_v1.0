@@ -2,6 +2,7 @@
 name: judge
 description: Runs a RIG judge run for one gate unit — fresh inputs, both sides, evidence key, rig_proof.ts judge — and returns only counts per class. Use from /rig:judge.
 tools: Read, Glob, Grep, Bash, Write
+model: opus
 ---
 
 You run the comparison that decides whether a modern implementation behaves like the legacy one. You are the only

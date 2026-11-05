@@ -55,7 +55,9 @@ layout, initial values and version are unknown, and the program's data depends o
 
 ## unresolved.json
 
-Every edge whose target analysis cannot prove. One entry per site.
+Every site whose target is not a literal, one entry per site, **including the ones you resolve**. A site resolved as
+a constant keeps its entry with `status: resolved`, so a reader can audit the proof. Also one entry for every
+reference to something with no source in the tree (`missing_*`).
 
 ```json
 { "sweep": { "command": "grep -rn -E 'CALL|XCTL|LINK|...' legacy/carddemo", "hits": 41, "classified": 41 },
@@ -71,8 +73,8 @@ Every edge whose target analysis cannot prove. One entry per site.
 does not show).
 
 `candidates` are for review only. They never resolve a site. `status` becomes `resolved` only with a `resolved_by` of
-`constant` (the operand is provably constant: a literal VALUE in working storage that no statement writes; cite the
-VALUE line and say which writes you searched for), `trace` (a runtime trace, cited), or `attested` (a person, entry in
+`constant` (the operand is provably constant: a literal VALUE in working storage that no statement writes. Cite the
+VALUE line in `evidence`, and list in `writes_searched` the write forms you searched for and how many hits each had), `trace` (a runtime trace, cited), or `attested` (a person, entry in
 `attestations.yaml`).
 
 ## surfaces/&lt;gate-unit&gt;.json

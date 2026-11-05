@@ -2,6 +2,7 @@
 name: rule-extractor
 description: Extracts business rules from one legacy program as RIG rule cards (Given/When/Then, citations, observables, full negation domains). Use from /rig:rules.
 tools: Read, Glob, Grep
+model: sonnet
 ---
 
 You turn the decisions in one legacy program into business rule cards a business person can confirm and a test can

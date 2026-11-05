@@ -65,7 +65,9 @@ check('COSGN00C static XCTLs', edges('transfers', 'COSGN00C', 'COADM01C').length
 check('INTRDRJ1 submits INTRDRJ2', edges('submits', 'INTRDRJ1', 'INTRDRJ2').length > 0)
 check('FTP transmits to external', E.some((e) => e['kind'] === 'transmits' && e['to'].startsWith('external:')))
 check('MNTTRDB2 runs COBTUPDT', edges('runs', 'MNTTRDB2', 'COBTUPDT').length > 0)
-check('COBTUPDT writes TRANSACTION_TYPE', edges('writes', 'COBTUPDT', 'TRANSACTION_TYPE').length > 0)
+// A write may hang off the program, or off the step that runs it, citing the program's EXEC SQL lines.
+check('COBTUPDT writes TRANSACTION_TYPE', edges('writes', 'COBTUPDT', 'TRANSACTION_TYPE').length > 0
+  || E.some((e) => e['kind'] === 'writes' && e['from'] === 'step:MNTTRDB2/STEP1' && e['to'].includes('TRANSACTION_TYPE') && String(e['loc']).includes('COBTUPDT')))
 check('UNLDPADB runs PAUDBUNL', edges('runs', 'UNLDPADB', 'PAUDBUNL').length > 0)
 check('TRANREPT expands REPROC', edges('expands', 'TRANREPT', 'REPROC').length > 0)
 check('INTCALC runs CBACT04C', edges('runs', 'INTCALC', 'CBACT04C').length > 0)
