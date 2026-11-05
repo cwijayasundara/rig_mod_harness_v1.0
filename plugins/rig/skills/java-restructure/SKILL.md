@@ -15,10 +15,12 @@ Read [references/restructure.md](references/restructure.md) for the formats and 
 
 ## The reference side
 
-The legacy side of an R unit is the tree the restructure **started from**, frozen read-only at `legacy/<system>/`
-(for a system that came out of a T step, a copy of the translated tree at its last merge). Every R unit of the step
-is judged against that same reference, so the proof chains to it and never to an intermediate state. Both sides run
-with the same case runner and the same entry point; only the classes differ. Executable mode always: the reference
+The legacy side of an R unit is the original legacy system at `legacy/<system>/`, read-only, run with the same
+harness, oracle sets and runners the T step used. For a system that came out of a T step (COBOL to Java), the R unit
+restructures the translated Java under `modernized/` and is judged against the COBOL, not against the Java it
+started from. When no T step came first (a Java monolith), the original tree is the legacy side. Every R unit of the step
+is judged against that same reference, so the proof chains to it and never to an intermediate state. Each side runs
+with its own runner from the oracle harness; the modern runner points at the restructured classes. Executable mode always: the reference
 runs here.
 
 ## The stages, for a restructure unit
