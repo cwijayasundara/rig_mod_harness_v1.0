@@ -3,17 +3,17 @@
 A Claude Code plugin that modernizes a legacy system of any technology and proves, at every step, that the new system
 behaves like the old one. It runs only inside Claude Code: Claude reads the code, builds the analysis and does the
 work, and the plugin's commands, agents and skill say how. Claude writes or runs a script only where that makes a
-result more reliable. The design is in [docs/PROPOSAL.md](docs/PROPOSAL.md). The plugin follows the shape of
+result more reliable. The design is in [plugins/rig/docs/PROPOSAL.md](plugins/rig/docs/PROPOSAL.md). The plugin follows the shape of
 Anthropic's [code-modernization](https://github.com/anthropics/claude-plugins-official/tree/main/plugins/code-modernization)
 plugin.
 
 ## Install
 
 ```sh
-claude --plugin-dir /path/to/rig_mod_harness_v1.0
+claude --plugin-dir /path/to/rig_mod_harness_v1.0/plugins/rig
 ```
 
-Then, in the folder you work in, type `/rig:start`.
+or add this repo as a marketplace (`/plugin marketplace add /path/to/rig_mod_harness_v1.0`) and `/plugin install rig@rig-local`. Then, in the folder you work in, type `/rig:start`.
 
 ## The path
 
@@ -26,7 +26,7 @@ Then, in the folder you work in, type `/rig:start`.
 | 4 | `/rig:review <system>` | A person confirms cards, attests consumers, and resolves unresolved edges. |
 | any | `/rig:status <system>` | Where you are, what is stale and open, and the next command. |
 
-Later milestones add oracles, the work-unit loop, the judge, verification and cutover (`docs/PROPOSAL.md` §13).
+Later milestones add oracles, the work-unit loop, the judge, verification and cutover (`plugins/rig/docs/PROPOSAL.md` §13).
 
 ## Two rules
 
@@ -34,21 +34,28 @@ Later milestones add oracles, the work-unit loop, the judge, verification and cu
   recorded and treated as the worst case until a person or a trace resolves it.
 - **Rule B, evidence records what it exercised.** A check counts for what it reached, not for its name.
 
-Both are spelled out in [skills/rig-method/SKILL.md](skills/rig-method/SKILL.md). Every command loads that skill, and
-every artifact format is in [skills/rig-method/references/artifacts.md](skills/rig-method/references/artifacts.md).
+Both are spelled out in [plugins/rig/skills/rig-method/SKILL.md](plugins/rig/skills/rig-method/SKILL.md). Every command loads that skill, and
+every artifact format is in [plugins/rig/skills/rig-method/references/artifacts.md](plugins/rig/skills/rig-method/references/artifacts.md).
 
 ## Layout
 
 ```
-.claude-plugin/plugin.json
-commands/        start, preflight, map, rules, review, status
-agents/          legacy-analyst, rule-extractor, rule-verifier
-skills/rig-method/   the method and the artifact formats
-docs/            the proposal and the two interrogation rounds
-tests/fixtures/carddemo-mini/   a 51-file slice of AWS CardDemo (code only)
+.claude-plugin/marketplace.json      lists the plugin, so the repo can be added as a marketplace
+plugins/rig/                         the plugin (everything Claude Code loads)
+  .claude-plugin/plugin.json
+  commands/       start, preflight, map, rules, review, status
+  agents/         legacy-analyst, rule-extractor, rule-verifier
+  skills/rig-method/   the method and the artifact formats
+  docs/           the proposal and the two interrogation rounds
+tests/fixtures/carddemo-mini/              a 51-file slice of AWS CardDemo (code only)
 tests/fixtures/carddemo-mini.EXPECTED.md   the M1 exit check, kept outside the code tree
-scripts/make-carddemo-mini.sh   rebuilds the fixture from a pinned CardDemo commit
+tests/check_map.py                         scores a /rig:map run against EXPECTED.md
+tests/runs/                                run workspaces and results (git-ignored; delete to clean up)
+scripts/make-carddemo-mini.sh              rebuilds the fixture from a pinned CardDemo commit
 ```
+
+The plugin sits in a subfolder because Claude Code protects a loaded plugin's own folder from edits, so a test run
+workspace inside it could not write its results.
 
 ## Testing
 
@@ -57,10 +64,11 @@ PROCs, SORT, the internal reader, FTP, DB2, IMS, MQ, Control-M and CA-7, at abou
 spending much:
 
 ```sh
-mkdir /tmp/rig-try && cd /tmp/rig-try
-claude --plugin-dir /path/to/rig_mod_harness_v1.0
-> /rig:start carddemo --source /path/to/rig_mod_harness_v1.0/tests/fixtures/carddemo-mini
+R=tests/runs/$(date +%F)-map && mkdir -p $R/legacy && ln -s ../../../fixtures/carddemo-mini $R/legacy/carddemo
+cd $R && claude --plugin-dir ../../../plugins/rig
+> /rig:map carddemo
+cd ../../.. && python3 tests/check_map.py $R/analysis/carddemo
 ```
 
-Then compare `analysis/carddemo/` with [tests/fixtures/carddemo-mini.EXPECTED.md](tests/fixtures/carddemo-mini.EXPECTED.md).
-That file is the M1 exit check.
+The check compares the run with [tests/fixtures/carddemo-mini.EXPECTED.md](tests/fixtures/carddemo-mini.EXPECTED.md),
+the M1 exit check.

@@ -7,7 +7,7 @@ description: The RIG modernization method — Rule A (unknown fails closed), Rul
 
 RIG modernizes a legacy system and proves, step by step, that the new one behaves like the old one. You, Claude, do
 the reading, the reasoning and the writing. Scripts are optional helpers you may write or run when they make a result
-more reliable (a sweep you can re-run, a count you must not get wrong). Design: `docs/PROPOSAL.md` in this plugin.
+more reliable (a sweep you can re-run, a count you must not get wrong). Design: `${CLAUDE_PLUGIN_ROOT}/docs/PROPOSAL.md`.
 
 Two rules govern everything. Apply them even when a command does not repeat them.
 
@@ -73,9 +73,9 @@ stay inside it.
 2. Attesting external consumers, and that a consumer list is complete.
 3. Resolving an unresolved edge (what a dynamic call can really reach), unless a trace proves it.
 4. Confirming P0 and P1 rule cards.
-5. Every later gate in `docs/PROPOSAL.md` §11 (deltas, normalizers, provisional merges, cutover).
+5. Every later gate in `${CLAUDE_PLUGIN_ROOT}/docs/PROPOSAL.md` §11 (deltas, normalizers, provisional merges, cutover).
 
 ## Verdict words
 
 PROVEN, PROVISIONAL (with named obligations a person accepted), NOT_PROVEN, FLAKY, NOT_APPLICABLE. Never write PROVEN
-for anything that does not meet `docs/PROPOSAL.md` §6.5.
+for anything that does not meet `${CLAUDE_PLUGIN_ROOT}/docs/PROPOSAL.md` §6.5.

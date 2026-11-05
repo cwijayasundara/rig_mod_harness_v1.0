@@ -39,7 +39,7 @@ and list each with the `path:line` that references it. Each one becomes a `missi
 
 For a COBOL system: compiler options that change results (`TRUNC`, `NUMPROC`, `ARITH`), collation (EBCDIC versus
 ASCII), the code page, and how invalid packed data behaves (z/OS abends S0C7; GnuCOBOL may not). Each difference caps
-the affected observables at PROVISIONAL and becomes an obligation later (`docs/PROPOSAL.md` §6.8). Say "unknown" where
+the affected observables at PROVISIONAL and becomes an obligation later (`${CLAUDE_PLUGIN_ROOT}/docs/PROPOSAL.md` §6.8). Say "unknown" where
 you cannot find out, and list who could answer.
 
 ## Check 5 — Is the legacy tree protected?

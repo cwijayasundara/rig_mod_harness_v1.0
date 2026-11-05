@@ -1,0 +1,5 @@
+{
+  "name": "rig-local",
+  "owner": { "name": "RIG" },
+  "plugins": [ { "name": "rig", "source": "./plugins/rig", "description": "Modernize a legacy system inside Claude Code and prove the new one behaves like the old one." } ]
+}

@@ -27,7 +27,7 @@ extension is enough).
 2. **Target**: tailored to what step 2 found (for COBOL: Java 21 with Spring Boot, or another they type).
 3. **Can the legacy system run somewhere we can reach?** *Yes, locally (GnuCOBOL or similar)*, *Yes, on a test LPAR
    or test region*, *Only recorded production inputs and outputs*, *Don't know*. This decides executable or recorded
-   mode (`docs/PROPOSAL.md` §6.1). Recorded mode reaches PROVISIONAL at best; say so.
+   mode (`${CLAUDE_PLUGIN_ROOT}/docs/PROPOSAL.md` §6.1). Recorded mode reaches PROVISIONAL at best; say so.
 
 Headless, or no answer: record each as an open item for a person.
 
