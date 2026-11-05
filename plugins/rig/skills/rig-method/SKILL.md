@@ -42,6 +42,9 @@ did not reach the risk does not cover it. Reruns never clear a failure.
 - **Never edit `legacy/`.** Write only under `analysis/<system>/`, `oracles/<system>/`, `work/<system>/`,
   `evidence/<system>/` and `modernized/`.
 - **People decide** the things listed under *Human gates* below. Never mark one decided for them.
+- **Wait for every agent you dispatch.** Run agents in the foreground, or wait for each background agent's result,
+  before you go on or end your turn. A headless run (`claude -p`) ends when your turn ends, and that kills any agent
+  still running. A stage is done only when its agent has returned and you have logged the result.
 
 ## Workspace
 
