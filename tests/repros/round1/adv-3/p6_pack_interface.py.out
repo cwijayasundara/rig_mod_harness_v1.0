@@ -1,0 +1,5 @@
+isinstance(src, SourcePack): True  isinstance(tgt, TargetPack): True
+V3 differential : AttributeError: 'Java21Spring3' object has no attribute 'run_unit'
+V4 fuzz : AttributeError: 'Java21Spring3' object has no attribute 'run_unit'
+TargetPack has run_unit: False | record_io: False | input_generators: False
+U-step java8->java21: the uplifted app is a TargetPack; R-step: both sides are java21 (TargetPack) -> no run_unit on either side

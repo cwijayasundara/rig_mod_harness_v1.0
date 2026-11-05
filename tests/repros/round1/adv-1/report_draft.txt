@@ -1,0 +1,112 @@
+Eight defects, each reproduced by a Python prototype of the design's own mechanism (Java isn't installed). COBOL semantics are modelled: COMP-3, ROUNDED as half away from zero, PIC truncation, cp037 collation.
+
+Setup for every command:
+`PY=/Users/cwijayasundaragmail.com/Documents/learning_101/rig_mod_harness_v1.0/.venv/bin/python; D=/private/tmp/claude-501/-Users-cwijayasundaragmail-com-Documents-learning-101-rig-mod-harness-v1-0/34986fc5-f7aa-415b-a133-32a073933b89/scratchpad/interrogate/adv-1`
+Run p1 before p2. All outputs are saved in `$D/all_outputs.txt`.
+
+**F1. The held-out oracle leaks to the worker through the judge's feedback and the hash-of-ID split**
+- **Breaks:** §3.2 unit loop ("judge returns pass/fail with evidence", "retry w/ enriched context") and §3.3 Oracle segregation; claim 4.
+- **Command:** `$PY -I $D/p1_heldout_leak.py`
+- **Output:**
+```
+held-out cases whose exact input is also a dev case: 30/44
+attempt 1: judge FAIL held-out 36/44
+attempt 2: judge PASS held-out 44/44
+unit state: merged
+memoriser on 4943 fresh accruing accounts: 0.5% correct
+small units (3-12 cases) with an EMPTY held-out set: 38/300
+```
+- **Required:** the judge fails the memoriser on every attempt, and every unit has a held-out set.
+- **Fix:** split by a hash of the deduplicated canonical *input* with a minimum per unit, have the judge return only pass/fail counts, and move any revealed held-out case into dev and replace it.
+
+**F2. The mutation gate and anti-stub scan rate a lookup table above honest code**
+- **Breaks:** §3.3 V5, §3.2 rule 8, and the §12 "overfit or cheat" mitigation; claim 4.
+- **Command:** `$PY -I $D/p1_heldout_leak.py && $PY -I $D/p2_mutation_antistub.py`. The mutators match PIT's DEFAULTS group, and the kill set is dev plus held-out.
+- **Output:**
+```
+honest   : full oracle PASS | mutants=7 killed=6 score=85.7% survivors=['boundary@line4'] | anti-stub hits=[]
+memoriser: full oracle PASS | mutants=1 killed=1 score=100.0% survivors=[] | anti-stub hits=[]
+```
+- **Required:** the memoriser is flagged. Honest code should not score below it; its one survivor is an equivalent mutant at balance=0.
+- **Fix:** add a generalisation check on freshly generated inputs at judge time, and make lookup-shaped code (large literal tables, few mutants per line) an anti-stub hit.
+
+**F3. The Delta comparator's canonical projection hides undeclared differences**
+- **Breaks:** §3.3 "Undeclared differences are always failures"; claim 2.
+- **Command:** `$PY -I $D/p3_delta_comparator.py`
+- **Output:**
+```
+comparator(legacy, buggy service)  : PASS | modern minimumPaymentDue=6.68 (legacy 25.00), paymentDueDate=2026-12-01 (legacy 2026-11-25)
+V5 canary (1 byte changed in a line amount) detected: True
+1-byte changes to MINIMUM PAYMENT DUE: 5 of 5 undetected
+1-byte changes to PAYMENT DUE DATE: 10 of 10 undetected
+```
+- **Required:** FAIL. Two printed business fields differ and no delta declares them. The specified canary passes anyway.
+- **Fix:** every comparator must prove coverage: each legacy byte is either mapped into the canonical model or masked in the delta, each modern field is mapped or explicitly excluded, and a per-field canary sweep must pass.
+
+**F4. An X-step changes program behaviour (collation), and V7, the only behaviour rung X-steps get, can't see it**
+- **Breaks:** Rule 1 (§2) and the §3.3 "Applies to" column, where V2, V3, V4 and V6 exclude X; claim 1.
+- **Command:** `$PY -I $D/p4_xstep_collation.py`
+- **Output:**
+```
+V7 reconciliation: {... all four checks True} -> PROVEN
+X-step applicable rungs ['V0', 'V1', 'V5', 'V7', 'V9'] -> PROVEN
+browse page from 'M0000'  legacy: ['M5000', 'Z0001', '00077', '10023']  modern: ['M5000', 'Z0001']
+sequential listing order  legacy: ['A1001', 'B7710', 'C3300', 'M5000', 'Z0001', '00077', '10023', '90210']
+                          modern: ['00077', '10023', '90210', 'A1001', 'B7710', 'C3300', 'M5000', 'Z0001']
+```
+- **Required:** NOT_PROVEN. The same program logic (STARTBR GTEQ/READNEXT paging and a sequential listing) gives different results.
+- **Fix:** make the V3 differential mandatory for X-steps, with the programs re-run against the migrated store, and add key collation and ordering checks to V7.
+
+**F5. `DataPack.canonicalize(record: bytes, layout)` can't handle a layout chosen by another record**
+- **Breaks:** §5 "a new technology is a Pack, not a core change", and V7's REDEFINES case; claim 5.
+- **Command:** `$PY -I $D/p5_canonicalize_context.py`. The test file is NACHA-style: the batch header's SEC code selects which REDEFINES view applies to each entry.
+- **Output:**
+```
+stateless default_view=PPD: CORRECT -> FAIL | BUGGY -> PASS
+stateless default_view=CTX: CORRECT -> FAIL | BUGGY -> FAIL
+CORRECT migration: ... | with batch-header context -> PASS
+BUGGY migration  : ... | with batch-header context -> FAIL
+```
+- **Required:** CORRECT passes and BUGGY fails. That needs the header, which the per-record signature can't receive.
+- **Fix:** make it a stream canonicaliser, `canonicalize(records: Iterable[bytes], layout) -> Iterable[dict]`, or pass a context object.
+
+**F6. Policy deadlock: COBOL modules that can't run locally never get past Phase C**
+- **Breaks:** the §3.3 max-verdict table against "T-steps require V0–V6 PROVEN" and the §4 Phase C gate; claim 6.
+- **Command:** `$PY -I $D/p6_policy_deadlock.py`
+- **Output:**
+```
+no-exec-logs-only  merged=[] V10_run=False -> STUCK before T: {'V2': 'PARTLY_PROVEN', 'V3': 'PARTLY_PROVEN', ...}
+nothing-recorded   merged=[] V10_run=False -> STUCK before T: {'V2': 'PARTLY_PROVEN', ...}
+```
+- **Required:** a reachable path to cutover. The cap lifts only "after V10", but V10 applies only to E-steps, and those can't start until the T-step merges.
+- **Fix:** let a T-step merge at PARTLY_PROVEN in a provisional state that blocks cutover until V10 is PROVEN.
+
+**F7. The E-step cutover policy reaches PROVEN without a month-end**
+- **Breaks:** §3.3 "V7–V10 PROVEN for 10 consecutive business days" against §4 Phase F "including month-end and year-end"; claim 6.
+- **Command:** `$PY -I $D/p7_estep_window.py`
+- **Output:**
+```
+2026-11-13 V10 streak=10 -> cutover policy PROVEN (no month-end in window)
+2026-11-30 V10 match on month-end (streak=21)
+2026-12-31 V10 MISMATCH legacy=3875000.00 modern=3750000.00 (month-end capitalisation)
+```
+- **Required:** no PROVEN until the calendar paths have actually run. A 30-day month-end can't expose this bug; it takes a 31-day month-end.
+- **Fix:** define the window as required calendar events (month-end for each month length, quarter-end, year-end, leap day), not a day count.
+
+**F8. Evidence staleness: keying on "commit" is unsound per module and unusable per repo**
+- **Breaks:** §7 "A verdict citing a stale commit is invalid"; claim 6.
+- **Command:** `$PY -I $D/p8_stale_evidence.py`. It uses a real git repo at `$D/out/repo`. Reading (a) is the last commit touching the module; reading (b) is the repo HEAD.
+- **Output:**
+```
+after common/ change  : (a) PROVEN | (b) NOT_PROVEN(stale evidence) | V3 re-run passes: False
+after cards/ doc edit : (a) PROVEN | (b) NOT_PROVEN(stale evidence) | V3 re-run passes: True
+```
+- **Required:** stale after the shared `common` change; still fresh after an unrelated doc edit. Reading (a) misses the first, and reading (b) wrongly invalidates the second.
+- **Fix:** key evidence on a hash of the module's build-dependency closure plus the oracle, normalizer, comparator and Pack versions.
+
+**Considered but not run (all unproven):**
+- **unproven:** GnuCOBOL and z/OS differ on TRUNC, NUMPROC and invalid packed data (S0C7), so "GnuCOBOL → max PROVEN" uses the wrong reference.
+- **unproven:** the example card BR-ACCT-017 uses round_half_even, but COBOL ROUNDED defaults to half away from zero, so a property test derived from the card would fail correct code.
+- **unproven:** shadow and parallel runs never exercise partial failure once one CICS SYNCPOINT unit is split across two services.
+- **unproven:** once an R-step adds module APIs, "re-proven at the module boundary" has nothing shared to compare.
+- **unproven:** the "REDEFINES → sealed type" mapping can't express writing through one view and reading through another.

@@ -1,0 +1,3 @@
+month-length triggers found in graph: [] -> required calendar events: {}
+2026-11-09 run=DY parallel run match -> all required events seen -> V10 PROVEN, cutover allowed
+2026-11-30 run=ME  legacy=5101.24  modern=5101.23

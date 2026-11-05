@@ -1,0 +1,11 @@
+pool=60 recorded cases  dev=40  sealed=20  minimum sealed=20
+attempt 1 (bug: CLOSED accrues): sealed 18 of 20
+  burned 2 sealed cases into dev; replacement generator for origin=recorded: None
+  sealed now 18 (< 20 minimum)   oracle_set hash 65573b11db7a -> e2b70c1388c6: evidence for V0,V1,V5,V9 of this module is now stale too
+attempt 2 (fixed): sealed 18 of 18 -> below minimum, no unseen recorded input can replace them
+
+lookup attempt 1: sealed 2 of 20  (fresh: none, legacy cannot execute)
+lookup attempt 2: sealed 2 of 2  (fresh: none, legacy cannot execute)
+lookup attempt 3: sealed 2 of 2  (fresh: none, legacy cannot execute)
+after 3 attempts (budget attempts: 3, line 179): dev=58 sealed=2; 58 of 60 recorded inputs leaked into dev through rule 2.
+judge output for attempt 2 (counts only, line 199): 'sealed 2 of 2' -> the lookup passes; no fresh set exists and the sealed set is below the line-250 minimum.

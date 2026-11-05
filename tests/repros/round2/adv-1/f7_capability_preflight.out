@@ -1,0 +1,4 @@
+txn:CAUP (COACTUPC)              preflight gaps=[] strongest reachable=PROVEN | V3 legacy side at run time: FAILS: GnuCOBOL cannot run ['bms_maps', 'cics_runtime']
+job:TRANREPT                     preflight gaps=[] strongest reachable=PROVEN | V3 legacy side at run time: FAILS: GnuCOBOL cannot run ['dfsort', 'idcams_repro', 'jcl']
+job:INTJOB (CBACT04C step only)  preflight gaps=[] strongest reachable=PROVEN | V3 legacy side at run time: runs
+U step java->java (M4): preflight gaps=[('V4', 'Generate')] strongest reachable=below PROVEN

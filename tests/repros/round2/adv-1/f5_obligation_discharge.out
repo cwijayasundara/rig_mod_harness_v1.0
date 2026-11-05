@@ -1,0 +1,4 @@
+V10 parallel run 2026-11-09..2026-12-31: 1,060,000 records, events ['month_end_30', 'month_end_31', 'quarter_end', 'year_end'], mismatches 0
+records exercising the declared difference (invalid packed): 0
+V10 on job:INTJOB: PROVEN -> OBL-INTCALC-PACKED discharged: True -> cutover blocked: False
+after cutover, record 000000A721055C: z/OS legacy -> ('ABEND', 'S0C7 data exception')   modern -> ('RC=0', Decimal('73.40'))

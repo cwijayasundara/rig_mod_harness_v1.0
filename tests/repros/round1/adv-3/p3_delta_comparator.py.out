@@ -1,0 +1,5 @@
+DELTA-007 comparator (canonical model): PASS
+legacy output mentions MINIMUM PAYMENT DUE : True
+modern output mentions minimum payment      : False
+legacy output mentions CREDIT BALANCE marker: True
+Undeclared removal detected by comparator   : False

@@ -1,0 +1,10 @@
+surface of job:INTJOB (consumers):
+  ACCTDATA.store_write     -> ['job:CREASTMT', 'job:POSTTRAN', 'job:READACCT', 'txn:CAUP', 'txn:CAVW', 'txn:CB00']
+  TRANSACT.store_write     -> ['job:CREASTMT', 'job:TRANBKP', 'job:TRANREPT', 'txn:CT00', 'txn:CT01']
+
+WU-T-0142 declares gate_unit = job:INTJOB ; job:INTJOB qualifies: False
+computed gate unit for CBACT04C: 12 of 18 entry points (7 batch jobs + 5 CICS transactions)
+   ['job:CREASTMT', 'job:INTJOB', 'job:POSTTRAN', 'job:READACCT', 'job:READCUST', 'job:TRANBKP', 'job:TRANREPT', 'txn:CAUP', 'txn:CAVW', 'txn:CB00', 'txn:CT00', 'txn:CT01']
+
+first T unit merges only if the modern gate unit runs: members translated 1/12 -> modern side runnable: False
+mixed legacy+modern session: needs cobol-zos Execute and java Execute in ONE open_session -> no such capability in §8

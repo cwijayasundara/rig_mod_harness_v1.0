@@ -1,0 +1,7 @@
+preflight T/V0: PASS (no gaps)
+preflight T/V3: PASS (no gaps)
+
+then the rungs run:
+  V0 clean build, legacy CICS program -> {'status': 'unbuildable', 'reason': 'EXEC CICS needs the CICS translator; GnuCOBOL has none'}
+  V3 legacy Execute.run -> FileNotFoundError: cobc  (shutil.which=None)
+  V3 modern Execute.run -> 1

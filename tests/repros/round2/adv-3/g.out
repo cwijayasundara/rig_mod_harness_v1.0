@@ -1,0 +1,7 @@
+graph edges                     : [('CBSTM03A', 'writes', 'STMTFILE'), ('CBSTM03B', 'reads', 'STMTFILE')]
+observable consumers (line 96)  : [] -> 'external'
+normalizer legal (§6.2 check)   : True
+V3 with NORM-013                : PASS
+CBSTM03B on legacy order        : OK
+CBSTM03B on modern order        : SEQUENCE ERROR, STOP RUN
+print vendor on modern order    : MERGE FAILED

@@ -1,0 +1,8 @@
+after T steps: 4 obligations, modules ['accounts', 'reporting', 'statements', 'transactions']
+module kept in the monolith : reporting (no E step -> no V10 rung ever runs for it)
+open obligations            : ['OBL-TRANBKP-V10']
+cutover allowed             : False  (blocked for ever: the module that is never extracted never gets V10)
+
+R step: module 'accounts' split into 'accounts-core' and 'interest'
+  policy 1 (walk current modules): open obligations for 'accounts' seen = 0 -> OBL-INTJOB-V10 LOST; cutover not blocked by it
+  policy 2 (walk all obligations): OBL-INTJOB-V10 requires 'job:INTJOB', which no longer exists as a gate unit; dischargeable = False -> cutover blocked for ever

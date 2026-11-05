@@ -1,6 +1,6 @@
 ---
 description: A person confirms rule cards, attests consumers and resolves unresolved edges — the human gates of the Understand phase
-argument-hint: <system> [rules|consumers|unresolved]
+argument-hint: <system> [rules|consumers|unresolved|normalizers|obligations]
 arguments: system what
 ---
 
@@ -33,5 +33,18 @@ For each open entry: show the site, the expression, and the candidates with wher
 really reach?* with the candidates as options (multi-select) plus *Other* and *Don't know*. An answer becomes a
 `resolutions` entry in `attestations.yaml`, and the site becomes `status: resolved`, `resolved_by: attested`. Don't
 know leaves it open.
+
+## Normalizers and deltas (`normalizers`)
+
+For each file in `oracles/$system/normalizers/` and `deltas/` with an empty `approved_by`, first run
+`rig_proof.py normalizer` (or `delta`) and show its result. An illegal one cannot be approved: say why and move on.
+For a legal one, show what it erases or maps and its justification, then ask *Approve* or *Reject*. Approve writes
+the person's name to `approved_by`.
+
+## Obligations (`obligations`)
+
+For each obligation with an empty `accepted_by`: show the requirement, the observables, the reason, and what would
+discharge it. Ask *Accept: merge provisionally and discharge later* or *Reject: the gap must be covered first*.
+Accept writes the person's name to `accepted_by`.
 
 End with the counts still open and `/rig:status $system`.

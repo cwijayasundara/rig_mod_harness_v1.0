@@ -1,0 +1,4 @@
+date-logic triggers found    : False  required events: {}
+parallel run from 2026-11-09 (Mon) for 1 day: required events covered = True, mismatches=0 -> V10 PROVEN, cutover
+first divergence after cutover: 2026-11-13 (Friday): legacy posts=True modern posts=False
+v0.1 '10 consecutive business days' from 2026-11-09: mismatches=4 -> caught

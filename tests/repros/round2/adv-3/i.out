@@ -1,0 +1,5 @@
+honest port, dev 99/100 (one bad recording), fresh 5000/5000: FAIL  (rejected for being better on fresh than on dev)
+dev sizes that can match fresh 4988/5000 exactly: [1250, 2500, 3750, 5000] ...
+example 'fresh 4,988 of 5,000, generalisation PASS' with a 44- or 100-case dev set: False
+dev 100/100, fresh 5000/5000: generalisation PASS | fresh rung alone: PASS -> the check never changes a verdict once dev is green
+dev 100/100, fresh 4999/5000: generalisation FAIL | fresh rung alone: FAIL -> the check never changes a verdict once dev is green

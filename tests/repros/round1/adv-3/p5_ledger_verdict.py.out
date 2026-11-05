@@ -1,0 +1,9 @@
+per-record max |legacy-modern| : 0.01
+GL total legacy - modern       : 498.79  over 100,000 accounts (one day)
+ledger: {'rung': 'V3', 'commit': 'c0ffee1', 'oracle_version': 'orc-v4', 'evidence_sha': '543fcf435c60', 'result': 'FAIL'}
+ledger: {'rung': 'V3', 'commit': 'c0ffee1', 'oracle_version': 'orc-v4', 'evidence_sha': '88a9d280ace8', 'result': 'PASS'}
+ledger: {'rung': 'V3', 'commit': 'c0ffee1', 'oracle_version': 'orc-v4', 'evidence_sha': 'cbe7d869295d', 'result': 'FAIL'}
+same ledger key for run1 and run2: True
+verdict (runs 1,2) policy=latest_wins   : PROVEN
+verdict (runs 1,2) policy=any_pass_wins : PROVEN
+correct work + one flaky FAIL, policy=any_fail_wins: NOT_PROVEN (immutable ledger: cannot be cleared at this commit)

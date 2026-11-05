@@ -1,0 +1,41 @@
+== p1_heldout_leak
+cases=159 dev=115 heldout=44
+held-out cases whose exact input is also a dev case: 30/44
+attempt 1: judge FAIL held-out 36/44
+attempt 2: judge PASS held-out 44/44
+unit state: merged
+memoriser on 4943 fresh accruing accounts: 0.5% correct
+small units (3-12 cases) with an EMPTY held-out set: 38/300
+== p2_mutation_antistub
+honest   : full oracle PASS | mutants=7 killed=6 score=85.7% survivors=['boundary@line4'] | anti-stub hits=[]
+memoriser: full oracle PASS | mutants=1 killed=1 score=100.0% survivors=[] | anti-stub hits=[]
+== p3_delta_comparator
+comparator(legacy, correct service): PASS
+comparator(legacy, buggy service)  : PASS | modern minimumPaymentDue=6.68 (legacy 25.00), paymentDueDate=2026-12-01 (legacy 2026-11-25)
+V5 canary (1 byte changed in a line amount) detected: True
+1-byte changes to MINIMUM PAYMENT DUE: 5 of 5 undetected
+1-byte changes to PAYMENT DUE DATE: 10 of 10 undetected
+== p4_xstep_collation
+V7 reconciliation: {'row_count': True, 'sum/min/max(balance)': True, 'per-record hashes': True, 'referential (all ids present)': True} -> PROVEN
+X-step applicable rungs ['V0', 'V1', 'V5', 'V7', 'V9'] -> PROVEN
+browse page from 'M0000'  legacy: ['M5000', 'Z0001', '00077', '10023']  modern: ['M5000', 'Z0001']
+sequential listing order  legacy: ['A1001', 'B7710', 'C3300', 'M5000', 'Z0001', '00077', '10023', '90210']
+                          modern: ['00077', '10023', '90210', 'A1001', 'B7710', 'C3300', 'M5000', 'Z0001']
+== p5_canonicalize_context
+CORRECT migration: V7 via §5 canonicalize(record, layout) -> FAIL | with batch-header context -> PASS
+BUGGY migration  : V7 via §5 canonicalize(record, layout) -> PASS | with batch-header context -> FAIL
+stateless default_view=PPD: CORRECT -> FAIL | BUGGY -> PASS
+stateless default_view=CTX: CORRECT -> FAIL | BUGGY -> FAIL
+== p6_policy_deadlock
+gnucobol           merged=['T', 'R', 'X', 'E'] V10_run=True -> cutover reachable
+test-lpar          merged=['T', 'R', 'X', 'E'] V10_run=True -> cutover reachable
+no-exec-logs-only  merged=[] V10_run=False -> STUCK before T: {'V2': 'PARTLY_PROVEN', 'V3': 'PARTLY_PROVEN', 'V4': 'PARTLY_PROVEN', 'V5': 'PARTLY_PROVEN', 'V6': 'PARTLY_PROVEN'}
+nothing-recorded   merged=[] V10_run=False -> STUCK before T: {'V2': 'PARTLY_PROVEN', 'V3': 'PARTLY_PROVEN', 'V4': 'PARTLY_PROVEN', 'V5': 'PARTLY_PROVEN', 'V6': 'PARTLY_PROVEN'}
+== p7_estep_window
+2026-11-13 V10 streak=10 -> cutover policy PROVEN (no month-end in window)
+2026-11-30 V10 match on month-end (streak=21)
+2026-12-31 V10 MISMATCH legacy=3875000.00 modern=3750000.00 (month-end capitalisation)
+== p8_stale_evidence
+after V3 run          : (a) PROVEN | (b) PROVEN | V3 re-run passes: True
+after common/ change  : (a) PROVEN | (b) NOT_PROVEN(stale evidence) | V3 re-run passes: False
+after cards/ doc edit : (a) PROVEN | (b) NOT_PROVEN(stale evidence) | V3 re-run passes: True

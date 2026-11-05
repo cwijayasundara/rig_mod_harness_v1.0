@@ -1,0 +1,6 @@
+totality check                : (True, 'total')
+canary sweep                  : 0 canaries missed -> comparator ACCEPTED
+bug: late fee line dropped, total_due 155.50 vs legacy 165.50 : PASS
+bug: duplicate fee line, total_due 175.50 vs legacy 165.50    : PASS
+bug: empty statement, total_due 0.00 vs legacy 165.50         : PASS
+DELTA-007 totality with §3 record_order observable included : (False, 'legacy STMTFILE.line.record_order unmapped')

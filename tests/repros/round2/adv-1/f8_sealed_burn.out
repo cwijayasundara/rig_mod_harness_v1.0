@@ -1,0 +1,4 @@
+pool 120 recorded nights -> sealed 30 (min 30), dev 90
+attempt 1: sealed 21 of 30; 9 burned to dev, replacements available 0/9; sealed 21 < min 30 -> next judge after 12 production nights (WU wallclock 45m)
+attempt 2: sealed 29 of 33; 4 burned to dev, replacements available 0/4; sealed 29 < min 33 -> next judge after 6 production nights (WU wallclock 45m)
+§4.3 ROUNDED hazard: tie inputs with legacy expected = 0 -> V4 cannot pass -> verdict NOT_PROVEN; §6.5 table promises PROVISIONAL

@@ -1,0 +1,6 @@
+WU-T-STEP1  V3 normalizers=[]              : FAIL
+WU-T-STEP1  V3 normalizers=[record_order]  : PASS  <- declared, unit PROVEN
+WU-T-STEP2  V3 on recorded input           : PASS
+INTJOB end-to-end legacy : [('3003', 'beta', 1), ('1001', 'smith', 10), ('4004', 'x', 3), ('2002', 'Apple', 7)]
+INTJOB end-to-end modern : [('2002', '9ERS', 5), ('3003', 'Beta', 2), ('1001', 'SMITH', 20), ('4004', 'x', 3)]
+INTJOB equivalent        : False

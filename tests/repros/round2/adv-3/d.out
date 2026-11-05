@@ -1,0 +1,15 @@
+gate_unit(job:INTJOB   ) =  8 of 11 units -> WHOLE SYSTEM minus tx:CCUP,tx:CRPT,tx:CUSR
+gate_unit(job:CREASTMT ) =  1 of 11 units -> itself
+gate_unit(tx:CAVW      ) =  1 of 11 units -> itself
+gate_unit(tx:CUSR      ) =  1 of 11 units -> itself
+
+§5.1 example says gate_unit: job:INTJOB. INTJOB's own surface:
+  CBACT04C/ACCTDAT.store_write     consumers=['CBSTM03A', 'CBTRN02C', 'COACTUPC', 'COACTVWC', 'COTRN02C']
+  CBACT04C/TRANSACT.store_write    consumers=['CBEXP01', 'CBSTM03A', 'CBTRN03C', 'COTRN02C']
+  -> internal consumers exist, so by §6.4 INTJOB is not a gate unit.
+
+Relaxation 'consumers across a persistent store are external':
+  job:CREASTMT STMTFILE.record_order consumers -> [] (CBSTM03B now 'external')
+  NORM erasing order is legal (§6.2 line 270: no consumer)  ->  CREASTMT step 1 PASS
+  legacy (EBCDIC) order [' 5', 'a1', 'B2', 'Z9', '10']  modern (ASCII) order [' 5', '10', 'B2', 'Z9', 'a1']
+  step 2 match-merge reads the file in order: equivalent = False

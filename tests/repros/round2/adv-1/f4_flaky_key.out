@@ -1,0 +1,4 @@
+policy A: deterministic defect on 1/4000 of inputs, code unchanged: PROVEN in 64.2% of 2000 units; FLAKY seen in 0
+policy B: deterministic defect on 1/4000 of inputs, code unchanged: PROVEN in 62.6% of 2000 units; FLAKY seen in 0
+intermittent defect failing 25% of runs: FLAKY cleared to PROVEN in 2000/2000 units, median 11 reruns, max 80
+intermittent defect failing 50% of runs: FLAKY cleared to PROVEN in 2000/2000 units, median 45 reruns, max 502

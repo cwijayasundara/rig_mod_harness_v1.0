@@ -1,0 +1,6 @@
+totality: True
+canary sweep: 8/8 caught -> comparator ACCEPTED
+comparator(legacy, correct service): PASS
+buggy service, drops 2026-10-31 line (cycle-end uses < not <=) : PASS  (lines legacy=3 modern=2, account='00000012345')
+buggy service, posts 2026-10-11 FUEL twice                     : PASS  (lines legacy=3 modern=4, account='00000012345')
+buggy service, account sent as 12345 (leading zeros lost)      : PASS  (lines legacy=3 modern=3, account='12345')

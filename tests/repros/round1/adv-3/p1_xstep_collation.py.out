@@ -1,0 +1,7 @@
+V7 reconciliation: {'row_count': (8, 8), 'sum_balance': (Decimal('63.18'), Decimal('63.18')), 'min_max': ((Decimal('1.00'), Decimal('20.00')), (Decimal('1.00'), Decimal('20.00'))), 'record_hash_set_equal': True} =>  PASS
+legacy browse START KEY>='A', 5 x READ NEXT : ['AB12', 'B001', 'ZED1', '12AB', '9XYZ']
+modern  SELECT key>='A' ORDER BY key LIMIT 5  : ['AB12', 'B001', 'ZED1', 'a1B2', 'ab12']
+browse equivalent: False
+row SET selected by key>='A'  legacy: ['12AB', '9XYZ', 'AB12', 'B001', 'ZED1']
+row SET selected by key>='A'  modern: ['AB12', 'B001', 'ZED1', 'a1B2', 'ab12', 'zed1']
+X-step changed behaviour (second axis) while V7 passed: True

@@ -1,0 +1,18 @@
+judge run 1 key.oracle_set : f3f0a723a4df  seed 17485029721327973432
+judge run 2 key.oracle_set : 02e200f952a7  seed 7283207964119141687
+same key for the two runs  : False
+verdict under run-2 key    : PROVEN   (run 1 is stale: different key)
+verdict under run-1 key    : NOT_PROVEN
+-> a disagreement between judge runs can never be classified FLAKY,
+   and '5 consecutive reruns under the same key' cannot be counted.
+
+With seeds pinned (key stable), FLAKY rule: blocked until 5 consecutive passes
+  bug fails  5% of runs, rerun budget  5: PROVEN in  77.6% of units
+  bug fails  5% of runs, rerun budget 10: PROVEN in  96.6% of units
+  bug fails  5% of runs, rerun budget 30: PROVEN in 100.0% of units
+  bug fails 15% of runs, rerun budget  5: PROVEN in  44.6% of units
+  bug fails 15% of runs, rerun budget 10: PROVEN in  77.8% of units
+  bug fails 15% of runs, rerun budget 30: PROVEN in  99.6% of units
+  bug fails 30% of runs, rerun budget  5: PROVEN in  17.1% of units
+  bug fails 30% of runs, rerun budget 10: PROVEN in  42.1% of units
+  bug fails 30% of runs, rerun budget 30: PROVEN in  87.8% of units

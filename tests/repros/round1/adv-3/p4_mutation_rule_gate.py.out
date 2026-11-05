@@ -1,0 +1,6 @@
+V2/V3 dev oracle   (30 cases): PASS
+judge held-out     (10 cases): PASS
+V5 mutation score on P0 path: 7/8 = 88%  (gate e.g. >=80%: PASS)
+V6 rule coverage BR-ACCT-017 -> tests DT-INTCALC-001..040 executed and pass: PASS
+fixed program passes identical tests: True (ladder cannot tell them apart)
+production: CLOSED account, balance 5000.00 @ 24.99%  legacy: 0.00  modern: 3.42

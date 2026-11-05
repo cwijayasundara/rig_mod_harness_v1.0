@@ -56,10 +56,19 @@ analysis/<system>/
   hazards.json                        hazard sites found in the code
   rules/BR-*.yaml                     business rule cards
   attestations.yaml                   what people attested: consumers, resolutions
-oracles/<system>/  work/<system>/  evidence/<system>/  modernized/     (later phases)
+oracles/<system>/cases/ sets/ normalizers/ deltas/    oracle cases and sets (sealed ones never shown to workers)
+evidence/<system>/<key>/<run-id>/run.json             judge runs with coverage, append-only
+obligations/<system>/OBL-*.json                       named gaps a person accepted, discharged only by coverage
+modernized/                                           the new system
 ```
 
-Artifact formats are in [references/artifacts.md](references/artifacts.md). Read it before writing any of them.
+Artifact formats are in [references/artifacts.md](references/artifacts.md) (analysis) and
+[references/proof.md](references/proof.md) (oracles, evidence, verdicts). Read the one you need before writing.
+
+## The proof script decides
+
+`${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.py` computes sealed splits, judge results, evidence keys, coverage and every
+verdict. Never write a verdict, a pass count or a coverage number yourself: run the script and quote it.
 
 ## Gate units
 

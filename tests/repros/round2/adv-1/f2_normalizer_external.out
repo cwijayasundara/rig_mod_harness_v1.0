@@ -1,0 +1,7 @@
+NORM-012 on INTJOB/STEP1/SORTOUT.record_order    legal=(False, 'consumers_checked != graph')
+NORM-031 on INTJOB/STEP2/GLFEED.record_order     legal=(True, 'no consumer in graph')
+
+GLFEED order legacy (EBCDIC): ['a1000', 'A1000', 'B 500', 'Z0001', '00077', '10000']
+GLFEED order modern (ASCII) : ['00077', '10000', 'A1000', 'B 500', 'Z0001', 'a1000']
+V3 at gate unit job:INTJOB through NORM-031: PASS
+GL bureau match-merge: legacy feed matched 6/6, modern feed matched 2/6
