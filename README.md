@@ -83,6 +83,7 @@ plugins/rig/                         the plugin (everything Claude Code loads)
   scripts/rig_arch.ts    architecture tests for a restructure: modules, dependencies, api, store owners, ADR sign-off
   skills/rig-method/   the method and the artifact formats
   skills/cobol-to-java/   the COBOL-to-Java bridge: porting guide, type map, hazard catalog
+  skills/cobol-to-spring/   COBOL to Spring Boot / Spring Batch: layout, framework rules, Spring hazard catalog
   skills/java-uplift/     the Java uplift bridge: delta catalog, OpenRewrite recipes, observing web apps
   skills/java-restructure/   the restructure bridge: contract, reference side, MODULES.json and ADR formats, hazards
   skills/store-replatform/   the data bridge: store semantics, probe classes, V7 reconciliation, V8 business day
