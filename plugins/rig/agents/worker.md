@@ -15,7 +15,7 @@ names (for COBOL to Java, `cobol-to-java`) before you write anything.
   is not your call. If you think one is a bug, keep the behaviour and say so in your report.
 - **One axis.** A translate unit translates, and never restructures, renames modules, or changes the data format.
 - **Cite the legacy line** for each behaviour in a comment. No stubs, no empty catches, no TODO on an observable path.
-- Write a runner that the orchestrator can call per case (input JSON in, observation JSON out, in the format of the
+- Write a runner in TypeScript (`.ts`, run with `node`; rig-method) that the orchestrator can call per case (input JSON in, observation JSON out, in the format of the
   `rig-method` skill's `references/proof.md`), and a README with the build and run commands. Build the code and run
   every dev case before you finish. Your runner, scripts and scratch files go inside `target_scope` too; never in
   `work/` or `/tmp`.

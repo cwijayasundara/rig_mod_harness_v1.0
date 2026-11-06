@@ -197,6 +197,8 @@ describe('core 4, 5, 8, 9: the commands say it', () => {
   test('rig-method: no background waits, helper scripts in TypeScript', () => {
     const m = doc('skills/rig-method/SKILL.md')
     assert.match(m, /Never use Monitor, ScheduleWakeup/)
-    assert.match(m, /Helper scripts are TypeScript/)
+    assert.match(m, /Scripts are TypeScript/)
+    assert.match(m, /each\s+side's runner/)
+    assert.match(doc('agents/worker.md'), /runner in TypeScript/)
   })
 })

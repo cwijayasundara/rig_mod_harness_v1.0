@@ -49,8 +49,11 @@ did not reach the risk does not cover it. Reruns never clear a failure.
   (`until [ -f … ]; do sleep …`) to wait for a command. Run each command in the foreground with a timeout that covers
   it (up to 600000 ms). When a step would take longer, split it (fewer cases per command) instead of backgrounding it. A
   backgrounded command is killed when its agent's turn ends, and leaves half-written files behind.
-- **Helper scripts are TypeScript.** A script you write for RIG (a sweep, a generator, a driver) is a `.ts`
-  file run with `node` (Node 24 runs TypeScript directly; no dependencies). Do not write Python or shell twins of it.
+- **Scripts are TypeScript.** Every script you write for RIG (a sweep, a generator, a comparator, a driver, and each
+  side's runner: the legacy runner of the oracle harness and the modern runner of a unit) is a `.ts` file run with
+  `node` (Node 24 runs TypeScript directly; no dependencies). A runner may call the system's own tools (`cobc`, the
+  compiled program, `java`), but its logic is TypeScript. Do not write Python or shell twins. An existing runner in
+  another language is replaced by a `.ts` one that gives the same observations on the set before it is used again.
 
 ## Workspace
 
