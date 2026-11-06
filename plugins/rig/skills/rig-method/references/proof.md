@@ -15,7 +15,9 @@ never writes a verdict, a pass or a coverage count by hand. Every command prints
   "expected": { "...observations..." }, "classes": ["hazard:truncation", "random"], "origin": "hazard" }
 ```
 
-All five input keys are required. Use `{}` or `null` for none.
+All five input keys are required. Use `{}` or `null` for none. The same canonical input is the same case: `case add`
+then adds the classes to the existing case and prints `"merged": true` with `previous_classes` (a relabel, not a new
+input). A generator that meant a new input must draw again.
 
 ## Observations (one file per case per side)
 
@@ -25,7 +27,11 @@ All five input keys are required. Use `{}` or `null` for none.
 ```
 
 Values are strings exactly as a consumer sees them. The built-in `exact` comparator compares `return_code`, `abend`,
-`messages`, `screens`, and for each store: `store_write`, `cardinality`, `record_order`, and each `field:<name>`. A
+`messages`, `screens`, and for each store: `store_write`, `cardinality`, `record_order`, each `field:<name>`, and
+`store_semantics` when either side has a `semantics` object. A store's `semantics` is what a probe of the store found
+(`{"collation": "EBCDIC", "range_read": ["A01", "B01", "101"], "duplicate_key": "rejected"}`; values are strings or lists
+of strings). A surface that lists `<U>/<store>.store_semantics` needs runners that write it on both sides, or that id is
+never compared. A
 custom comparator is a command `<cmd> legacy.json modern.json` that prints `{"equal": bool, "compared": [observable
 ids]}`. It must name what it compared (Rule B).
 
@@ -52,8 +58,10 @@ the case runs only on that UTC day. Write the stores command for the application
 ## Set (`oracles/<system>/sets/<name>.json`, written by `set build` and `judge`)
 
 `dev`, `sealed` (case ids, chosen by hash), `exhaustive_classes`, `required_classes` (`{class: description}`), `generators`
-(`{class: definition}`), `failed_classes` (the last run's). The set hash covers ids and generator definitions, never
-seeds.
+(`{class: definition}`), `failed_classes` (the last run's), `failure_sealed` (cases a judge or shadow run sealed because
+they failed). The set hash covers ids and generator definitions, never seeds, and leaves out `failure_sealed`: a run's
+own failure never moves its key. `set build` seals at least one case of every class (the lowest hash of its new cases,
+while the class keeps a dev case) and prints `unsealed_classes` for any class it could not seal: give each two inputs.
 
 ## Normalizer (`oracles/<system>/normalizers/NORM-*.json`)
 

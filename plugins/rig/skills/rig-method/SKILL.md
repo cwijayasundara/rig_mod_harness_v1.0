@@ -45,6 +45,12 @@ did not reach the risk does not cover it. Reruns never clear a failure.
 - **Wait for every agent you dispatch.** Run agents in the foreground, or wait for each background agent's result,
   before you go on or end your turn. A headless run (`claude -p`) ends when your turn ends, and that kills any agent
   still running. A stage is done only when its agent has returned and you have logged the result.
+- **No background waits.** Never use Monitor, ScheduleWakeup, `run_in_background` or a polling loop
+  (`until [ -f … ]; do sleep …`) to wait for a command. Run each command in the foreground with a timeout that covers
+  it (up to 600000 ms). When a step would take longer, split it (fewer cases per command) instead of backgrounding it. A
+  backgrounded command is killed when its agent's turn ends, and leaves half-written files behind.
+- **Helper scripts are TypeScript.** A script you write for RIG (a sweep, a generator, a driver) is a `.ts`
+  file run with `node` (Node 24 runs TypeScript directly; no dependencies). Do not write Python or shell twins of it.
 
 ## Workspace
 

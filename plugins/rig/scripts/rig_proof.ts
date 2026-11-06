@@ -185,12 +185,19 @@ export function canonicalInput(inp: Obj): Obj {
 
 export const caseId = (inp: Obj): string => sha(canon(canonicalInput(inp)))
 
-export function addCase(ws: WS, inp: Obj, classes: string[], origin: string, expected: Obj | null): Obj {
+/**
+ * Add a case. The same canonical input is the same case: then no case is created, the classes are added to the existing
+ * one (a relabel), and the result says so (`merged`, `previous_classes`), so a caller that meant a new input sees that
+ * it drew one it already had (ENG-B core 2).
+ */
+export function addCase(ws: WS, inp: Obj, classes: string[], origin: string, expected: Obj | null): Obj & { merged?: boolean; previous_classes?: string[] } {
   const id = caseId(inp)
   const p = ws.casePath(id)
   let c: Obj
+  let previous: string[] | null = null
   if (isFile(p)) {
     c = load(p)
+    previous = [...c['classes']]
     c['classes'] = uniqSorted([...c['classes'], ...classes])
     if (expected !== null && c['expected'] !== null && canon(c['expected']) !== canon(expected)) {
       throw new Bad(`case ${id.slice(0, 12)} already has a different expected output`)
@@ -200,7 +207,7 @@ export function addCase(ws: WS, inp: Obj, classes: string[], origin: string, exp
     c = { id, input: inp, expected, classes: uniqSorted(classes), origin }
   }
   dump(p, c)
-  return c
+  return previous ? Object.defineProperties(c, { merged: { value: true }, previous_classes: { value: previous } }) : c
 }
 
 /** Split a pool into dev and sealed by input hash. Sealed cases never move (§5.3 rule 2). */
@@ -225,7 +232,19 @@ export function buildSet(ws: WS, name: string, gateUnit: string, mode: string, p
   const total = sealed.size + dev.size + fresh.length
   const share = Math.ceil(total * SEALED_SHARE)
   const want = mode === 'executable' ? Math.max(SEALED_MIN, share) : share
-  for (const id of fresh) (sealed.size < want ? sealed : dev).add(id) // sorted by hash: nobody chooses
+  // Every class gets a sealed case (ENG-B core 1): a class with none is never checked on inputs the worker did not see.
+  // The lowest-hash fresh case of the class is sealed, so nobody chooses, and only while the class keeps a dev case.
+  const classesOf = new Map<string, string[]>([...sealed, ...dev, ...fresh].map((id) => [id, ws.case(id)['classes'] as string[]]))
+  const allClasses = uniqSorted([...classesOf.values()].flat())
+  const unsealed: string[] = []
+  for (const cl of allClasses) {
+    const has = (ids: Iterable<string>) => [...ids].filter((id) => classesOf.get(id)!.includes(cl))
+    if (has(sealed).length > 0) continue
+    const freshOf = has(fresh)
+    if (freshOf.length > 0 && freshOf.length + has(dev).length >= 2) sealed.add(freshOf[0]!)
+    else unsealed.push(cl)
+  }
+  for (const id of fresh) if (!sealed.has(id)) (sealed.size < want ? sealed : dev).add(id) // sorted by hash: nobody chooses
   if (mode === 'executable' && sealed.size < SEALED_MIN) {
     throw new Bad(`executable mode needs at least ${SEALED_MIN} sealed cases; the pool gives ${sealed.size}`)
   }
@@ -234,16 +253,30 @@ export function buildSet(ws: WS, name: string, gateUnit: string, mode: string, p
     required_classes: sortObj(required), generators: sortObj(generators),
     exhaustive_classes: uniqSorted([...(old?.['exhaustive_classes'] ?? []), ...exhaustive]),
     failed_classes: old ? old['failed_classes'] ?? [] : [],
+    ...(old?.['failure_sealed'] ? { failure_sealed: old['failure_sealed'] } : {}),
   }
   dump(p, s)
-  return s
+  return Object.defineProperty(s, 'unsealed_classes', { value: unsealed })
 }
 
 const sortObj = <T,>(o: Record<string, T>) => Object.fromEntries(Object.keys(o).sort().map((k) => [k, o[k]!]))
 
-/** Case ids and generator definitions only. Never per-run seeds (§6.5). */
-export const setHash = (s: Obj): string =>
-  sha(canon({ dev: s['dev'], sealed: s['sealed'], generators: s['generators'], exhaustive: s['exhaustive_classes'] ?? [] }))
+/**
+ * Case ids and generator definitions only. Never per-run seeds (§6.5). Cases a run sealed because they failed
+ * (`failure_sealed`, written by judge and shadow) are left out: they are a consequence of a run under the key, so
+ * counting them would move the key of the very run that found the failure, and hide it (ENG-A core 1).
+ */
+export const setHash = (s: Obj): string => {
+  const joined = new Set<string>(s['failure_sealed'] ?? [])
+  return sha(canon({ dev: s['dev'], sealed: (s['sealed'] as string[]).filter((id) => !joined.has(id)), generators: s['generators'], exhaustive: s['exhaustive_classes'] ?? [] }))
+}
+
+/** Seal cases a run found failing, and remember that a run (not `set build`) sealed them. */
+function sealFailures(s: Obj, ids: string[]): void {
+  const added = ids.filter((id) => !(s['sealed'] as string[]).includes(id))
+  s['sealed'] = uniqSorted([...s['sealed'], ...ids])
+  if (added.length > 0 || s['failure_sealed']) s['failure_sealed'] = uniqSorted([...(s['failure_sealed'] ?? []), ...added])
+}
 
 // ---------------------------------------------------------------------------
 // Observations and the built-in comparator
@@ -253,6 +286,8 @@ export const setHash = (s: Obj): string =>
 //   {"stores": {"<store>": {"records": [{"<field>": "<value>"}, ...]}},
 //    "return_code": 0, "abend": null, "messages": ["..."], "screens": [{...}]}
 // Values are strings. A decimal is "123.40", never a float.
+// A store may also carry "semantics": {"<property>": "<value>" | ["<value>", ...]}, what a probe of the store found
+// (key collation, the order a range read returns, uniqueness, null handling). It is compared as <U>/<store>.store_semantics.
 
 export function applyNormalizers(obs: Obj, norms: Obj[]): Obj {
   const o = structuredClone(obs)
@@ -373,6 +408,13 @@ export function observationProblem(o: Obj): string | null {
   const rc = o['return_code']
   if (rc != null && !Number.isSafeInteger(rc)) return `return_code ${JSON.stringify(rc)} is not an integer`
   for (const [store, st] of Object.entries<Obj>(o['stores'] ?? {})) {
+    const sem = st?.['semantics']
+    if (sem !== undefined) {
+      if (sem === null || typeof sem !== 'object' || Array.isArray(sem)) return `${store}.semantics must be an object of probe results`
+      for (const [k, v] of Object.entries<unknown>(sem)) {
+        if (typeof v !== 'string' && !(Array.isArray(v) && v.every((x) => typeof x === 'string'))) return `${store}.semantics.${k} must be a string or a list of strings`
+      }
+    }
     for (const r of st?.['records'] ?? []) {
       for (const [f, v] of Object.entries<unknown>(r)) {
         if (v !== null && typeof v !== 'string') return `${store}.${f} is ${typeof v} ${JSON.stringify(v)}: write field values as strings, so scale and precision survive`
@@ -404,6 +446,8 @@ export function exactCompare(legacy: Obj, modern: Obj, unit: string, tolerances:
     const a0: Obj[] | undefined = ls[store]?.['records']
     const b0: Obj[] | undefined = ms[store]?.['records']
     cmp(`${base}.store_write`, a0 !== undefined, b0 !== undefined)
+    const sa = ls[store]?.['semantics'], sb = ms[store]?.['semantics']
+    if (sa !== undefined || sb !== undefined) cmp(`${base}.store_semantics`, sa ?? null, sb ?? null)
     const a = a0 ?? [], b = b0 ?? []
     cmp(`${base}.cardinality`, a.length, b.length)
     cmp(`${base}.record_order`, a.map(canon), b.map(canon))
@@ -510,14 +554,19 @@ export function judge(ws: WS, setName: string, key: string, legacyDir: string, m
   const results: Obj[] = []
   const coverage: Coverage = { observables: {}, classes: {}, hazards: {}, calendar_events: [], mismatches: [] }
   const tmp = join(ws.evidence, '.tmp')
+  // Errors name no case: the judge returns no case id (judge.md). They count, and say where to look.
+  const noModern = cases.filter((id) => !isFile(join(modernDir, `${id}.json`))).length
+  if (noModern > 0) throw new Bad(`no modern observation for ${noModern} of ${cases.length} case(s) (set plus fresh) in ${modernDir}`)
+  if (s['mode'] !== 'recorded') {
+    const noLegacy = cases.filter((id) => !isFile(join(legacyDir, `${id}.json`)) && (ws.case(id)['expected'] ?? null) === null).length
+    if (noLegacy > 0) throw new Bad(`no legacy observation for ${noLegacy} of ${cases.length} case(s) in ${legacyDir}: in ${s['mode']} mode every case is compared (R3-01)`)
+  }
   for (const id of cases) {
     const c = ws.case(id)
     const lpath = join(legacyDir, `${id}.json`)
     const mpath = join(modernDir, `${id}.json`)
-    if (!isFile(mpath)) throw new Bad(`no modern observation for case ${id.slice(0, 12)}`)
     const modern = load(mpath)
     const legacy = isFile(lpath) ? load(lpath) : c['expected'] ?? null // null: recorded mode, generated input
-    if (legacy === null && s['mode'] !== 'recorded') throw new Bad(`no legacy observation for case ${id.slice(0, 12)}: in ${s['mode']} mode every case is compared (R3-01)`)
     let r: Obj
     if (legacy === null) {
       // No legacy output exists, so only properties that need none are checked. An abend is behaviour the
@@ -557,7 +606,7 @@ export function judge(ws: WS, setName: string, key: string, legacyDir: string, m
 
   // Failing fresh inputs join the sealed set for good (§5.3 rule 4). Sealed cases never move.
   const failedFresh = results.filter((r) => r['fresh'] && !r['pass']).map((r) => r['case'] as string)
-  s['sealed'] = uniqSorted([...s['sealed'], ...failedFresh])
+  sealFailures(s, failedFresh)
   for (const id of failedFresh) dump(ws.casePath(id), { ...ws.case(id), origin: 'fresh_failure' })
   s['failed_classes'] = uniqSorted(results.filter((r) => !r['pass']).flatMap((r) => r['classes'] as string[]))
   dump(ws.setPath(setName), s)
@@ -887,6 +936,15 @@ export function canaryMutations(obs: Obj, correlated: Obj[]): Mutation[] {
       for (const [name, nv] of reprVariants(v)) out.push(['representation', `${store}.${f}: ${name}`, setVal(nv)])
     }
   }
+  for (const store of Object.keys(stores).sort()) {
+    const sem: Obj | undefined = stores[store]?.['semantics']
+    const k = sem ? Object.keys(sem).sort()[0] : undefined
+    if (!k) continue
+    const m = structuredClone(obs)
+    const v = sem![k]
+    m['stores'][store]['semantics'][k] = Array.isArray(v) ? (v.length > 1 ? [v[1], v[0], ...v.slice(2)] : [...v, 'X']) : bumpValue(String(v))
+    out.push(['value', `${store}: store semantics ${k} changed`, m])
+  }
   for (const g of correlated) { // {"store", "detail", "total"}: change one detail and recompute the total
     const recs: Obj[] = stores[g['store']]?.['records'] ?? []
     const d = recs.length > 0 ? dec(recs[0]![g['detail']]) : null
@@ -987,7 +1045,7 @@ export function shadow(ws: WS, gateUnit: string, key: string, trafficDir: string
   if (setName && coverage['mismatches'].length > 0) {
     const st = load(ws.setPath(setName))
     if (st['gate_unit'] !== gateUnit) throw new Bad(`set ${setName} is for ${st['gate_unit']}, not ${gateUnit}`)
-    st['sealed'] = uniqSorted([...st['sealed'], ...coverage['mismatches']])
+    sealFailures(st, coverage['mismatches'])
     dump(ws.setPath(setName), st)
   }
   const counts: Record<string, { passed: number; total: number }> = {}
@@ -1061,6 +1119,7 @@ function exercises(r: Obj, run: Obj, requirement: string): boolean {
   const [kind, ...rest] = requirement.split(':')
   const name = rest.join(':')
   if (kind === 'calendar') return ((r['calendar_events'] ?? []) as string[]).includes(name) // this case's own dates (R3-04)
+  if (requirement === 'class:any') return true // any input that compared the observable (verdict writes it for "never compared")
   return r['classes'].includes(requirement) || (kind === 'class' && r['classes'].includes(name))
 }
 
@@ -1258,10 +1317,12 @@ export function main(argv: string[]): number {
     let ok = true
     if (command === 'case' && sub === 'add') {
       const c = addCase(ws, load(s('input')!), ids(s('classes')), s('origin') ?? 'characterization', s('expected') ? load(s('expected')!) : null)
-      out = { id: c['id'], classes: c['classes'] }
+      out = { id: c['id'], classes: c['classes'], ...(c.merged ? { merged: true, previous_classes: c.previous_classes,
+        note: 'this input is already a case: no case was added, only its classes (a relabel). Draw a new input for a new case.' } : {}) }
     } else if (command === 'set' && sub === 'build') {
       const st = buildSet(ws, s('set')!, s('gate-unit')!, s('mode')!, ids(s('pool')), s('required') ? load(s('required')!) : {}, s('generators') ? load(s('generators')!) : {}, ids(s('exhaustive')))
-      out = { set: st['name'], dev: st['dev'].length, sealed: st['sealed'].length, hash: setHash(st) }
+      out = { set: st['name'], dev: st['dev'].length, sealed: st['sealed'].length, hash: setHash(st), unsealed_classes: st['unsealed_classes'] }
+      if (st['unsealed_classes'].length > 0) out['note'] = 'these classes have no sealed case: add at least two inputs of each, then build again'
     } else if (command === 'compare') {
       // Self-check is not evidence: a draft delta may be tried here before a person approves it.
       out = compareOnly(s('legacy-dir')!, s('modern-dir')!, s('comparator'), unitName(String(s('gate-unit') ?? '')), join(ws.root, '.rig-tmp'), ids(s('deltas')).map(load))

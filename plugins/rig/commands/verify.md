@@ -56,7 +56,8 @@ open obligation for each gap. A person accepts one with `/rig:review $system obl
 reachable. Never set `accepted_by` yourself.
 
 For a restructure unit, also run `node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_arch.ts check --ws . --system $system
---root <modern source root>` and report its result word for word beside the verdict. A failing architecture check
+--root <modern source root> --gate-units $gate_unit` and report its result word for word beside the verdict. Without
+`--gate-units` the check also fails on stores of other gate units' surfaces, which this unit does not own. A failing architecture check
 does not change the verdict the script prints, but the unit cannot merge.
 
 ## 4 — Report

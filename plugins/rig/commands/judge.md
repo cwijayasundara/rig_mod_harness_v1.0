@@ -15,12 +15,19 @@ script's counts and class descriptions only.
    JSON out), called the same way for every case; the legacy runner is the oracle harness's. Field values are
    strings and return codes integers in every observation (the script refuses others). Run both sides of the set plus the fresh ones. Each side runs the whole gate unit, seeded from
    the case's store snapshots, never mixing legacy and modern in one run. Write one observation file per case,
-   `<case-id>.json`, to `work/$system/judge/obs/<run>/legacy/` and `.../modern/`. This is the judge's scratch folder: the
+   `<case-id>.json`, to `work/$system/judge/obs/<run>/legacy/` and `.../modern/`. `<run>` is unique to this judge run
+   and lower case: `<gate-unit slug>-<rung>-<UTC yyyymmddThhmmss>-<6 random hex>`, for example
+   `get-owners-ownerid-v3-20261106t081200-a3f9c1`. Never reuse a name or one that differs only in case: macOS folders are
+   case-insensitive, and two judges in one folder overwrite each other's observations. This is the judge's scratch folder: the
    guard hides it from the worker and the fixer. Never write under `evidence/`; only the script writes there.
    For an HTTP gate unit, run each side with `rig_http.ts` (see `references/proof.md`, "HTTP runner").
 3. **Evidence key** for the rung (V3 differential, or V4 fresh inputs). `--modern` and `--comparators` are
    comma-separated lists; a directory (`target/classes`) counts as every file under it, and a path that does not exist
-   is refused. `--packs` names each Pack with the version `PREFLIGHT.md` check 2 recorded for it (never a guess).
+   is refused. `--comparators` lists every file that decides equality in this run, and nothing else: the custom
+   comparator's script that `--comparator` runs and each local file it imports (the `.ts` that ran, not a twin in
+   another language), every approved normalizer and every approved delta passed to the judge. With `--comparator exact`
+   and no normalizer or delta it is empty. `--packs` is the "Pack versions" JSON from `PREFLIGHT.md`, copied as it is.
+   If `PREFLIGHT.md` has none, stop and say so: never write `unrecorded` or a guess, since such a key compares with nothing.
    Write the exact command next to the key in the unit's log, so `verify` can recompute it:
    ```
    node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.ts key --ws . --system $system --gate-unit $gate_unit --rung V3 \

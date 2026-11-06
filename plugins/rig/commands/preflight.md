@@ -25,6 +25,12 @@ command, its output, and the tool versions. A construct whose smoke run did not 
 (CICS, BMS, IMS, DB2 and MQ without a test region), is a **gap**: write it as a gap, never as supported. A declared
 capability that did not run is a gap.
 
+Then write a **Pack versions** block: one JSON object that every evidence key of this system uses as `--packs`. It names
+the RIG plugin version (`.claude-plugin/plugin.json`), each bridge skill the system will use, and each toolchain a smoke
+run used, with the version that smoke run printed, for example
+`{"rig": "0.1.0", "cobol-to-java": "rig 0.1.0", "gnucobol": "3.2.0", "openjdk": "21.0.13", "maven": "3.9.9"}`. Rerun
+preflight when a version changes: the keys change with it.
+
 From the gaps, state per gate unit (each job, each transaction) the strongest verdict it can reach: executable mode
 (PROVEN possible) or recorded mode (PROVISIONAL at best), and why.
 
