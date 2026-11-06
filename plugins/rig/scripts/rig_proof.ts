@@ -223,7 +223,9 @@ export function addCase(ws: WS, inp: Obj, classes: string[], origin: string, exp
 export function buildSet(ws: WS, name: string, gateUnit: string, mode: string, pool: string[],
                          required: Record<string, string>, generators: Record<string, string>, exhaustive: string[] = [],
                          classObservables?: Record<string, string[]>): Obj {
-  if (mode !== 'executable' && mode !== 'recorded') throw new Bad('mode must be executable or recorded')
+  // reconcile (V7): the cases are the migrated datasets themselves, run live on both sides. No worker sees them, so
+  // there is nothing to hold out: every case is sealed, any number is enough, and runs count at V7 only (item 24).
+  if (mode !== 'executable' && mode !== 'recorded' && mode !== 'reconcile') throw new Bad('mode must be executable, recorded or reconcile')
   const p = ws.setPath(name)
   const old = isFile(p) ? load(p) : null
   const sealed = new Set<string>(old ? old['sealed'] : [])
@@ -237,7 +239,7 @@ export function buildSet(ws: WS, name: string, gateUnit: string, mode: string, p
   const fresh = uniqSorted(pool.filter((id) => !sealed.has(id) && !dev.has(id)))
   const total = sealed.size + dev.size + fresh.length
   const share = Math.ceil(total * SEALED_SHARE)
-  const want = mode === 'executable' ? Math.max(SEALED_MIN, share) : share
+  const want = mode === 'executable' ? Math.max(SEALED_MIN, share) : mode === 'reconcile' ? total : share
   // Every class gets a sealed case (ENG-B core 1): a class with none is never checked on inputs the worker did not see.
   // The lowest-hash fresh case of the class is sealed, so nobody chooses, and only while the class keeps a dev case.
   const classesOf = new Map<string, string[]>([...sealed, ...dev, ...fresh].map((id) => [id, ws.case(id)['classes'] as string[]]))
@@ -597,7 +599,7 @@ export function judge(ws: WS, setName: string, key: string, legacyDir: string, m
   // A class that failed last time must come back with new inputs (§5.3 rule 3).
   const freshClasses = new Set(fresh.flatMap((id) => ws.case(id)['classes'] as string[]))
   const exhaustive = new Set<string>(s['exhaustive_classes'] ?? [])
-  const missingRetry = (s['failed_classes'] as string[] ?? []).filter((c) => !freshClasses.has(c) && !exhaustive.has(c)).sort()
+  const missingRetry = s['mode'] === 'reconcile' ? [] : (s['failed_classes'] as string[] ?? []).filter((c) => !freshClasses.has(c) && !exhaustive.has(c)).sort()
   if (missingRetry.length > 0) throw new Bad(`classes that failed last run need fresh inputs this run: ${JSON.stringify(missingRetry)}`)
 
   const results: Obj[] = []
@@ -697,7 +699,7 @@ export function judge(ws: WS, setName: string, key: string, legacyDir: string, m
   const compared = results.filter((r) => !r['not_run'])
   // Rule 3 again, on what ran: a fresh input that was not run brought nothing back to the class that failed.
   const ranFresh = new Set(compared.filter((r) => r['fresh']).flatMap((r) => r['classes'] as string[]))
-  const stillMissing = (s['failed_classes'] as string[] ?? []).filter((c) => !ranFresh.has(c) && !exhaustive.has(c)).sort()
+  const stillMissing = s['mode'] === 'reconcile' ? [] : (s['failed_classes'] as string[] ?? []).filter((c) => !ranFresh.has(c) && !exhaustive.has(c)).sort()
   if (stillMissing.length > 0) throw new Bad(`classes that failed last run need fresh inputs that run: the fresh inputs of ${JSON.stringify(stillMissing)} were not run`)
 
   const runId = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + '-' + randomUUID().replaceAll('-', '').slice(0, 6)
@@ -875,9 +877,15 @@ function comparatorMaterial(ws: WS, path: string): Obj {
   return { path, body: sha(body), consumers }
 }
 
+/**
+ * `harness`: the oracle harness files that produced the legacy observations besides the legacy code itself (the legacy
+ * runner, loaders, unloaders, probe programs). Required at V7, where the legacy side is an unload by the harness; in the
+ * key only when given, so keys built without it stay what they were (item 24, ENG-D core 5).
+ */
 export function evidenceKey(ws: WS, gateUnit: string, rung: string, legacyRoot: string, modern: string[],
-                            oracleSet: string | undefined, comparators: string[], packs: Obj, environment: Obj): Obj {
+                            oracleSet: string | undefined, comparators: string[], packs: Obj, environment: Obj, harness: string[] = []): Obj {
   if (!RUNGS.includes(rung)) throw new Bad(`rung must be one of ${RUNGS.join(', ')}`)
+  if (rung === 'V7' && harness.length === 0) throw new Bad('V7 needs --harness: the files that unload and probe the legacy store (the legacy side of a reconciliation is the harness)')
   const closure = runtimeClosure(ws, gateUnit)
   if (!isDir(legacyRoot)) throw new Bad(`legacy root ${legacyRoot} is not a directory`)
   const presentLegacy = closure.filter((p) => !p.startsWith('<') && isFile(join(legacyRoot, p)))
@@ -891,6 +899,7 @@ export function evidenceKey(ws: WS, gateUnit: string, rung: string, legacyRoot: 
     comparators: COMPARATOR_RUNGS.has(rung) ? sha(canon([...comparators].sort().map((c) => comparatorMaterial(ws, c)))) : null,
     packs: sha(canon(packs)),
     environment: sha(canon(environment)),
+    ...(harness.length > 0 ? { harness: hashFiles(harness, ws.root, 'harness', true) } : {}),
   }
   return { key: sha(canon(fields)).slice(0, 32), fields, closure }
 }
@@ -1332,6 +1341,9 @@ export function verdict(ws: WS, gateUnit: string, rung: string, key: string, req
     if (other) reasons.push(`latest run under another key (${other['key']}): ${other['coverage']['mismatches'].length} of ${other['results'].length} case(s) failed`)
     return { verdict: 'NOT_PROVEN', reasons, gaps: [] }
   }
+  if (rung !== 'V7' && runs.some((r) => r['mode'] === 'reconcile')) {
+    return { verdict: 'NOT_PROVEN', reasons: [`a reconcile set proves V7 only; ${rung} needs an executable or recorded set`], gaps: [] }
+  }
   const signoffs = new Map<string, Obj>()
   for (const f of ls(join(ws.evidence, 'signoffs'))) {
     if (f.endsWith('.json')) { const s = load(join(ws.evidence, 'signoffs', f)); signoffs.set(s['case'], s) }
@@ -1483,7 +1495,7 @@ export function main(argv: string[]): number {
     options: Object.fromEntries([
       'ws', 'system', 'input', 'expected', 'classes', 'origin', 'set', 'gate-unit', 'mode', 'pool', 'required', 'generators',
       'key', 'legacy-dir', 'modern-dir', 'fresh', 'comparator', 'normalizers', 'env', 'rung', 'legacy-root', 'modern',
-      'comparators', 'packs', 'environment', 'file', 'legacy-ids', 'modern-ids', 'samples', 'correlated', 'requirements', 'derived', 'exhaustive', 'class-observables', 'deltas', 'legacy-surface', 'modern-surface', 'traffic', 'stage',
+      'comparators', 'packs', 'environment', 'file', 'legacy-ids', 'modern-ids', 'samples', 'correlated', 'requirements', 'derived', 'exhaustive', 'class-observables', 'harness', 'deltas', 'legacy-surface', 'modern-surface', 'traffic', 'stage',
     ].map((k) => [k, { type: 'string' as const }]).concat([['write-obligations', { type: 'boolean' as const }], ['help', { type: 'boolean' as const }]])),
   })
   const [command, sub] = positionals
@@ -1519,7 +1531,7 @@ export function main(argv: string[]): number {
       out = judge(ws, s('set')!, s('key')!, s('legacy-dir')!, s('modern-dir')!, ids(s('fresh')), s('comparator'), approvedNormalizers(ws, ids(s('normalizers'))), s('env') ?? 'default', approvedDeltas(ids(s('deltas'))))
       ok = out['passed'] === out['total'] && !out['not_run']
     } else if (command === 'key') {
-      out = evidenceKey(ws, s('gate-unit')!, s('rung')!, s('legacy-root')!, ids(s('modern')), s('set'), ids(s('comparators')), JSON.parse(s('packs') ?? '{}'), JSON.parse(s('environment') ?? '{}'))
+      out = evidenceKey(ws, s('gate-unit')!, s('rung')!, s('legacy-root')!, ids(s('modern')), s('set'), ids(s('comparators')), JSON.parse(s('packs') ?? '{}'), JSON.parse(s('environment') ?? '{}'), ids(s('harness')))
     } else if (command === 'normalizer') {
       const errs = checkNormalizer(ws, load(s('file')!))
       out = { legal: errs.length === 0, reasons: errs }

@@ -42,7 +42,11 @@ that reads or writes the store (`graph.json` `reads`/`writes`), not only the one
 The migration (unload, convert, load) is a script under the owning module, run on a copy. Reconcile by judge: one
 case per migrated dataset whose legacy observation is the unload and whose modern observation is the target table read
 back in key order, both as `stores.<STORE>.records`. The comparator's `cardinality`, `record_order` and `field:*`
-observables are the counts, the order and the values; compare exactly. Record it under the **V7** key.
+observables are the counts, the order and the values; compare exactly. Build its set with `set build --mode reconcile`
+(any number of datasets, all sealed, legacy run live; such a set proves V7 only and can reach PROVEN), and record it
+under the **V7** key, whose `--harness` lists the unload and probe programs and the legacy runner that produced the
+legacy side. A key for V7 without `--harness` is refused. Relative paths outside the workspace (a jar in `~/.m2`)
+work in `--modern`; they are hashed under the path as written.
 
 ## 4 — Readers and the business day (V8)
 

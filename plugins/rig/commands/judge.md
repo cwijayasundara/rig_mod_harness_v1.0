@@ -30,7 +30,9 @@ script's counts and class descriptions only.
    batches of cases, each its own foreground command, rather than backgrounding it.
 3. **Evidence key** for the rung (V3 differential, or V4 fresh inputs). `--modern` and `--comparators` are
    comma-separated lists; a directory (`target/classes`) counts as every file under it, and a path that does not exist
-   is refused. Paths are relative to the workspace; `plugin:<path>` names a file of the plugin (hashed under that name,
+   is refused. `--harness` lists the oracle harness files that produced the legacy observations besides the legacy
+   code (the legacy runner, loaders, unloaders, probe programs); it is required at V7 and recommended at every rung.
+   Paths are relative to the workspace; `plugin:<path>` names a file of the plugin (hashed under that name,
    so the key is the same in every workspace); an absolute path is refused. `--comparators` lists every file that decides equality in this run, and nothing else: the custom
    comparator's script that `--comparator` runs and each local file it imports (the `.ts` that ran, not a twin in
    another language), every approved normalizer and every approved delta passed to the judge. With `--comparator exact`

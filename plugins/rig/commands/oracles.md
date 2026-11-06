@@ -64,7 +64,9 @@ fresh-input rules, and its cases re-run every time instead. A generator with a s
 possible inputs, such as the webjar paths of one page) is exhaustive too: add every input as a case and name the class,
 or the fresh-input rule leaves a gap that can never close once the domain is used up.
 
-The script picks the sealed cases by input hash (at least 20 or 25% in executable mode, 25% in recorded mode). Never
+The script picks the sealed cases by input hash (at least 20 or 25% in executable mode, 25% in recorded mode). A third
+mode, `reconcile`, is for a V7 migration check only: the cases are the migrated datasets, every one is sealed, and any
+number is enough (`store-replatform` skill). Never
 choose them, never move one, and never show a sealed case to anyone who works on `modernized/`.
 
 ## 4 — Report

@@ -252,6 +252,11 @@ describe('core 4, 5, 8, 9: the commands say it', () => {
     assert.match(doc('agents/worker.md'), /write `input_digest`/)
     assert.match(doc('commands/verify.md'), /`input_digests`: `true`/)
   })
+  test('reconcile mode and --harness are documented for V7', () => {
+    assert.match(doc('skills/store-replatform/SKILL.md'), /set build --mode reconcile/)
+    assert.match(doc('commands/judge.md'), /`--harness` lists the oracle harness files/)
+    assert.match(doc('commands/oracles.md'), /A third\s+mode, `reconcile`/)
+  })
   test('verify.md passes --gate-units to the architecture check', () => {
     assert.match(doc('commands/verify.md'), /rig_arch\.ts check[^`]*--gate-units \$gate_unit/)
   })
@@ -667,5 +672,57 @@ describe('round 2 items 30-32: reports that say what they mean', () => {
     const v = readFileSync(new URL('../../plugins/rig/commands/verify.md', import.meta.url), 'utf8')
     assert.match(v, /every id the set's `class_observables` names/)
     assert.match(readFileSync(new URL('../../plugins/rig/commands/judge.md', import.meta.url), 'utf8'), /--comparator "node oracles\/\$system\/comparators\/<name>\.ts"/)
+  })
+})
+
+describe('round 2 item 24: V7 reconciliation of one dataset can be proven, and its key hashes the harness', () => {
+  const recon = () => {
+    const id = add(900, ['migration:CUSTFILE'])
+    const s = P.buildSet(ws, 'V7', GU, 'reconcile', [id], { 'migration:CUSTFILE': 'the one dataset' }, {})
+    return { id, s }
+  }
+  const harness = () => { mkdirSync(join(dir, 'harness'), { recursive: true }); writeFileSync(join(dir, 'harness', 'CUSTUNLD.cbl'), 'UNLOAD.'); return ['harness/CUSTUNLD.cbl'] }
+  const k7 = (h = harness()) => P.evidenceKey(ws, GU, 'V7', join(dir, 'legacy'), ['modern/Intcalc.java'], 'V7', [], {}, {}, h)['key'] as string
+  test('reconcile mode takes one case and seals it', () => {
+    const { id, s } = recon()
+    assert.deepEqual(s['sealed'], [id])
+    assert.deepEqual(s['dev'], [])
+  })
+  test('a passing reconciliation is PROVEN at V7, and refused at any other rung', () => {
+    const { id } = recon()
+    const o = observe('r1', [id])
+    const k = k7()
+    P.judge(ws, 'V7', k, o.l, o.m, [], undefined, [], 'env')
+    const v = P.verdict(ws, GU, 'V7', k, {}, false)
+    assert.equal(v['verdict'], 'PROVEN', v['reasons'].join('; '))
+    const v3 = P.verdict(ws, GU, 'V3', k, {}, false)
+    assert.equal(v3['verdict'], 'NOT_PROVEN')
+    assert.ok(v3['reasons'].some((x: string) => /reconcile.*V7 only/.test(x)), v3['reasons'].join('; '))
+  })
+  test('every reconciliation case needs a live legacy observation', () => {
+    const { id } = recon()
+    const o = observe('r1', [id])
+    rmSync(join(o.l, `${id}.json`))
+    assert.throws(() => P.judge(ws, 'V7', k7(), o.l, o.m, [], undefined, [], 'env'), /no legacy observation/)
+  })
+  test('a failed reconciliation can be rerun without fresh inputs (the dataset is the domain), and the failure stays', () => {
+    const { id } = recon()
+    const k = k7()
+    const o = observe('r1', [id], [id])
+    P.judge(ws, 'V7', k, o.l, o.m, [], undefined, [], 'env')
+    const o2 = observe('r2', [id])
+    P.judge(ws, 'V7', k, o2.l, o2.m, [], undefined, [], 'env')
+    assert.equal(P.verdict(ws, GU, 'V7', k, {}, false)['verdict'], 'FLAKY')
+  })
+  test('a V7 key needs --harness, and changes with a harness file', () => {
+    assert.throws(() => P.evidenceKey(ws, GU, 'V7', join(dir, 'legacy'), ['modern/Intcalc.java'], undefined, [], {}, {}), /--harness/)
+    const a = k7()
+    writeFileSync(join(dir, 'harness', 'CUSTUNLD.cbl'), 'UNLOAD CHANGED.')
+    assert.notEqual(k7(['harness/CUSTUNLD.cbl']), a)
+  })
+  test('without --harness, keys of other rungs are what they were', () => {
+    const before = P.evidenceKey(ws, GU, 'V3', join(dir, 'legacy'), ['modern/Intcalc.java'], undefined, [], {}, {})['key']
+    assert.equal(P.evidenceKey(ws, GU, 'V3', join(dir, 'legacy'), ['modern/Intcalc.java'], undefined, [], {}, {}, [])['key'], before)
+    assert.notEqual(P.evidenceKey(ws, GU, 'V3', join(dir, 'legacy'), ['modern/Intcalc.java'], undefined, [], {}, {}, harness())['key'], before)
   })
 })

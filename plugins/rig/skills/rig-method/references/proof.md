@@ -138,3 +138,4 @@ side's `elapsed_ms` where both recorded one). Calendar events come only from ite
 
 `PROVEN` (every run passed, every requirement covered), `PROVISIONAL` (gaps covered by accepted obligations, or
 recorded mode), `NOT_PROVEN` (a failure, zero cases, or an unaccepted gap), `FLAKY` (a case both passes and fails).
+A run of a `reconcile` set counts at V7 only; at any other rung the verdict is NOT_PROVEN.
