@@ -31,7 +31,10 @@ or listed for an oracle cap. A person decides which.
 
 Each declared property gets an input class `store:<property>` with a generator that reaches it: keys whose EBCDIC and
 ASCII orders differ, duplicate alternate keys, all-space and trailing-space fields, the maximum and minimum of each
-numeric field, an absent or empty store, an abend between two rewrites. Add them to the gate units of every program
+numeric field, an absent or empty store, an abend between two rewrites. Both runners write what a probe found as the store's
+`semantics` in the observation (`stores.<STORE>.semantics`, for example `{"key_order": ["A01", "B01", "101"],
+"duplicates": "rejected"}`; format in `rig-method` `references/proof.md`), so the surface's
+`<U>/<STORE>.store_semantics` is compared. A surface that lists it while no runner writes it is never covered. Add them to the gate units of every program
 that reads or writes the store (`graph.json` `reads`/`writes`), not only the one that is being moved.
 
 ## 3 — Migrate and reconcile (V7)
