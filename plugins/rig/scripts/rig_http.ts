@@ -26,10 +26,12 @@
  *     exits or never listens is behaviour: `abend` is `startup_exit:<code>` or `startup_timeout`.
  *  5. Replays `records.requests` in order, with a cookie jar seeded from `session.cookies`. A request that gets no
  *     answer in `--request-timeout` seconds is recorded as a screen `{ "status": null, "timeout": true }`; a hang is
- *     an observable difference, not an error of the runner (the M4 run found pages where legacy hangs).
+ *     an observable difference, not an error of the runner (the M4 run found pages where legacy hangs). The time the
+ *     requests took is `elapsed_ms` (start-up and shutdown excluded), which the judge counts as `<U>.timing` (V9).
  *  6. Stops the process group with SIGTERM (SIGKILL after 60 s, `abend: shutdown_timeout`). `return_code` is the exit
  *     code, or 128 + the signal number.
- *  7. Reads the stores with `--stores-cmd` after shutdown. A failing or unparsable stores command exits 3.
+ *  7. Reads the stores with `--stores-cmd` after shutdown. A failing or unparsable stores command exits 3. A store may
+ *     carry `semantics` (probe results) beside its records; it is kept as printed and compared as `store_semantics`.
  *
  * Request keys: method, path (sent as written), query and form (lists of [name, value] or an object, UTF-8
  * form-encoded), body (raw UTF-8), headers, follow_redirects (same host, up to 10), record_headers. The runner adds
@@ -252,6 +254,7 @@ export async function run(o: Obj): Promise<Obj> {
   const done = exited(app)
   let abend: string | null = null
   let screens: Screen[] = []
+  let elapsedMs: number | null = null
   const deadline = Date.now() + Number(o['startup-timeout']) * 1000
   let up = false
   while (Date.now() < deadline) {
@@ -262,7 +265,9 @@ export async function run(o: Obj): Promise<Obj> {
   if (!up) abend = app.exitCode !== null || app.signalCode ? `startup_exit:${await done}` : 'startup_timeout'
   else {
     const jar = new Map<string, string>(Object.entries((inp['session']?.['cookies'] ?? {}) as Record<string, string>))
+    const t0 = performance.now()
     const r = await replay(port, inp['records']['requests'], jar, o.host, Number(o['request-timeout']))
+    elapsedMs = Math.round(performance.now() - t0) // the requests only: start-up and shutdown are not latency
     screens = r.screens
     abend = r.abend
   }
@@ -289,6 +294,7 @@ export async function run(o: Obj): Promise<Obj> {
   if (!clock && screens.some((s) => typeof s['body'] === 'string' && s['body'].includes(utcDate()))) notes.push("a screen contains today's date but the case has clock null")
   // The clock was applied (by the wrap, or by running on that UTC day, checked above), so its calendar events count.
   return { screens, messages: messagesOf(screens, o['message-class']), stores, return_code: returnCode, abend, notes, workdir,
+           ...(elapsedMs !== null ? { elapsed_ms: elapsedMs } : {}),
            ...(clock ? { clock_applied: clock } : {}) }
 }
 

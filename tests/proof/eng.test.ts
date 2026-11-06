@@ -237,6 +237,10 @@ describe('core 4, 5, 8, 9: the commands say it', () => {
     assert.match(j, /1 when a case failed \*\*or\*\* was not run/)
     assert.match(doc('commands/oracles.md'), /small finite domain/)
   })
+  test('verify.md requires timing_max_ratio for <U>.timing; proof.md: HTTP stores print semantics', () => {
+    assert.match(doc('commands/verify.md'), /Required when the surface lists `<U>\.timing`/)
+    assert.match(doc('skills/rig-method/references/proof.md'), /stores command to print each table's `semantics`/)
+  })
   test('verify.md passes --gate-units to the architecture check', () => {
     assert.match(doc('commands/verify.md'), /rig_arch\.ts check[^`]*--gate-units \$gate_unit/)
   })
@@ -405,5 +409,73 @@ describe('round 2 items 18/28: a key can hash the plugin\'s own runner without a
   test('comparators may name a plugin file too', () => {
     assert.notEqual(P.evidenceKey(ws, GU, 'V3', join(dir, 'legacy'), ['modern/Intcalc.java'], undefined, ['plugin:scripts/rig_http.ts'], {}, {})['key'],
       P.evidenceKey(ws, GU, 'V3', join(dir, 'legacy'), ['modern/Intcalc.java'], undefined, [], {}, {})['key'])
+  })
+})
+
+describe('round 2 item 27: timing and HTTP store semantics are recorded', () => {
+  const timed = (ms: number, extra: object = {}) => ({ ...obs('A'), elapsed_ms: ms, ...extra })
+  function observeTimed(name: string, ids: string[], lms: number, mms: number) {
+    const l = join(dir, 'obs', name, 'l'), m = join(dir, 'obs', name, 'm')
+    mkdirSync(l, { recursive: true }); mkdirSync(m, { recursive: true })
+    for (const id of ids) { writeFileSync(join(l, `${id}.json`), JSON.stringify(timed(lms))); writeFileSync(join(m, `${id}.json`), JSON.stringify(timed(mms))) }
+    return { l, m }
+  }
+  const setup = () => {
+    const pool = Array.from({ length: 20 }, (_, i) => add(i, ['ok']))
+    P.buildSet(ws, 'S', GU, 'executable', pool, { ok: 'ok' }, {})
+    return pool
+  }
+  test('a judge run with elapsed_ms on both sides compares <U>.timing and records the timing', () => {
+    const pool = setup()
+    const o = observeTimed('r1', pool, 100, 150)
+    P.judge(ws, 'S', key(), o.l, o.m, [], undefined, [], 'env')
+    const run = [...P.allRuns(ws)][0]!
+    assert.equal(run['coverage']['observables']['INTCALC.timing'], 20)
+    assert.deepEqual(run['coverage']['timing'], { cases: 20, legacy_ms: 2000, modern_ms: 3000 })
+    const req = { observables: ['INTCALC.timing', 'INTCALC.message'], timing_max_ratio: 2 }
+    assert.equal(P.verdict(ws, GU, 'V4', key(), req, false)['verdict'], 'PROVEN')
+    const slow = P.verdict(ws, GU, 'V4', key(), { ...req, timing_max_ratio: 1.2 }, false)
+    assert.equal(slow['verdict'], 'NOT_PROVEN')
+    assert.ok(slow['reasons'].some((x: string) => /1\.50x legacy/.test(x)))
+  })
+  test('timing never makes a case fail: a slower modern side is a V9 gap, not a mismatch', () => {
+    const pool = setup()
+    const o = observeTimed('r1', pool, 100, 900)
+    const r = P.judge(ws, 'S', key(), o.l, o.m, [], undefined, [], 'env')
+    assert.equal(r['passed'], r['total'])
+  })
+  test('a surface that lists <U>.timing with no timing_max_ratio is a gap (compared against nothing)', () => {
+    const pool = setup()
+    const o = observeTimed('r1', pool, 100, 100)
+    P.judge(ws, 'S', key(), o.l, o.m, [], undefined, [], 'env')
+    const v = P.verdict(ws, GU, 'V4', key(), { observables: ['INTCALC.timing'] }, false)
+    assert.equal(v['verdict'], 'NOT_PROVEN')
+    assert.ok(v['reasons'].some((x: string) => /INTCALC\.timing.*timing_max_ratio/.test(x)), v['reasons'].join('; '))
+  })
+  test('without elapsed_ms on both sides <U>.timing stays never compared', () => {
+    const pool = setup()
+    const o = observe('r1', pool)
+    P.judge(ws, 'S', key(), o.l, o.m, [], undefined, [], 'env')
+    const v = P.verdict(ws, GU, 'V4', key(), { observables: ['INTCALC.timing'], timing_max_ratio: 2 }, false)
+    assert.ok(v['reasons'].some((x: string) => /INTCALC\.timing was never compared/.test(x)), v['reasons'].join('; '))
+  })
+  test('rig_http records elapsed_ms, and keeps the semantics a stores command prints', () => {
+    const srv = join(dir, 'srv2.mjs')
+    writeFileSync(srv, `import { createServer } from 'node:http'
+createServer((q, s) => { s.writeHead(200); s.end('ok') }).listen(Number(process.argv[2]), '127.0.0.1')
+`)
+    const c = join(dir, 'http-case2.json')
+    writeFileSync(c, JSON.stringify({ records: { requests: [{ method: 'GET', path: '/' }] }, params: {}, clock: null, stores: {}, session: null }))
+    const stores = join(dir, 'stores.mjs')
+    writeFileSync(stores, `console.log(JSON.stringify({ owners: { records: [{ id: '1' }], semantics: { collation: 'UNICODE' } } }))`)
+    const out = join(dir, 'http-out2.json')
+    const r = spawnSync(process.execPath, [fileURLToPath(new URL('../../plugins/rig/scripts/rig_http.ts', import.meta.url)), 'run',
+      '--case', c, '--out', out, '--start', `node ${srv} {port}`, '--stores-cmd', `node ${stores}`], { encoding: 'utf8', timeout: 30_000 })
+    assert.equal(r.status, 0, r.stdout + r.stderr)
+    const o = P.load(out)
+    assert.equal(typeof o['elapsed_ms'], 'number')
+    assert.ok(o['elapsed_ms'] >= 0)
+    assert.deepEqual(o['stores']['owners']['semantics'], { collation: 'UNICODE' })
+    assert.ok(P.exactCompare(o, o, 'GET /').compared.includes('GET //owners.store_semantics'))
   })
 })

@@ -55,7 +55,10 @@ could not be trusted: rerun it. Clock: with `clock` set, pass `--clock-wrap` (fo
 Otherwise the case runs only on that UTC day; on any other day the runner exits 4 and writes `{"not_run": "<reason>"}`
 as the observation. Keep that file on both sides: the judge records the case as not run, and the verdict shows it as a
 gap ("N case(s) never ran on both sides") until a run compares it or a person accepts the obligation. Write the stores command for the application's database (for H2, the H2 jar's
-`RunScript` with `CSVWRITE` per table, ordered by primary key).
+`RunScript` with `CSVWRITE` per table, ordered by primary key). A surface that lists `<U>/<table>.store_semantics` needs
+the stores command to print each table's `semantics` too (probe results as strings, for example the order a query by
+name returns, or whether a duplicate key is rejected), the same on both sides. The runner records `elapsed_ms`, the time
+the requests took (not start-up), which the judge counts as `<U>.timing` (V9; see `timing_max_ratio` in `verify.md`).
 
 ## Set (`oracles/<system>/sets/<name>.json`, written by `set build` and `judge`)
 

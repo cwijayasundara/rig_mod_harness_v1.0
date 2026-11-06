@@ -534,7 +534,8 @@ export function calendarEvents(clock: string | null | undefined, params: Obj | n
 // ---------------------------------------------------------------------------
 
 type Coverage = { observables: Record<string, number>; classes: Record<string, number>; hazards: Record<string, number>
-  calendar_events: string[]; mismatches: string[]; not_run?: Record<string, number> }
+  calendar_events: string[]; mismatches: string[]; not_run?: Record<string, number>
+  timing?: { cases: number; legacy_ms: number; modern_ms: number } }
 
 const bump = (o: Record<string, number>, k: string) => { o[k] = (o[k] ?? 0) + 1 }
 
@@ -595,7 +596,15 @@ export function judge(ws: WS, setName: string, key: string, legacyDir: string, m
       const badIds = cmpd.compared.map((id) => [id, observableIdProblem(unit, id)]).filter(([, p]) => p !== null)
       if (badIds.length > 0) throw new Bad(`comparator ${JSON.stringify(comparator ?? 'exact')} reports ids outside the observable id grammar: ${badIds.slice(0, 3).map(([id, p]) => `${id} (${p})`).join('; ')}`)
       r = { case: id, classes: c['classes'], pass: cmpd.equal, compared: cmpd.compared }
-      for (const oid of cmpd.compared) bump(coverage.observables, oid)
+      // Timing is an observable, never an equality: with elapsed_ms on both sides <U>.timing counts as compared, and the
+      // verdict holds the sum against timing_max_ratio (V9). It never fails a case (round 2 item 27).
+      const le = elapsed(legacy), me = elapsed(modern)
+      if (le !== null && me !== null) {
+        r['compared'] = uniqSorted([...cmpd.compared, `${unit}.timing`])
+        const t = (coverage.timing ??= { cases: 0, legacy_ms: 0, modern_ms: 0 })
+        t.cases++; t.legacy_ms += le; t.modern_ms += me
+      }
+      for (const oid of r['compared'] as string[]) bump(coverage.observables, oid)
     }
     r['fresh'] = fresh.includes(id)
     results.push(r)
@@ -1088,7 +1097,10 @@ export function shadow(ws: WS, gateUnit: string, key: string, trafficDir: string
       coverage['calendar_events'].push(...r['calendar_events'])
     } else if (clock != null) bump(coverage['clock_not_applied'] ??= {}, 'cases')
     const le = elapsed(legacy), me = elapsed(modern)
-    if (le !== null && me !== null) { coverage['timing'].cases++; coverage['timing'].legacy_ms += le; coverage['timing'].modern_ms += me }
+    if (le !== null && me !== null) {
+      coverage['timing'].cases++; coverage['timing'].legacy_ms += le; coverage['timing'].modern_ms += me
+      r['compared'] = uniqSorted([...r['compared'], `${unit}.timing`]); bump(coverage['observables'], `${unit}.timing`)
+    }
     if (!r['pass']) coverage['mismatches'].push(c['id'])
     results.push(r)
   }
@@ -1292,6 +1304,9 @@ export function verdict(ws: WS, gateUnit: string, rung: string, key: string, req
     const bad = observableIdProblem(gateUnit, oid)
     if (bad) gaps.push({ observables: [oid], requirement: 'class:any', reason: `observable ${oid} is not an id the comparator records: ${bad}` })
     else if ((cov.observables[oid] ?? 0) < 1) gaps.push({ observables: [oid], requirement: 'class:any', reason: `observable ${oid} was never compared` })
+    else if (oid === `${unitName(gateUnit)}.timing` && req['timing_max_ratio'] == null) {
+      gaps.push({ observables: [oid], requirement: 'class:timing', reason: `observable ${oid} was timed but has no limit: set timing_max_ratio in the requirements (V9)` })
+    }
   }
   for (const [cl, n] of Object.entries((req['classes'] ?? {}) as Record<string, number>)) {
     if ((cov.classes[cl] ?? 0) < n) gaps.push({ observables: obsReq, requirement: `class:${cl}`, reason: `class ${cl}: ${cov.classes[cl] ?? 0} of ${n} inputs` })
