@@ -55,7 +55,9 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.ts set build --ws . --system $syste
 
 A class is **exhaustive** when every possible input of it is already a case (the one empty file, the four values of a
 one-byte flag). Name it with `--exhaustive` and say why in the class description. It is then exempt from the
-fresh-input rules, and its cases re-run every time instead.
+fresh-input rules, and its cases re-run every time instead. A generator with a small finite domain (a handful of
+possible inputs, such as the webjar paths of one page) is exhaustive too: add every input as a case and name the class,
+or the fresh-input rule leaves a gap that can never close once the domain is used up.
 
 The script picks the sealed cases by input hash (at least 20 or 25% in executable mode, 25% in recorded mode). Never
 choose them, never move one, and never show a sealed case to anyone who works on `modernized/`.

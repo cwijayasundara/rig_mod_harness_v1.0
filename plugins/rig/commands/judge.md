@@ -23,10 +23,15 @@ script's counts and class descriptions only.
    `get-owners-ownerid-v3-20261106t081200-a3f9c1`. Never reuse a name or one that differs only in case: macOS folders are
    case-insensitive, and two judges in one folder overwrite each other's observations. This is the judge's scratch folder: the
    guard hides it from the worker and the fixer. Never write under `evidence/`; only the script writes there.
-   For an HTTP gate unit, run each side with `rig_http.ts` (see `references/proof.md`, "HTTP runner").
+   For an HTTP gate unit, run each side with the plugin's `${CLAUDE_PLUGIN_ROOT}/scripts/rig_http.ts` (see
+   `references/proof.md`, "HTTP runner"), never a copy of it: the key names it as `plugin:scripts/rig_http.ts`.
+   **Load.** Run one judge at a time on a machine, with at most two application processes (JVMs) running at once; more
+   in parallel overloads the host and makes runs time out. A command may run at most 10 minutes: split a side into
+   batches of cases, each its own foreground command, rather than backgrounding it.
 3. **Evidence key** for the rung (V3 differential, or V4 fresh inputs). `--modern` and `--comparators` are
    comma-separated lists; a directory (`target/classes`) counts as every file under it, and a path that does not exist
-   is refused. `--comparators` lists every file that decides equality in this run, and nothing else: the custom
+   is refused. Paths are relative to the workspace; `plugin:<path>` names a file of the plugin (hashed under that name,
+   so the key is the same in every workspace); an absolute path is refused. `--comparators` lists every file that decides equality in this run, and nothing else: the custom
    comparator's script that `--comparator` runs and each local file it imports (the `.ts` that ran, not a twin in
    another language), every approved normalizer and every approved delta passed to the judge. With `--comparator exact`
    and no normalizer or delta it is empty. `--packs` is the "Pack versions" JSON from `PREFLIGHT.md`, copied as it is.
@@ -44,6 +49,8 @@ script's counts and class descriptions only.
      --legacy-dir <legacy obs> --modern-dir <modern obs> --fresh <fresh case ids> --env <environment id> \
      [--comparator exact|"<cmd>"] [--normalizers <approved files>] [--deltas <approved DELTA files>]
    ```
+   It exits 0 when every case was compared and passed, and 1 when a case failed **or** was not run: read `passed`,
+   `total` and `not_run` in its JSON, never the exit code alone.
    A restructure unit passes every approved delta its ADR declares (`--deltas`), the same files as in the key's
    `--comparators`. The script refuses a delta nobody approved.
 5. Delete `work/$system/judge/obs/<run>/` after the run. The run's results and coverage are kept by the script.

@@ -48,7 +48,7 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_http.ts run --case <case.json> --out <dir
   --stores-cmd '<command that prints {"<table>": {"records": [...]}} after shutdown>' --message-class help-inline
 ```
 
-Only `--start` differs between legacy and modern. The header of `rig_http.ts` gives every step. It fixes the
+Run it from the plugin, never a copy; in the key's `--modern` it is `plugin:scripts/rig_http.ts`. Only `--start` differs between legacy and modern. The header of `rig_http.ts` gives every step. It fixes the
 environment, `Host` and the order of requests. It records a request that hangs as `{status: null, timeout: true}`,
 an app that does not start as `abend`, and the exit code as `return_code`. Exit 3 (nothing written) means the run
 could not be trusted: rerun it. Clock: with `clock` set, pass `--clock-wrap` (for example `faketime '{clock}'`).

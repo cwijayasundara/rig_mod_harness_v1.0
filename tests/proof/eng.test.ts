@@ -230,6 +230,13 @@ describe('core 4, 5, 8, 9: the commands say it', () => {
     assert.match(doc('commands/judge.md'), /\{"not_run": "<reason>"\}/)
     assert.match(doc('skills/rig-method/references/proof.md'), /exits 4 and writes `\{"not_run"/)
   })
+  test('judge.md: plugin runner, one judge and two JVMs at a time, exit 1 on not_run; oracles.md: small domains', () => {
+    const j = doc('commands/judge.md')
+    assert.match(j, /plugin:scripts\/rig_http\.ts/)
+    assert.match(j, /one judge at a time on a machine, with at most two application processes/)
+    assert.match(j, /1 when a case failed \*\*or\*\* was not run/)
+    assert.match(doc('commands/oracles.md'), /small finite domain/)
+  })
   test('verify.md passes --gate-units to the architecture check', () => {
     assert.match(doc('commands/verify.md'), /rig_arch\.ts check[^`]*--gate-units \$gate_unit/)
   })
@@ -367,5 +374,36 @@ describe('round 2 item 16: a case whose clock cannot be applied is recorded as n
     assert.equal(r['not_run'], 1)
     const v = P.verdict(ws, GU, 'V4', key(), { fresh_classes: ['ok'] }, false)
     assert.ok(v['reasons'].some((x: string) => /class ok had no fresh input compared/.test(x)), v['reasons'].join('; '))
+  })
+})
+
+describe('round 2 items 18/28: a key can hash the plugin\'s own runner without a copy', () => {
+  const k = (modern: string[], comparators: string[] = []) =>
+    P.evidenceKey(ws, GU, 'V3', join(dir, 'legacy'), modern, undefined, comparators, {}, {})['key'] as string
+  test('plugin:<path> is hashed from the plugin, under that name, so the key does not depend on where the workspace is', () => {
+    const a = k(['modern/Intcalc.java', 'plugin:scripts/rig_http.ts'])
+    assert.notEqual(a, k(['modern/Intcalc.java']), 'the runner is part of the key')
+    // The same key from another workspace with the same modern file.
+    const other = mkdtempSync(join(tmpdir(), 'rig-eng-b-'))
+    try {
+      const ws2 = new P.WS(other, 'cd')
+      mkdirSync(ws2.analysis, { recursive: true })
+      writeFileSync(join(ws2.analysis, 'graph.json'), readFileSync(join(ws.analysis, 'graph.json')))
+      mkdirSync(join(other, 'modern'), { recursive: true })
+      writeFileSync(join(other, 'modern', 'Intcalc.java'), 'class Intcalc {}')
+      const b = P.evidenceKey(ws2, GU, 'V3', join(dir, 'legacy'), ['modern/Intcalc.java', 'plugin:scripts/rig_http.ts'], undefined, [], {}, {})['key']
+      assert.equal(b, a)
+    } finally { rmSync(other, { recursive: true, force: true }) }
+  })
+  test('a plugin path that does not exist, or one that leaves the plugin, is refused', () => {
+    assert.throws(() => k(['modern/Intcalc.java', 'plugin:scripts/nope.ts']), /does not exist/)
+    assert.throws(() => k(['modern/Intcalc.java', 'plugin:../README.md']), /inside the plugin/)
+  })
+  test('an absolute path is refused with a pointer to plugin: or a workspace-relative path', () => {
+    assert.throws(() => k(['modern/Intcalc.java', join(dir, 'modern', 'Intcalc.java')]), /absolute.*plugin:/)
+  })
+  test('comparators may name a plugin file too', () => {
+    assert.notEqual(P.evidenceKey(ws, GU, 'V3', join(dir, 'legacy'), ['modern/Intcalc.java'], undefined, ['plugin:scripts/rig_http.ts'], {}, {})['key'],
+      P.evidenceKey(ws, GU, 'V3', join(dir, 'legacy'), ['modern/Intcalc.java'], undefined, [], {}, {})['key'])
   })
 })

@@ -30,7 +30,7 @@
 import { spawnSync } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
-import { dirname, join, relative, resolve } from 'node:path'
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 
@@ -733,9 +733,28 @@ export function runtimeClosure(ws: WS, gateUnit: string): string[] {
   return [...files].sort()
 }
 
+/** The plugin's root: `plugin:<path>` in --modern or --comparators names a file of the plugin itself. */
+export const PLUGIN_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+
+/**
+ * Where a key path lives: `plugin:<path>` inside the plugin (the shared runner, `plugin:scripts/rig_http.ts`), named so in
+ * the hash, so the key is the same in every workspace and on every machine and no copy is needed (ENG-C core 3, ENG-C2
+ * core 1-2). Anything else is relative to `base`; an absolute path is refused, because it would put this machine's
+ * layout into the key.
+ */
+function keyFile(p: string, base: string): string {
+  if (p.startsWith('plugin:')) {
+    const fp = resolve(PLUGIN_ROOT, p.slice(7))
+    if (fp !== PLUGIN_ROOT && !fp.startsWith(PLUGIN_ROOT + sep)) throw new Bad(`${p} is not inside the plugin`)
+    return fp
+  }
+  if (isAbsolute(p)) throw new Bad(`${p} is absolute: name a workspace file by its path relative to the workspace, or a plugin file as plugin:<path>`)
+  return join(base, p)
+}
+
 /** Every file under a path, relative to base, sorted (a directory such as target/classes is its files). */
 function expandFiles(p: string, base: string): string[] {
-  const fp = join(base, p)
+  const fp = keyFile(p, base)
   if (isFile(fp)) return [p]
   if (!isDir(fp)) return []
   return ls(fp).flatMap((n) => expandFiles(join(p, n), base))
@@ -752,7 +771,7 @@ function hashFiles(paths: string[], base: string, kind: string, mustExist: boole
   }
   for (const p of uniqSorted(files)) {
     h.update(p + '\0')
-    const fp = join(base, p)
+    const fp = p.startsWith('<') ? '' : keyFile(p, base)
     h.update(p.startsWith('<') || !isFile(fp) ? '<absent>' : readFileSync(fp))
     h.update('\0')
   }
@@ -761,7 +780,7 @@ function hashFiles(paths: string[], base: string, kind: string, mustExist: boole
 
 /** A normalizer or delta file, plus the consumer lists it relies on, so a new consumer invalidates it. */
 function comparatorMaterial(ws: WS, path: string): Obj {
-  const p = join(ws.root, path)
+  const p = keyFile(path, ws.root)
   const body = isFile(p) ? readFileSync(p, 'utf8') : `<absent ${path}>`
   let consumers: Obj | null = null
   if (p.endsWith('.json') && isFile(p)) {
