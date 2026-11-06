@@ -1,7 +1,7 @@
 /** Engineering pass (2026-11-06): core changes found by sessions A, B and C, one regression test each. */
 
 import assert from 'node:assert/strict'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
@@ -226,6 +226,10 @@ describe('core 4, 5, 8, 9: the commands say it', () => {
     assert.match(j, /--comparators` lists every file that decides equality/)
     assert.match(j, /never write `unrecorded`/)
   })
+  test('judge.md and proof.md say how a case that cannot run is recorded', () => {
+    assert.match(doc('commands/judge.md'), /\{"not_run": "<reason>"\}/)
+    assert.match(doc('skills/rig-method/references/proof.md'), /exits 4 and writes `\{"not_run"/)
+  })
   test('verify.md passes --gate-units to the architecture check', () => {
     assert.match(doc('commands/verify.md'), /rig_arch\.ts check[^`]*--gate-units \$gate_unit/)
   })
@@ -272,5 +276,96 @@ describe('round 2 item 22: judge counts show required classes that had no case',
     assert.deepEqual(r['classes'].find((c: any) => c.class === 'hazard:H-0012'),
       { class: 'hazard:H-0012', description: 'invalid packed data', passed: 0, total: 0 })
     assert.equal(r['passed'], r['total'])
+  })
+})
+
+describe('round 2 item 16: a case whose clock cannot be applied is recorded as not run, never dropped', () => {
+  const NR = { not_run: 'clock 2026-11-05T10:00:00Z needs a --clock-wrap, or a run on 2026-11-05 UTC' }
+  /** Observations where the cases in `nr` were not run on the sides named. */
+  function observeNR(name: string, ids: string[], nr: string[], sides: ('l' | 'm')[] = ['l', 'm'], bad: string[] = []) {
+    const o = observe(name, ids, bad)
+    for (const id of nr) for (const s of sides) writeFileSync(join(s === 'l' ? o.l : o.m, `${id}.json`), JSON.stringify(NR))
+    return o
+  }
+  const setup = () => {
+    const pool = Array.from({ length: 22 }, (_, i) => add(i, ['ok']))
+    P.buildSet(ws, 'S', GU, 'executable', pool, { ok: 'ok' }, {})
+    return pool
+  }
+  test('rig_http writes {not_run} and exits 4 for a clock it cannot apply', () => {
+    const c = join(dir, 'clock-case.json')
+    writeFileSync(c, JSON.stringify({ records: { requests: [{ method: 'GET', path: '/' }] }, params: {}, clock: '2020-01-01T10:00:00Z', stores: {}, session: null }))
+    const out = join(dir, 'clock-out.json')
+    const r = spawnSync(process.execPath, [fileURLToPath(new URL('../../plugins/rig/scripts/rig_http.ts', import.meta.url)), 'run',
+      '--case', c, '--out', out, '--start', 'true'], { encoding: 'utf8', timeout: 20_000 })
+    assert.equal(r.status, 4, r.stdout)
+    assert.match(P.load(out)['not_run'], /clock 2020-01-01/)
+  })
+  test('a case not run on both sides is counted, not compared, and the run is recorded', () => {
+    const pool = setup()
+    const o = observeNR('r1', pool, [pool[0]!])
+    const r = P.judge(ws, 'S', key(), o.l, o.m, [], undefined, [], 'env')
+    assert.equal(r['not_run'], 1)
+    assert.equal(r['total'], 21)
+    assert.equal(r['passed'], 21)
+    assert.equal(r['classes'].find((c: any) => c.class === 'ok').not_run, 1)
+    const s = P.load(ws.setPath('S'))
+    assert.deepEqual(s['failed_classes'], [], 'not run is not a failure')
+    assert.equal(s['failure_sealed'], undefined)
+  })
+  test('the verdict names the cases that never ran as a gap, and an accepted obligation makes it PROVISIONAL', () => {
+    const pool = setup()
+    const o = observeNR('r1', pool, [pool[0]!, pool[1]!])
+    P.judge(ws, 'S', key(), o.l, o.m, [], undefined, [], 'env')
+    const v = P.verdict(ws, GU, 'V4', key(), {}, true)
+    assert.equal(v['verdict'], 'NOT_PROVEN')
+    assert.ok(v['reasons'].some((x: string) => /2 case\(s\) never ran on both sides/.test(x)), v['reasons'].join('; '))
+    for (const f of readdirSync(ws.obligations)) {
+      const ob = P.load(join(ws.obligations, f))
+      if (ob['requirement'] === 'not_run') writeFileSync(join(ws.obligations, f), JSON.stringify({ ...ob, accepted_by: 'owner' }))
+    }
+    assert.equal(P.verdict(ws, GU, 'V4', key(), {}, false)['verdict'], 'PROVISIONAL')
+  })
+  test('a later run that compares the case closes the gap', () => {
+    const pool = setup()
+    const o = observeNR('r1', pool, [pool[0]!])
+    P.judge(ws, 'S', key(), o.l, o.m, [], undefined, [], 'env')
+    const o2 = observe('r2', pool)
+    P.judge(ws, 'S', key(), o2.l, o2.m, [], undefined, [], 'env')
+    assert.equal(P.verdict(ws, GU, 'V4', key(), {}, false)['verdict'], 'PROVEN')
+  })
+  test('one side not run while the other ran is refused: a runner cannot skip what it fails', () => {
+    const pool = setup()
+    const o = observeNR('r1', pool, [pool[0]!], ['m'])
+    assert.throws(() => P.judge(ws, 'S', key(), o.l, o.m, [], undefined, [], 'env'), /not run on one side only/)
+  })
+  test('a failure stays a failure when a later run could not run the case', () => {
+    const pool = setup()
+    const o = observe('r1', pool, [pool[0]!])
+    P.judge(ws, 'S', key(), o.l, o.m, [], undefined, [], 'env')
+    const fr = add(991, ['ok']) // the failed class must come back with a fresh input (§5.3 rule 3)
+    const o2 = observeNR('r2', [...pool, fr], [pool[0]!])
+    P.judge(ws, 'S', key(), o2.l, o2.m, [fr], undefined, [], 'env')
+    const v = P.verdict(ws, GU, 'V4', key(), {}, false)
+    assert.equal(v['verdict'], 'NOT_PROVEN')
+    assert.match(v['reasons'][0], /1 case\(s\) fail/)
+  })
+  test('a failed class is not brought back by a fresh input that did not run', () => {
+    const pool = setup()
+    const o = observe('r1', pool, [pool[0]!])
+    P.judge(ws, 'S', key(), o.l, o.m, [], undefined, [], 'env')
+    const fr = add(992, ['ok'])
+    const o2 = observeNR('r2', [...pool, fr], [fr])
+    assert.throws(() => P.judge(ws, 'S', key(), o2.l, o2.m, [fr], undefined, [], 'env'), /fresh inputs that run/)
+    assert.equal(readdirSync(join(ws.evidence, key())).length, 1, 'the refused run wrote nothing')
+  })
+  test('a fresh case that did not run is not a fresh input compared against legacy', () => {
+    const pool = setup()
+    const fr = add(990, ['ok'])
+    const o = observeNR('r1', [...pool, fr], [fr])
+    const r = P.judge(ws, 'S', key(), o.l, o.m, [fr], undefined, [], 'env')
+    assert.equal(r['not_run'], 1)
+    const v = P.verdict(ws, GU, 'V4', key(), { fresh_classes: ['ok'] }, false)
+    assert.ok(v['reasons'].some((x: string) => /class ok had no fresh input compared/.test(x)), v['reasons'].join('; '))
   })
 })

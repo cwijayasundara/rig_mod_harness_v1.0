@@ -15,8 +15,10 @@
  * What a run does, the same on both sides:
  *  1. Checks the input has exactly the keys records, params, clock, stores, session.
  *  2. Clock. With `clock` set and `--clock-wrap` given (for example `faketime '{clock}'`), the start command runs under
- *     that wrapper. Without a wrapper the date is held only by running on that UTC day: on any other day, or if the day
- *     changes during the run, it exits 3 and writes nothing. There is no Java fake clock built in.
+ *     that wrapper. Without a wrapper the date is held only by running on that UTC day. On any other day nothing is
+ *     started: it writes `{"not_run": "<reason>"}` as the observation and exits 4, and the judge records the case as
+ *     not run (a gap) on both sides. If the day changes during the run, it exits 3 and writes nothing. There is no
+ *     Java fake clock built in.
  *  3. Starts `sh -c <start>` in a fresh working directory, in its own process group, with only PATH, HOME=<workdir>,
  *     TZ=UTC, LANG and LC_ALL=en_US.UTF-8, and the `--env` pairs. Nothing else from the caller's environment.
  *     Each `params` key becomes `--key=value` after the start command.
@@ -38,7 +40,8 @@
  * redirect_chain?}], messages: ["<screen index>:<text>"], stores, return_code, abend, notes }.
  * `messages` are the texts inside elements with `--message-class`, one per element, whitespace collapsed.
  *
- * Exit: 0 observation written; 2 bad input; 3 the run could not be made or trusted, and nothing is written.
+ * Exit: 0 observation written; 2 bad input; 3 the run could not be made or trusted, and nothing is written; 4 the case
+ * cannot run here (its clock), and `{"not_run"}` is written.
  */
 
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
@@ -55,6 +58,8 @@ type Screen = Obj
 
 class Bad extends Error { override name = 'Bad' }
 class Untrusted extends Error { override name = 'Untrusted' }
+/** The case cannot run in this environment at all, the same on either side: recorded as not run, never dropped. */
+class NotRun extends Error { override name = 'NotRun' }
 
 const INPUT_KEYS = ['clock', 'params', 'records', 'session', 'stores']
 const REQUEST_KEYS = new Set(['method', 'path', 'query', 'form', 'body', 'headers', 'follow_redirects', 'record_headers'])
@@ -225,7 +230,7 @@ export async function run(o: Obj): Promise<Obj> {
   const clock: string | null = inp['clock'] ?? null
   if (clock !== null && !/^\d{4}-\d{2}-\d{2}/.test(clock)) throw new Bad('clock must be null or an ISO date-time')
   if (clock && !o['clock-wrap'] && utcDate() !== clock.slice(0, 10)) {
-    throw new Untrusted(`clock ${clock} needs a --clock-wrap, or a run on ${clock.slice(0, 10)} UTC (today is ${utcDate()})`)
+    throw new NotRun(`clock ${clock} needs a --clock-wrap, or a run on ${clock.slice(0, 10)} UTC`)
   }
   const workdir = o.workdir ? resolve(o.workdir) : mkdtempSync(join(tmpdir(), 'rig-http-'))
   mkdirSync(join(workdir, 'app'), { recursive: true })
@@ -310,6 +315,13 @@ export async function main(argv: string[]): Promise<number> {
   } catch (e) {
     if (e instanceof Bad || (e as NodeJS.ErrnoException).code?.startsWith('ERR_PARSE_ARGS')) { console.log(JSON.stringify({ error: (e as Error).message })); return 2 }
     if (e instanceof Untrusted) { console.log(JSON.stringify({ untrusted: (e as Error).message })); return 3 }
+    if (e instanceof NotRun) { // the same bytes on both sides and every day, so the judge can match the two
+      mkdirSync(dirname(resolve(a.out!)), { recursive: true })
+      writeFileSync(`${a.out}.tmp`, JSON.stringify({ not_run: (e as Error).message }) + '\n')
+      renameSync(`${a.out}.tmp`, a.out!)
+      console.log(JSON.stringify({ not_run: (e as Error).message, out: a.out }))
+      return 4
+    }
     throw e
   }
 }

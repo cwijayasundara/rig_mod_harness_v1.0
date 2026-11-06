@@ -13,7 +13,10 @@ script's counts and class descriptions only.
    the run. Executable mode: run legacy on them for expected outputs.
 2. **Run both sides** on every case. The modern runner is the unit's own (`worker.md`: input JSON in, observation
    JSON out), called the same way for every case; the legacy runner is the oracle harness's. Field values are
-   strings and return codes integers in every observation (the script refuses others). Run both sides of the set plus the fresh ones. Each side runs the whole gate unit, seeded from
+   strings and return codes integers in every observation (the script refuses others). A case a runner cannot run here
+   (for example `rig_http.ts` exit 4 for a clock it cannot apply) has the observation `{"not_run": "<reason>"}`. Keep
+   it, never delete the case or the file: the script needs the same reason on both sides, counts the case as
+   `not_run`, and the verdict lists it as a gap. Run both sides of the set plus the fresh ones. Each side runs the whole gate unit, seeded from
    the case's store snapshots, never mixing legacy and modern in one run. Write one observation file per case,
    `<case-id>.json`, to `work/$system/judge/obs/<run>/legacy/` and `.../modern/`. `<run>` is unique to this judge run
    and lower case: `<gate-unit slug>-<rung>-<UTC yyyymmddThhmmss>-<6 random hex>`, for example

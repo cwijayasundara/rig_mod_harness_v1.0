@@ -534,7 +534,7 @@ export function calendarEvents(clock: string | null | undefined, params: Obj | n
 // ---------------------------------------------------------------------------
 
 type Coverage = { observables: Record<string, number>; classes: Record<string, number>; hazards: Record<string, number>
-  calendar_events: string[]; mismatches: string[] }
+  calendar_events: string[]; mismatches: string[]; not_run?: Record<string, number> }
 
 const bump = (o: Record<string, number>, k: string) => { o[k] = (o[k] ?? 0) + 1 }
 
@@ -568,6 +568,19 @@ export function judge(ws: WS, setName: string, key: string, legacyDir: string, m
     const mpath = join(modernDir, `${id}.json`)
     const modern = load(mpath)
     const legacy = isFile(lpath) ? load(lpath) : c['expected'] ?? null // null: recorded mode, generated input
+    // A case a runner could not run (`{"not_run": "<reason>"}`, for example a clock it cannot apply) is neither a pass
+    // nor a failure: it is recorded, and the verdict counts it as a gap. Both sides must say so, with the same reason,
+    // so a runner cannot skip a case it would fail; only a recorded-mode case with no legacy file may be skipped by the
+    // modern side alone (round 2 item 16, ENG-C core 1).
+    const nrL = isFile(lpath) ? notRun(legacy) : null, nrM = notRun(modern)
+    if (nrL !== null || nrM !== null) {
+      const alone = nrL === null && !isFile(lpath) && s['mode'] === 'recorded'
+      if (!alone && nrL !== nrM) throw new Bad(`${nrL === null || nrM === null ? 'a case was not run on one side only' : 'the two sides give different reasons for not running a case'}: both sides must run it, or both record the same not_run reason`)
+      const r = { case: id, classes: c['classes'], pass: null, not_run: nrM, compared: [], fresh: fresh.includes(id), calendar_events: [] }
+      results.push(r)
+      bump(coverage.not_run ??= {}, nrM!)
+      continue
+    }
     let r: Obj
     if (legacy === null) {
       // No legacy output exists, so only properties that need none are checked. An abend is behaviour the
@@ -598,6 +611,11 @@ export function judge(ws: WS, setName: string, key: string, legacyDir: string, m
     if (!r['pass']) coverage.mismatches.push(id)
   }
   coverage.calendar_events = uniqSorted(coverage.calendar_events)
+  const compared = results.filter((r) => !r['not_run'])
+  // Rule 3 again, on what ran: a fresh input that was not run brought nothing back to the class that failed.
+  const ranFresh = new Set(compared.filter((r) => r['fresh']).flatMap((r) => r['classes'] as string[]))
+  const stillMissing = (s['failed_classes'] as string[] ?? []).filter((c) => !ranFresh.has(c) && !exhaustive.has(c)).sort()
+  if (stillMissing.length > 0) throw new Bad(`classes that failed last run need fresh inputs that run: the fresh inputs of ${JSON.stringify(stillMissing)} were not run`)
 
   const runId = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + '-' + randomUUID().replaceAll('-', '').slice(0, 6)
   dump(join(ws.evidence, key, runId, 'run.json'), {
@@ -606,18 +624,18 @@ export function judge(ws: WS, setName: string, key: string, legacyDir: string, m
   })
 
   // Failing fresh inputs join the sealed set for good (§5.3 rule 4). Sealed cases never move.
-  const failedFresh = results.filter((r) => r['fresh'] && !r['pass']).map((r) => r['case'] as string)
+  const failedFresh = compared.filter((r) => r['fresh'] && r['pass'] === false).map((r) => r['case'] as string)
   sealFailures(s, failedFresh)
   for (const id of failedFresh) dump(ws.casePath(id), { ...ws.case(id), origin: 'fresh_failure' })
-  s['failed_classes'] = uniqSorted(results.filter((r) => !r['pass']).flatMap((r) => r['classes'] as string[]))
+  s['failed_classes'] = uniqSorted(compared.filter((r) => r['pass'] === false).flatMap((r) => r['classes'] as string[]))
   dump(ws.setPath(setName), s)
 
-  const counts = new Map<string, { class: string; description: string; passed: number; total: number }>()
+  const counts = new Map<string, { class: string; description: string; passed: number; total: number; not_run?: number }>()
   for (const r of results) {
     for (const cl of r['classes'] as string[]) {
       const k = counts.get(cl) ?? { class: cl, description: s['required_classes'][cl] ?? '', passed: 0, total: 0 }
-      k.total++
-      if (r['pass']) k.passed++
+      if (r['not_run']) k.not_run = (k.not_run ?? 0) + 1
+      else { k.total++; if (r['pass']) k.passed++ }
       counts.set(cl, k)
     }
   }
@@ -626,8 +644,16 @@ export function judge(ws: WS, setName: string, key: string, legacyDir: string, m
     if (!counts.has(cl)) counts.set(cl, { class: cl, description, passed: 0, total: 0 })
   }
   // Counts and class descriptions only: never an input, an expected output, or a diff.
+  const notRunN = results.length - compared.length
   return { run_id: runId, classes: [...counts.values()].sort((a, b) => a.class.localeCompare(b.class)),
-           passed: results.filter((r) => r['pass']).length, total: results.length }
+           passed: compared.filter((r) => r['pass']).length, total: compared.length, ...(notRunN > 0 ? { not_run: notRunN } : {}) }
+}
+
+/** The reason a runner gives for not running a case, or null when it ran. */
+function notRun(o: Obj | null): string | null {
+  if (o === null || typeof o !== 'object' || !('not_run' in o)) return null
+  if (typeof o['not_run'] !== 'string' || o['not_run'] === '' || Object.keys(o).length !== 1) throw new Bad('a not_run observation is exactly {"not_run": "<reason>"}')
+  return o['not_run']
 }
 
 /**
@@ -1196,8 +1222,10 @@ export function verdict(ws: WS, gateUnit: string, rung: string, key: string, req
   const caps = loadCaps(ws, gateUnit)
   const capHits = new Map<string, { cap: Obj; cases: Set<string> }>()
   const outcomes = new Map<string, [boolean, string][]>()
+  const notRunCases = new Map<string, string>()
   for (const run of runs) {
     for (const r of run['results']) {
+      if (r['not_run']) { notRunCases.set(r['case'], r['not_run']); continue } // no outcome; a gap below unless it ran elsewhere
       const cap = cappedBy(caps.signed, r, run['environment'])
       if (cap) { // the oracle cannot be trusted here: neither a pass nor a failure
         const h = capHits.get(cap['id']) ?? { cap, cases: new Set<string>() }
@@ -1209,8 +1237,10 @@ export function verdict(ws: WS, gateUnit: string, rung: string, key: string, req
     }
   }
   const capNote = caps.unsigned.length > 0 ? [`unsigned cap(s) ignored: ${caps.unsigned.map((c) => c['id']).join(', ')}`] : []
+  for (const id of outcomes.keys()) notRunCases.delete(id)
+  for (const { cases } of capHits.values()) for (const id of cases) notRunCases.delete(id)
   if ([...outcomes.values()].reduce((n, v) => n + v.length, 0) === 0) {
-    return { verdict: 'NOT_PROVEN', reasons: ['the runs executed zero cases'], gaps: [] }
+    return { verdict: 'NOT_PROVEN', reasons: ['the runs executed zero cases', ...(notRunCases.size > 0 ? [`${notRunCases.size} case(s) were not run`] : [])], gaps: [] }
   }
   const flaky: string[] = [], failed: string[] = [], infra: string[] = []
   for (const [id, res] of outcomes) {
@@ -1235,7 +1265,7 @@ export function verdict(ws: WS, gateUnit: string, rung: string, key: string, req
       for (const [k, v] of Object.entries(c[part] as Record<string, number>)) cov[part][k] = (cov[part][k] ?? 0) + v
     }
     for (const e of c['calendar_events']) cov.calendar.add(e)
-    for (const r of run['results']) if (r['fresh'] && !r['property_only']) for (const cl of r['classes']) bump(freshByClass, cl)
+    for (const r of run['results']) if (r['fresh'] && !r['property_only'] && !r['not_run']) for (const cl of r['classes']) bump(freshByClass, cl)
   }
   const obsReq: string[] = req['observables'] ?? []
   const gaps: Gap[] = []
@@ -1260,6 +1290,11 @@ export function verdict(ws: WS, gateUnit: string, rung: string, key: string, req
   }
   for (const ev of (req['calendar_events'] ?? []) as string[]) {
     if (!cov.calendar.has(ev)) gaps.push({ observables: obsReq, requirement: `calendar:${ev}`, reason: `calendar event ${ev} not covered` })
+  }
+  if (notRunCases.size > 0) {
+    const why = uniqSorted(notRunCases.values())
+    gaps.push({ observables: obsReq, requirement: 'not_run',
+      reason: `${notRunCases.size} case(s) never ran on both sides under the current key: ${why.slice(0, 2).join('; ')}${why.length > 2 ? '; ...' : ''}` })
   }
   for (const { cap, cases } of capHits.values()) {
     gaps.push({ observables: cap['observables'], requirement: `class:${cap['class']}`, exclude_environment: cap['environment'],
@@ -1343,7 +1378,7 @@ export function main(argv: string[]): number {
       ok = out['passed'] === out['total']
     } else if (command === 'judge') {
       out = judge(ws, s('set')!, s('key')!, s('legacy-dir')!, s('modern-dir')!, ids(s('fresh')), s('comparator'), approvedNormalizers(ws, ids(s('normalizers'))), s('env') ?? 'default', approvedDeltas(ids(s('deltas'))))
-      ok = out['passed'] === out['total']
+      ok = out['passed'] === out['total'] && !out['not_run']
     } else if (command === 'key') {
       out = evidenceKey(ws, s('gate-unit')!, s('rung')!, s('legacy-root')!, ids(s('modern')), s('set'), ids(s('comparators')), JSON.parse(s('packs') ?? '{}'), JSON.parse(s('environment') ?? '{}'))
     } else if (command === 'normalizer') {
