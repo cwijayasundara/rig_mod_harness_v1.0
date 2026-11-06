@@ -236,15 +236,16 @@ export function buildSet(ws: WS, name: string, gateUnit: string, mode: string, p
   // The lowest-hash fresh case of the class is sealed, so nobody chooses, and only while the class keeps a dev case.
   const classesOf = new Map<string, string[]>([...sealed, ...dev, ...fresh].map((id) => [id, ws.case(id)['classes'] as string[]]))
   const allClasses = uniqSorted([...classesOf.values()].flat())
-  const unsealed: string[] = []
+  const has = (ids: Iterable<string>, cl: string) => [...ids].filter((id) => classesOf.get(id)!.includes(cl))
   for (const cl of allClasses) {
-    const has = (ids: Iterable<string>) => [...ids].filter((id) => classesOf.get(id)!.includes(cl))
-    if (has(sealed).length > 0) continue
-    const freshOf = has(fresh)
-    if (freshOf.length > 0 && freshOf.length + has(dev).length >= 2) sealed.add(freshOf[0]!)
-    else unsealed.push(cl)
+    if (has(sealed, cl).length > 0) continue
+    const freshOf = has(fresh, cl)
+    if (freshOf.length > 0 && freshOf.length + has(dev, cl).length >= 2) sealed.add(freshOf[0]!)
   }
   for (const id of fresh) if (!sealed.has(id)) (sealed.size < want ? sealed : dev).add(id) // sorted by hash: nobody chooses
+  // Reported after the fill, from the split as written (round 2 item 20: the fill can seal a class the rule above left).
+  const unsealed = allClasses.filter((cl) => has(sealed, cl).length === 0)
+  const withoutDev = allClasses.filter((cl) => has(dev, cl).length === 0)
   if (mode === 'executable' && sealed.size < SEALED_MIN) {
     throw new Bad(`executable mode needs at least ${SEALED_MIN} sealed cases; the pool gives ${sealed.size}`)
   }
@@ -256,7 +257,7 @@ export function buildSet(ws: WS, name: string, gateUnit: string, mode: string, p
     ...(old?.['failure_sealed'] ? { failure_sealed: old['failure_sealed'] } : {}),
   }
   dump(p, s)
-  return Object.defineProperty(s, 'unsealed_classes', { value: unsealed })
+  return Object.defineProperties(s, { unsealed_classes: { value: unsealed }, classes_without_dev: { value: withoutDev } })
 }
 
 const sortObj = <T,>(o: Record<string, T>) => Object.fromEntries(Object.keys(o).sort().map((k) => [k, o[k]!]))
@@ -936,14 +937,18 @@ export function canaryMutations(obs: Obj, correlated: Obj[]): Mutation[] {
       for (const [name, nv] of reprVariants(v)) out.push(['representation', `${store}.${f}: ${name}`, setVal(nv)])
     }
   }
+  // Every probe result of a store's semantics, one mutation each: a comparator that reads only some keys misses the
+  // others (round 2 item 21; ENG-D core 4 found that mutating the first key alone trusted such a comparator).
   for (const store of Object.keys(stores).sort()) {
     const sem: Obj | undefined = stores[store]?.['semantics']
-    const k = sem ? Object.keys(sem).sort()[0] : undefined
-    if (!k) continue
-    const m = structuredClone(obs)
-    const v = sem![k]
-    m['stores'][store]['semantics'][k] = Array.isArray(v) ? (v.length > 1 ? [v[1], v[0], ...v.slice(2)] : [...v, 'X']) : bumpValue(String(v))
-    out.push(['value', `${store}: store semantics ${k} changed`, m])
+    for (const k of Object.keys(sem ?? {}).sort()) {
+      const m = structuredClone(obs)
+      const v = sem![k]
+      m['stores'][store]['semantics'][k] = Array.isArray(v)
+        ? (v.length > 1 && v[0] !== v[1] ? [v[1], v[0], ...v.slice(2)] : [...v, 'X'])
+        : bumpValue(String(v))
+      out.push(['value', `${store}: store semantics ${k} changed`, m])
+    }
   }
   for (const g of correlated) { // {"store", "detail", "total"}: change one detail and recompute the total
     const recs: Obj[] = stores[g['store']]?.['records'] ?? []
@@ -1321,8 +1326,13 @@ export function main(argv: string[]): number {
         note: 'this input is already a case: no case was added, only its classes (a relabel). Draw a new input for a new case.' } : {}) }
     } else if (command === 'set' && sub === 'build') {
       const st = buildSet(ws, s('set')!, s('gate-unit')!, s('mode')!, ids(s('pool')), s('required') ? load(s('required')!) : {}, s('generators') ? load(s('generators')!) : {}, ids(s('exhaustive')))
-      out = { set: st['name'], dev: st['dev'].length, sealed: st['sealed'].length, hash: setHash(st), unsealed_classes: st['unsealed_classes'] }
-      if (st['unsealed_classes'].length > 0) out['note'] = 'these classes have no sealed case: add at least two inputs of each, then build again'
+      out = { set: st['name'], dev: st['dev'].length, sealed: st['sealed'].length, hash: setHash(st),
+        unsealed_classes: st['unsealed_classes'], classes_without_dev: st['classes_without_dev'] }
+      const notes = [
+        ...(st['unsealed_classes'].length > 0 ? ['unsealed_classes have no sealed case: nothing checks them on inputs the worker did not see'] : []),
+        ...(st['classes_without_dev'].length > 0 ? ['classes_without_dev have no dev case: the worker sees only their description'] : []),
+      ]
+      if (notes.length > 0) out['note'] = notes.join('; ') + '. Add new inputs of each, then build again.'
     } else if (command === 'compare') {
       // Self-check is not evidence: a draft delta may be tried here before a person approves it.
       out = compareOnly(s('legacy-dir')!, s('modern-dir')!, s('comparator'), unitName(String(s('gate-unit') ?? '')), join(ws.root, '.rig-tmp'), ids(s('deltas')).map(load))

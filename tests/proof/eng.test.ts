@@ -116,6 +116,23 @@ describe('core 3: store semantics are compared', () => {
     const sweep = P.canarySweep([s], undefined, 'INTCALC', [], join(dir, 'tmp'))
     assert.ok(!sweep['missed'].some((x: string) => /semantics/.test(x)))
   })
+  test('round 2 item 21: every semantics key is mutated, so a comparator that ignores one is not trusted', () => {
+    const s = withSem({ collation: 'EBCDIC', range_read: ['A', '1'], duplicates: 'rejected' })
+    const muts = P.canaryMutations(s, []).filter(([, d]) => /store semantics/.test(d)).map(([, d]) => d)
+    for (const k of ['collation', 'range_read', 'duplicates']) assert.ok(muts.some((d) => d.includes(k)), `mutates ${k}`)
+    // A comparator that reads only the first key (collation), as ENG-D's finding 4 describes.
+    const cmp = join(dir, 'first_key_cmp.ts')
+    writeFileSync(cmp, `import { readFileSync } from 'node:fs'
+const [a, b] = process.argv.slice(2).map((f) => JSON.parse(readFileSync(f, 'utf8')))
+const sem = (o: any) => o.stores?.ACCT?.semantics?.collation ?? null
+const eq = JSON.stringify([a.return_code, a.abend, a.stores?.ACCT?.records, sem(a)]) === JSON.stringify([b.return_code, b.abend, b.stores?.ACCT?.records, sem(b)])
+console.log(JSON.stringify({ equal: eq, compared: ['INTCALC.return_code', 'INTCALC.abend', 'INTCALC/ACCT.store_semantics'] }))
+`)
+    const sweep = P.canarySweep([s], `node ${cmp}`, 'INTCALC', [], join(dir, 'tmp'))
+    assert.equal(sweep['trusted'], false)
+    assert.ok(sweep['missed'].some((x: string) => /store semantics range_read/.test(x)))
+    assert.ok(sweep['missed'].some((x: string) => /store semantics duplicates/.test(x)))
+  })
 })
 
 describe('core 4: judge errors name no case', () => {
@@ -144,7 +161,26 @@ describe('core 6: set build seals at least one case per class', () => {
     assert.equal(hz.filter((id) => s['sealed'].includes(id)).length, 1, 'one sealed, the rest dev')
     assert.equal(s['sealed'].includes([...hz].sort()[0]), true, 'the lowest hash: nobody chooses')
     assert.deepEqual(s['unsealed_classes'], ['hazard:H-2'], 'a class with one input cannot be sealed and also seen')
+    assert.deepEqual(s['classes_without_dev'], [])
     assert.ok(s['dev'].includes(lone))
+  })
+  test('round 2 item 20: the report is computed after the fill, so a one-case class the fill sealed is not "unsealed"', () => {
+    // ENG-D's V7 set: recorded mode, one case, and the 25% fill seals it.
+    const id = P.addCase(ws, inp(700), ['migration:CUSTFILE'], 'characterization', obs('A'))['id'] as string
+    const s = P.buildSet(ws, 'V7', GU, 'recorded', [id], { 'migration:CUSTFILE': 'one dataset' }, {})
+    assert.deepEqual(s['sealed'], [id])
+    assert.deepEqual(s['unsealed_classes'], [], 'it is sealed')
+    assert.deepEqual(s['classes_without_dev'], ['migration:CUSTFILE'], 'and the worker sees no case of it')
+  })
+  test('round 2 item 20: a class the fill seals completely is reported as having no dev case', () => {
+    // Executable mode, 20 sealed wanted, 21 cases: the fill seals every case of class y except none is left for dev.
+    const ok = Array.from({ length: 19 }, (_, i) => add(900 + i, ['ok']))
+    const y = [add(950, ['y']), add(951, ['y'])]
+    const s = P.buildSet(ws, 'S', GU, 'executable', [...ok, ...y], { ok: 'ok', y: 'y' }, {})
+    assert.ok(y.every((i) => s['sealed'].includes(i)), 'the 20-case minimum sealed both y cases')
+    assert.deepEqual(s['classes_without_dev'], ['y'])
+    for (const cl of s['classes_without_dev']) assert.ok(!s['dev'].some((d: string) => P.load(ws.casePath(d))['classes'].includes(cl)))
+    for (const cl of s['unsealed_classes']) assert.ok(!s['sealed'].some((d: string) => P.load(ws.casePath(d))['classes'].includes(cl)))
   })
   test('sealed cases never move', () => {
     const pool = Array.from({ length: 24 }, (_, i) => add(i, ['ok']))
