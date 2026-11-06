@@ -278,7 +278,9 @@ export async function run(o: Obj): Promise<Obj> {
   }
   for (const s of screens) if (typeof s['body'] === 'string' && s['body'].includes(String(port))) { notes.push(`a screen contains the server port ${port}: it varies run to run`); break }
   if (!clock && screens.some((s) => typeof s['body'] === 'string' && s['body'].includes(utcDate()))) notes.push("a screen contains today's date but the case has clock null")
-  return { screens, messages: messagesOf(screens, o['message-class']), stores, return_code: returnCode, abend, notes, workdir }
+  // The clock was applied (by the wrap, or by running on that UTC day, checked above), so its calendar events count.
+  return { screens, messages: messagesOf(screens, o['message-class']), stores, return_code: returnCode, abend, notes, workdir,
+           ...(clock ? { clock_applied: clock } : {}) }
 }
 
 export async function main(argv: string[]): Promise<number> {

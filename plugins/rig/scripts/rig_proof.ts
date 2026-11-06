@@ -316,6 +316,16 @@ export function applyDelta(legacy: Obj, modern: Obj, d: Obj, unit: string): { le
   return { legacy: l, modern: m }
 }
 
+/** Legal, approved normalizers only: an unapproved one would erase a difference nobody agreed to (R3-02). */
+export function approvedNormalizers(ws: WS, paths: string[]): Obj[] {
+  return paths.map((p) => {
+    const n = load(p)
+    const errs = checkNormalizer(ws, n)
+    if (!n['approved_by'] || errs.length > 0) throw new Bad(`normalizer ${p} cannot be applied: ${[...(n['approved_by'] ? [] : ['not approved (approved_by)']), ...errs].join('; ')}`)
+    return n
+  })
+}
+
 /** Approved deltas only: a delta nobody approved changes nothing it compares (§11 gate 5). */
 export function approvedDeltas(paths: string[]): Obj[] {
   return paths.map((p) => {
@@ -358,7 +368,25 @@ export function observableIdProblem(gateUnit: string, id: string): string | null
 export type Comparison = { equal: boolean; compared: string[]; diffs: string[] }
 
 /** Compare every observable. Cardinality and order are separate observables. */
+/** Values JSON would parse lossily are refused: a field value is a string, a return code an integer or null (R3-08). */
+export function observationProblem(o: Obj): string | null {
+  const rc = o['return_code']
+  if (rc != null && !Number.isSafeInteger(rc)) return `return_code ${JSON.stringify(rc)} is not an integer`
+  for (const [store, st] of Object.entries<Obj>(o['stores'] ?? {})) {
+    for (const r of st?.['records'] ?? []) {
+      for (const [f, v] of Object.entries<unknown>(r)) {
+        if (v !== null && typeof v !== 'string') return `${store}.${f} is ${typeof v} ${JSON.stringify(v)}: write field values as strings, so scale and precision survive`
+      }
+    }
+  }
+  return null
+}
+
 export function exactCompare(legacy: Obj, modern: Obj, unit: string, tolerances: Record<string, Dec> = {}): Comparison {
+  for (const [side, o] of [['legacy', legacy], ['modern', modern]] as const) {
+    const bad = observationProblem(o)
+    if (bad) throw new Bad(`${side} observation: ${bad}`)
+  }
   const compared: string[] = []
   const diffs: string[] = []
   const cmp = (oid: string, a: unknown, b: unknown) => {
@@ -421,8 +449,10 @@ export function runComparator(spec: string | undefined, legacy: Obj, modern: Obj
   } catch {
     throw new Bad(`comparator ${JSON.stringify(spec)} did not print JSON: ${(out.stderr ?? '').slice(0, 200)}`)
   }
-  if (!Array.isArray(r['compared'])) throw new Bad('a comparator must report the observables it compared (Rule B)')
-  return { equal: Boolean(r['equal']), compared: [...r['compared']].sort(), diffs: r['diffs'] ?? [] }
+  if (out.status !== 0) throw new Bad(`comparator ${JSON.stringify(spec)} exited ${out.status ?? out.signal}: its answer is not trusted`)
+  if (typeof r['equal'] !== 'boolean') throw new Bad(`comparator ${JSON.stringify(spec)} printed equal=${JSON.stringify(r['equal'])}; it must be true or false`)
+  if (!Array.isArray(r['compared']) || r['compared'].some((x: unknown) => typeof x !== 'string')) throw new Bad('a comparator must report the observables it compared, as strings (Rule B)')
+  return { equal: r['equal'], compared: [...r['compared']].sort(), diffs: r['diffs'] ?? [] }
 }
 
 // ---------------------------------------------------------------------------
@@ -487,6 +517,7 @@ export function judge(ws: WS, setName: string, key: string, legacyDir: string, m
     if (!isFile(mpath)) throw new Bad(`no modern observation for case ${id.slice(0, 12)}`)
     const modern = load(mpath)
     const legacy = isFile(lpath) ? load(lpath) : c['expected'] ?? null // null: recorded mode, generated input
+    if (legacy === null && s['mode'] !== 'recorded') throw new Bad(`no legacy observation for case ${id.slice(0, 12)}: in ${s['mode']} mode every case is compared (R3-01)`)
     let r: Obj
     if (legacy === null) {
       // No legacy output exists, so only properties that need none are checked. An abend is behaviour the
@@ -509,7 +540,11 @@ export function judge(ws: WS, setName: string, key: string, legacyDir: string, m
       bump(coverage.classes, cl)
       if (cl.startsWith('hazard:')) bump(coverage.hazards, cl.slice(7))
     }
-    coverage.calendar_events.push(...calendarEvents(c['input']['clock'], c['input']['params']))
+    const clock = c['input']['clock']
+    const lo = legacy ?? {}
+    r['calendar_events'] = clock != null && (legacy === null || lo['clock_applied'] === clock) && modern['clock_applied'] === clock
+      ? calendarEvents(clock, c['input']['params']) : []
+    coverage.calendar_events.push(...r['calendar_events'])
     if (!r['pass']) coverage.mismatches.push(id)
   }
   coverage.calendar_events = uniqSorted(coverage.calendar_events)
@@ -618,9 +653,24 @@ export function runtimeClosure(ws: WS, gateUnit: string): string[] {
   return [...files].sort()
 }
 
-function hashFiles(paths: string[], base: string): string {
+/** Every file under a path, relative to base, sorted (a directory such as target/classes is its files). */
+function expandFiles(p: string, base: string): string[] {
+  const fp = join(base, p)
+  if (isFile(fp)) return [p]
+  if (!isDir(fp)) return []
+  return ls(fp).flatMap((n) => expandFiles(join(p, n), base))
+}
+
+function hashFiles(paths: string[], base: string, kind: string, mustExist: boolean): string {
   const h = createHash('sha256')
-  for (const p of [...paths].sort()) {
+  const files: string[] = []
+  for (const p of paths) {
+    if (p.startsWith('<')) { files.push(p); continue } // a node with no source: absent by definition (Rule A)
+    const got = expandFiles(p, base)
+    if (got.length === 0 && mustExist) throw new Bad(`${kind} path ${p} does not exist under ${base}; a key must hash what ran (R3-05)`)
+    files.push(...(got.length ? got : [p]))
+  }
+  for (const p of uniqSorted(files)) {
     h.update(p + '\0')
     const fp = join(base, p)
     h.update(p.startsWith('<') || !isFile(fp) ? '<absent>' : readFileSync(fp))
@@ -647,10 +697,14 @@ export function evidenceKey(ws: WS, gateUnit: string, rung: string, legacyRoot: 
                             oracleSet: string | undefined, comparators: string[], packs: Obj, environment: Obj): Obj {
   if (!RUNGS.includes(rung)) throw new Bad(`rung must be one of ${RUNGS.join(', ')}`)
   const closure = runtimeClosure(ws, gateUnit)
+  if (!isDir(legacyRoot)) throw new Bad(`legacy root ${legacyRoot} is not a directory`)
+  const presentLegacy = closure.filter((p) => !p.startsWith('<') && isFile(join(legacyRoot, p)))
+  if (closure.some((p) => !p.startsWith('<')) && presentLegacy.length === 0) throw new Bad(`no file of the runtime closure exists under ${legacyRoot}: wrong --legacy-root?`)
+  if (modern.length === 0) throw new Bad('--modern lists no file: the key would not change with the modern code')
   const fields = {
     gate_unit: gateUnit,
     rung,
-    runtime_closure: sha(hashFiles(closure, legacyRoot) + hashFiles(modern, ws.root)),
+    runtime_closure: sha(hashFiles(closure, legacyRoot, 'legacy', false) + hashFiles(modern, ws.root, 'modern', true)),
     oracle: ORACLE_RUNGS.has(rung) && oracleSet ? setHash(load(ws.setPath(oracleSet))) : null,
     comparators: COMPARATOR_RUNGS.has(rung) ? sha(canon([...comparators].sort().map((c) => comparatorMaterial(ws, c)))) : null,
     packs: sha(canon(packs)),
@@ -918,7 +972,8 @@ export function shadow(ws: WS, gateUnit: string, key: string, trafficDir: string
     // (`clock_applied` equal to the input clock). A clock that is only a label exercised no date (M6 exit run).
     const clock = c['input']['clock']
     if (clock != null && legacy['clock_applied'] === clock && modern['clock_applied'] === clock) {
-      coverage['calendar_events'].push(...calendarEvents(clock, c['input']['params']))
+      r['calendar_events'] = calendarEvents(clock, c['input']['params'])
+      coverage['calendar_events'].push(...r['calendar_events'])
     } else if (clock != null) bump(coverage['clock_not_applied'] ??= {}, 'cases')
     const le = elapsed(legacy), me = elapsed(modern)
     if (le !== null && me !== null) { coverage['timing'].cases++; coverage['timing'].legacy_ms += le; coverage['timing'].modern_ms += me }
@@ -958,6 +1013,7 @@ export function cutover(ws: WS, gateUnit: string, stage: string, key: string, re
   const at = CUTOVER_STAGES.indexOf(stage)
   if (at < 0) throw new Bad(`stage must be one of ${CUTOVER_STAGES.join(', ')}`)
   const reasons: string[] = []
+  if (at >= 1 && ((req['observables'] ?? []) as string[]).length === 0) throw new Bad('requirements list no observables: the obligation check would be vacuous (R3-06)')
   const file = join(ws.root, 'cutover', ws.system, `${gateUnit.replace(/[^\w.-]+/g, '_')}.json`)
   const goes: Obj[] = isFile(file) ? (load(file)['stages'] ?? []) : []
   const go = goes.find((g) => g['stage'] === stage && g['go_by'])
@@ -976,7 +1032,8 @@ export function cutover(ws: WS, gateUnit: string, stage: string, key: string, re
     if (open.length > 0) reasons.push(`${open.length} obligation(s) on this entry point not discharged: ${open.slice(0, 5).map((o) => o['id']).join(', ')}${open.length > 5 ? ', ...' : ''}`)
   }
   if (at >= 2) {
-    v = verdict(ws, gateUnit, 'V10', key, req, false)
+    const full = { ...req, calendar_events: uniqSorted([...MINIMUM_WINDOW, ...((req['calendar_events'] ?? []) as string[])]) }
+    v = verdict(ws, gateUnit, 'V10', key, full, false)
     if (v['verdict'] !== 'PROVEN' && v['verdict'] !== 'PROVISIONAL') reasons.push(`V10 verdict is ${v['verdict']}: ${(v['reasons'] as string[]).slice(0, 3).join('; ')}`)
   }
   if (at >= 3 && !runs.some((r) => r['stage'] === 'canary' || r['stage'] === 'primary')) reasons.push('no canary or primary run under the current key')
@@ -1003,7 +1060,7 @@ export function* allRuns(ws: WS): Generator<Obj> {
 function exercises(r: Obj, run: Obj, requirement: string): boolean {
   const [kind, ...rest] = requirement.split(':')
   const name = rest.join(':')
-  if (kind === 'calendar') return run['coverage']['calendar_events'].includes(name)
+  if (kind === 'calendar') return ((r['calendar_events'] ?? []) as string[]).includes(name) // this case's own dates (R3-04)
   return r['classes'].includes(requirement) || (kind === 'class' && r['classes'].includes(name))
 }
 
@@ -1210,7 +1267,7 @@ export function main(argv: string[]): number {
       out = compareOnly(s('legacy-dir')!, s('modern-dir')!, s('comparator'), unitName(String(s('gate-unit') ?? '')), join(ws.root, '.rig-tmp'), ids(s('deltas')).map(load))
       ok = out['passed'] === out['total']
     } else if (command === 'judge') {
-      out = judge(ws, s('set')!, s('key')!, s('legacy-dir')!, s('modern-dir')!, ids(s('fresh')), s('comparator'), ids(s('normalizers')).map(load), s('env') ?? 'default', approvedDeltas(ids(s('deltas'))))
+      out = judge(ws, s('set')!, s('key')!, s('legacy-dir')!, s('modern-dir')!, ids(s('fresh')), s('comparator'), approvedNormalizers(ws, ids(s('normalizers'))), s('env') ?? 'default', approvedDeltas(ids(s('deltas'))))
       ok = out['passed'] === out['total']
     } else if (command === 'key') {
       out = evidenceKey(ws, s('gate-unit')!, s('rung')!, s('legacy-root')!, ids(s('modern')), s('set'), ids(s('comparators')), JSON.parse(s('packs') ?? '{}'), JSON.parse(s('environment') ?? '{}'))
@@ -1241,7 +1298,7 @@ export function main(argv: string[]): number {
       ok = out['missing'].length === 0
     } else if (command === 'shadow') {
       out = shadow(ws, s('gate-unit')!, s('key')!, s('traffic')!, s('legacy-dir')!, s('modern-dir')!, s('comparator'),
-        ids(s('normalizers')).map(load), s('env') ?? 'shadow', s('stage') ?? 'shadow', approvedDeltas(ids(s('deltas'))), s('set'))
+        approvedNormalizers(ws, ids(s('normalizers'))), s('env') ?? 'shadow', s('stage') ?? 'shadow', approvedDeltas(ids(s('deltas'))), s('set'))
       ok = out['mismatches'] === 0
     } else if (command === 'cutover') {
       out = cutover(ws, s('gate-unit')!, s('stage')!, s('key')!, s('requirements') ? load(s('requirements')!) : {})

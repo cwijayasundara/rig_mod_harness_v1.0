@@ -247,7 +247,11 @@ export function main(argv: string[]): number {
         per[m] = (per[m] ?? 0) + 1
       }
       const scope = (a.scope ?? '').split(',').map((x) => x.trim()).filter(Boolean)
-      const inScope = (x: Violation) => !x.file || scope.length === 0 || scope.some((p) => x.file!.startsWith(p))
+      // A prefix matches on a path boundary, and a prefix that matches no file is a typo, not a pass (R3-12).
+      const under = (f: string, p: string) => { const q = p.replace(/\/+$/, ''); return f === q || f.startsWith(q + '/') }
+      const empty = scope.filter((p) => !files.some((f) => under(f.path, p)))
+      if (empty.length > 0) throw new Bad(`--scope ${empty.join(', ')} matches no source file under ${a.root}`)
+      const inScope = (x: Violation) => !x.file || scope.length === 0 || scope.some((p) => under(x.file!, p))
       const counted = v.filter(inScope)
       out = { pass: counted.length === 0, files: files.length, files_per_module: per, violations: counted, outside_scope: v.filter((x) => !inScope(x)) }
       ok = counted.length === 0

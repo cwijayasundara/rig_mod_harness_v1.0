@@ -27,8 +27,9 @@ type Input = { tool_name?: string; tool_input?: Record<string, unknown>; agent_t
 const WRITE_TOOLS = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit'])
 const READ_TOOLS = new Set(['Read', 'Grep', 'Glob'])
 
-const SCRIPT_ONLY = [/^evidence\//, /^oracles\/[^/]+\/cases\//, /^oracles\/[^/]+\/sets\//]
-const PERSON_ONLY = [/^obligations\//, /^cutover\//, /^oracles\/[^/]+\/caps\//, /^analysis\/[^/]+\/attestations\.yaml$/, /^analysis\/[^/]+\/decomposition\/signoffs\.json$/]
+// A path matches when it is in one of these folders, or is the folder itself or a folder above it (rm -rf evidence).
+const SCRIPT_ONLY = [/^evidence(\/|$)/, /^oracles\/[^/]+\/(cases|sets)(\/|$)/, /^oracles(\/[^/]+)?$/]
+const PERSON_ONLY = [/^obligations(\/|$)/, /^cutover(\/|$)/, /^oracles\/[^/]+\/caps\//, /^analysis\/[^/]+\/attestations\.yaml$/, /^analysis\/[^/]+\/decomposition\/signoffs\.json$/]
 const HIDDEN_FROM_WORKERS = [/^oracles(\/|$)/, /^evidence(\/|$)/, /^obligations(\/|$)/, /^work\/[^/]+\/([^/]+\/)?(judge|review-[abc]\d*)(\/|$)/]
 /** Claude Code saves a long tool result here and the agent reads it back. It is outside the workspace. */
 const TOOL_RESULTS = /\/\.claude\/projects\/[^/]+\/[^/]+\/(subagents\/[^/]+\/)?tool-results\/[^/]+$/
@@ -58,7 +59,7 @@ function rel(abs: string, root: string): string | null {
 
 /** Workspace-relative path fragments that a shell command mentions. */
 function bashMentions(cmd: string): string[] {
-  return [...cmd.matchAll(/(?:^|[\s'"=(<>|;&])(?:\.\/)?((?:evidence|oracles|obligations|work|analysis)\/[^\s'";|&<>)]*)/g)].map((m) => m[1]!)
+  return [...cmd.matchAll(/(?:^|[\s'"=(<>|;&])(?:\.\/)?((?:evidence|oracles|obligations|work|analysis)(?:\/[^\s'";|&<>)]*|(?![\w.-])))/g)].map((m) => m[1]!)
 }
 
 const PATHCH = `[^\\s'";|&<>)]`
@@ -71,7 +72,7 @@ const strip = (p: string) => p.replace(/^\.\//, '')
  */
 export function shellWrites(cmd: string): string[] {
   const out: string[] = []
-  const ws = `((?:\\./)?(?:evidence|oracles|obligations|work|analysis|modernized)/${PATHCH}*)`
+  const ws = `((?:\\./)?(?:evidence|oracles|obligations|work|analysis|modernized)(?:/${PATHCH}*|(?![\\w.-])))`
   for (const m of cmd.matchAll(new RegExp(`(?:^|[^<0-9&])>>?\\s*['"]?${ws}`, 'g'))) out.push(m[1]!)
   for (const m of cmd.matchAll(new RegExp(`\\btee\\s+(?:-a\\s+)?['"]?${ws}`, 'g'))) out.push(m[1]!)
   for (const m of cmd.matchAll(new RegExp(`(?:writeFileSync|appendFileSync|createWriteStream|renameSync|rmSync|unlinkSync)\\(\\s*[\`'"]${ws}`, 'g'))) out.push(m[1]!)
@@ -80,20 +81,33 @@ export function shellWrites(cmd: string): string[] {
     const words = simple.trim().split(/\s+/).map((w) => w.replace(/^['"]|['"]$/g, ''))
     const verb = words[0] ?? ''
     const args = words.slice(1).filter((w) => !w.startsWith('-'))
-    const isWs = (w: string) => /^(?:\.\/)?(?:evidence|oracles|obligations|work|analysis|modernized)\//.test(w)
+    const isWs = (w: string) => /^(?:\.\/)?(?:evidence|oracles|obligations|work|analysis|modernized)(?:\/|$)/.test(w)
     if (['cp', 'mv', 'ln', 'install', 'rsync'].includes(verb) && args.length >= 2 && isWs(args.at(-1)!)) out.push(args.at(-1)!)
+    if (verb === 'mv' || (verb === 'rsync' && words.includes('--remove-source-files'))) out.push(...args.slice(0, -1).filter(isWs)) // a move writes its source too
     if (['rm', 'touch', 'truncate', 'mkdir', 'rmdir', 'shred'].includes(verb)) out.push(...args.filter(isWs))
     if ((verb === 'sed' && words.some((w) => /^-i/.test(w))) || (verb === 'perl' && words.some((w) => /^-\w*i/.test(w)))) out.push(...args.filter(isWs))
   }
   return [...new Set(out.map(strip))]
 }
 
+/** A command with absolute paths into the workspace (and paths under a cwd inside it) made workspace-relative. */
+function relativize(cmd: string, root: string, cwd?: string): string {
+  let out = cmd
+  const r = normalize(root).replace(/\/$/, '')
+  const c = cwd ? rel(cwd, root) : null
+  if (c) out = out.split(normalize(cwd!).replace(/\/$/, '') + '/').join(c === '' ? '' : c + '/')
+  return out.split(r + '/').join('').split(r).join('.')
+}
+
+/** A path at or above a folder hidden from workers: searching it searches the hidden folder too. */
+const aboveHidden = (p: string) => p === '' || p === '.' || p === 'work' || /^work\/[^/]+(\/[^/]+)?$/.test(p)
+
 export function decide(inp: Input, root: string): string | null {
   const tool = inp.tool_name ?? ''
   const who = role(inp.agent_type)
   const sub = Boolean(inp.agent_type)
   const files = tool === 'Bash' ? [] : pathsOf(inp, root)
-  const cmd = tool === 'Bash' ? String(inp.tool_input?.['command'] ?? '') : ''
+  const cmd = tool === 'Bash' ? relativize(String(inp.tool_input?.['command'] ?? ''), root, inp.cwd) : ''
   const shellPaths = tool === 'Bash' ? bashMentions(cmd) : []
   const viaProofScript = /rig_proof\.ts\b/.test(cmd)
 
@@ -123,6 +137,13 @@ export function decide(inp: Input, root: string): string | null {
   // 3. workers and fixers never see the oracle
   if (who === 'worker' || who === 'fixer') {
     const touched = tool === 'Bash' ? shellPaths : files
+    if ((tool === 'Grep' || tool === 'Glob') && (files.length === 0 || files.some(aboveHidden))) {
+      return `the ${who} must search inside its target scope; a search of ${files[0] || 'the workspace'} also searches folders hidden from it`
+    }
+    if (tool === 'Grep' && typeof inp.tool_input?.['glob'] === 'string') {
+      const g = String(inp.tool_input['glob'])
+      if (HIDDEN_FROM_WORKERS.some((r) => r.test(g.replace(/^\.\//, '')))) return `${g} is hidden from the ${who}`
+    }
     const p = touched.find((f) => HIDDEN_FROM_WORKERS.some((r) => r.test(f)))
     if (p) return `${p} is hidden from the ${who}: it learns about failures only through the counts per class it is given`
     if (tool === 'Bash' && viaProofScript) return `the ${who} may not run rig_proof.ts`

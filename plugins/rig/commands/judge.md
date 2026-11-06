@@ -11,12 +11,17 @@ script's counts and class descriptions only.
 1. **Fresh inputs.** For every required class of the set, draw new inputs with its generator (a new seed each run),
    and add them with `case add`. A class that failed in the last run must have fresh inputs, or the script refuses
    the run. Executable mode: run legacy on them for expected outputs.
-2. **Run both sides** on every case of the set plus the fresh ones. Each side runs the whole gate unit, seeded from
+2. **Run both sides** on every case. The modern runner is the unit's own (`worker.md`: input JSON in, observation
+   JSON out), called the same way for every case; the legacy runner is the oracle harness's. Field values are
+   strings and return codes integers in every observation (the script refuses others). Run both sides of the set plus the fresh ones. Each side runs the whole gate unit, seeded from
    the case's store snapshots, never mixing legacy and modern in one run. Write one observation file per case,
    `<case-id>.json`, to `work/$system/judge/obs/<run>/legacy/` and `.../modern/`. This is the judge's scratch folder: the
    guard hides it from the worker and the fixer. Never write under `evidence/`; only the script writes there.
    For an HTTP gate unit, run each side with `rig_http.ts` (see `references/proof.md`, "HTTP runner").
-3. **Evidence key** for the rung (V3 differential, or V4 fresh inputs):
+3. **Evidence key** for the rung (V3 differential, or V4 fresh inputs). `--modern` and `--comparators` are
+   comma-separated lists; a directory (`target/classes`) counts as every file under it, and a path that does not exist
+   is refused. `--packs` names each Pack with the version `PREFLIGHT.md` check 2 recorded for it (never a guess).
+   Write the exact command next to the key in the unit's log, so `verify` can recompute it:
    ```
    node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.ts key --ws . --system $system --gate-unit $gate_unit --rung V3 \
      --legacy-root legacy/$system --modern <every modern file the job runs: source, the compiled output that actually ran (classes, jars), config, batch XML, migrations, the runner script> \

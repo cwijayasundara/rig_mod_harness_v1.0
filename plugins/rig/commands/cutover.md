@@ -9,7 +9,7 @@ whether it routes to a service or to the monolith. The stages are shadow, canary
 
 ```
 node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.ts cutover --ws . --system $system --gate-unit $gate_unit --stage $stage \
-  --key <current V10 key> --requirements evidence/$system/requirements/<gate-unit>-V10.json
+  --key <current V10 key> --requirements work/$system/requirements/<gate-unit>-V10.json
 ```
 
 Quote its answer word for word. What each stage needs (the script checks all of it):

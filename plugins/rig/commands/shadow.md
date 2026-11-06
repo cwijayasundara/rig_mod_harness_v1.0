@@ -47,7 +47,7 @@ A mismatch joins the oracle set's sealed cases. It is a failure, as in the judge
 
 ## 4 — Verdict and the cutover view
 
-Write `evidence/$system/requirements/<gate-unit>-V10.json` as `verify.md` does, with `calendar_events` from the
+Write `work/$system/requirements/<gate-unit>-V10.json` as `verify.md` does, with `calendar_events` from the
 `calendar` command, and `timing_max_ratio` (V9) from the batch window or latency budget in `INTENT.md` (ask a person if
 it is not there; never invent one). Run `verdict --rung V10 --write-obligations`, `obligations`, and `cutover` for the
 next stage. Then write `CUTOVER.md` (one section per entry point, replacing its previous section):

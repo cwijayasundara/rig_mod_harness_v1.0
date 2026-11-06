@@ -30,12 +30,13 @@ canary, makes every rung that used it NOT_PROVEN.
 
 ## 2 — Requirements per rung
 
-Write `evidence/$system/requirements/<gate-unit>-<rung>.json`:
+Write `work/$system/requirements/<gate-unit>-<rung>.json` (not under `evidence/`, which only the script writes):
 
 - `observables`: every observable id on the gate unit's surface (Rule B: each must have been compared).
 - `classes`: `{class: minimum inputs}` from the set.
 - `fresh_classes` (V4): every required class.
-- `hazards`: every hazard in `hazards.json` within the gate unit's programs.
+- `hazards`: every hazard in `hazards.json` within the gate unit's programs, plus every hazard the unit file lists
+  from its bridge (target-framework hazards such as `S-*`, which the legacy map cannot find).
 - `capped`: each difference between the reference environment and production from `PREFLIGHT.md`, as
   `{hazard, observables}`.
 - `calendar_events` (V10 only): run `rig_proof.ts calendar --gate-unit $gate_unit --derived <events from scheduler

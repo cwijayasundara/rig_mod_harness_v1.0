@@ -29,7 +29,11 @@ budget: { attempts: 3, wallclock: 60m }
 
 An **uplift** unit covers one deployable. It has `gate_units: [<every route or job it serves>]` in place of
 `gate_unit`, `target_scope` is the whole module, and it needs `analysis/$system/DELTA_CATALOG.md` from the
-`version-delta-analyst` agent first. Every catalog hit is listed under `hazards`. Each gate unit keeps its own surface
+`version-delta-analyst` agent first. Every catalog hit is listed under `hazards`.
+
+A bridge with its own hazard catalog for the **target** (`cobol-to-spring` S-*): list those rows under `hazards`, and
+put `/rig:oracles $system <gate-unit>` before the unit in the order when the set has no `hazard:<id>` class for one
+of them, so the oracle-engineer adds the class and its generator first. Each gate unit keeps its own surface
 and is judged on its own.
 
 A **restructure** unit (step `restructure`, skill `java-restructure`) needs the signed decomposition first:
