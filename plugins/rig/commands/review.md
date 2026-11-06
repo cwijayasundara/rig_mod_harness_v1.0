@@ -1,13 +1,13 @@
 ---
 description: A person confirms rule cards, attests consumers and resolves unresolved edges — the human gates of the Understand phase
-argument-hint: <system> [rules|consumers|unresolved|normalizers|caps|obligations|adrs]
+argument-hint: <system> [rules|consumers|unresolved|normalizers|caps|obligations|adrs|cutover]
 arguments: system what
 ---
 
 Load the `rig-method` skill first. You record decisions; you never make them. Write only
 `analysis/$system/rules/*.yaml` (status and review fields), `analysis/$system/attestations.yaml`, and the matching
-`status` fields in `unresolved.json` and `surfaces/`, `analysis/$system/decomposition/signoffs.json`, and the
-`Status:` line of an ADR.
+`status` fields in `unresolved.json` and `surfaces/`, `analysis/$system/decomposition/signoffs.json`, the
+`Status:` line of an ADR, and `cutover/$system/*.json`.
 
 Ask with AskUserQuestion, one item per question and at most four per pop-up, and show the evidence in each question:
 the card or site, its citations, and the cited lines. Every question has a *Not now* option. Record answers verbatim
@@ -61,6 +61,15 @@ or *Not now*. Sign: set `Status: accepted` in the ADR first, then run `node ${CL
 hash --ws . --system $system` and append `{adr, adr_sha256, modules_sha256, signed_by, signed_on}` to
 `decomposition/signoffs.json` with the hashes it printed. Any later edit to the ADR or `MODULES.json` voids the
 signature. Reject writes `Status: rejected` and signs nothing.
+
+## Cutover (`cutover`)
+
+For each entry point named in `CUTOVER.md`: run `rig_proof.ts cutover` for its next stage (see
+`${CLAUDE_PLUGIN_ROOT}/commands/cutover.md`) and show the answer, the calendar and timing lines, and the open
+obligations. Ask *Go: move to <stage>*, *No-go* (they say why), or *Not now*. Go appends `{stage, go_by, go_on}` to
+`stages` in `cutover/$system/<gate-unit>.json` (the gate unit with every character outside `[A-Za-z0-9_.-]`
+replaced by `_`). Ask for a go only when the script allows the stage apart from the go itself; otherwise show what
+blocks it and ask nothing. No-go appends `{stage, no_go_by, reason, on}`.
 
 ## Obligations (`obligations`)
 

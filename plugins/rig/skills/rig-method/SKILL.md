@@ -65,6 +65,8 @@ oracles/<system>/cases/ sets/ normalizers/ deltas/    oracle cases and sets (sea
 evidence/<system>/<key>/<run-id>/run.json             judge runs with coverage, append-only
 obligations/<system>/OBL-*.json                       named gaps a person accepted, discharged only by coverage
 modernized/                                           the new system
+cutover/<system>/<gate-unit>.json                    go/no-go per cutover stage, written only for a person
+CUTOVER.md                                            each entry point's stage, shadow runs, calendar, obligations
 ```
 
 Artifact formats are in [references/artifacts.md](references/artifacts.md) (analysis) and

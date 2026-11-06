@@ -21,6 +21,8 @@
  *   obligations    discharge obligations by coverage, and list what is open
  *   calendar       required calendar events for a gate unit and which runs covered them
  *   surface check  check that every observable id on a surface is one the comparator records
+ *   shadow         record a shadow (V10) run: real or replayed traffic through both sides, compared, with coverage
+ *   cutover        may an entry point move to a cutover stage (shadow, canary, primary, decommission)?
  *
  * Every command prints JSON and exits 0 when its check passes, 1 when it fails, 2 on bad input.
  */
@@ -28,7 +30,7 @@
 import { spawnSync } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 
@@ -875,6 +877,108 @@ export function canarySweep(samples: Obj[], comparator: string | undefined, unit
 }
 
 // ---------------------------------------------------------------------------
+// Shadow (V10, §7 Phase F) and timing (V9)
+// ---------------------------------------------------------------------------
+
+/** Elapsed milliseconds of a side, when its runner recorded it. Never compared: V9 reads it from coverage. */
+const elapsed = (o: Obj): number | null => (typeof o['elapsed_ms'] === 'number' && o['elapsed_ms'] >= 0 ? o['elapsed_ms'] : null)
+
+/**
+ * One shadow run: every traffic item in `trafficDir` (`<name>.json` holding {input, classes?}) ran on both sides; the
+ * observations are `<name>.json` in legacyDir and modernDir. Each item becomes a content-addressed case (origin
+ * `shadow`). The run is written under the V10 key like a judge run, with mode `shadow` and the cutover stage, so
+ * verdict, calendar and obligations read it unchanged. A mismatching item joins the sealed set of `setName` when given
+ * (§5.3 rule 4): a difference found in traffic is never lost.
+ */
+export function shadow(ws: WS, gateUnit: string, key: string, trafficDir: string, legacyDir: string, modernDir: string,
+                       comparator: string | undefined, normalizers: Obj[], envId: string, stage: string, deltas: Obj[] = [],
+                       setName?: string): Obj {
+  if (!['shadow', 'canary', 'primary'].includes(stage)) throw new Bad('stage must be shadow, canary or primary')
+  const unit = unitName(gateUnit)
+  const items = ls(trafficDir).filter((f) => f.endsWith('.json'))
+  if (items.length === 0) throw new Bad(`no traffic in ${trafficDir}`)
+  const results: Obj[] = []
+  const coverage: Obj = { observables: {}, classes: {}, hazards: {}, calendar_events: [], mismatches: [], timing: { cases: 0, legacy_ms: 0, modern_ms: 0 } }
+  const tmp = join(ws.evidence, '.tmp')
+  for (const f of items) {
+    const t = load(join(trafficDir, f))
+    const classes = uniqSorted(['shadow:traffic', ...((t['classes'] ?? []) as string[])])
+    const c = addCase(ws, t['input'] ?? t, classes, 'shadow', null)
+    const lp = join(legacyDir, f), mp = join(modernDir, f)
+    if (!isFile(lp) || !isFile(mp)) throw new Bad(`traffic ${f}: both sides need an observation (legacy and modern)`)
+    const legacy = load(lp), modern = load(mp)
+    const d = withDeltas(applyNormalizers(legacy, normalizers), applyNormalizers(modern, normalizers), deltas, unit)
+    const cmpd = runComparator(comparator, d.legacy, d.modern, unit, tmp)
+    const badIds = cmpd.compared.map((id) => [id, observableIdProblem(unit, id)]).filter(([, q]) => q !== null)
+    if (badIds.length > 0) throw new Bad(`comparator reports ids outside the observable id grammar: ${badIds.slice(0, 3).map(([id]) => id).join(', ')}`)
+    const r: Obj = { case: c['id'], classes: c['classes'], pass: cmpd.equal, compared: cmpd.compared, fresh: false, traffic: f }
+    for (const oid of cmpd.compared) bump(coverage['observables'], oid)
+    for (const cl of c['classes'] as string[]) { bump(coverage['classes'], cl); if (cl.startsWith('hazard:')) bump(coverage['hazards'], cl.slice(7)) }
+    coverage['calendar_events'].push(...calendarEvents(c['input']['clock'], c['input']['params']))
+    const le = elapsed(legacy), me = elapsed(modern)
+    if (le !== null && me !== null) { coverage['timing'].cases++; coverage['timing'].legacy_ms += le; coverage['timing'].modern_ms += me }
+    if (!r['pass']) coverage['mismatches'].push(c['id'])
+    results.push(r)
+  }
+  coverage['calendar_events'] = uniqSorted(coverage['calendar_events'])
+  const runId = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + '-' + randomUUID().replaceAll('-', '').slice(0, 6)
+  dump(join(ws.evidence, key, runId, 'run.json'), { run_id: runId, key, set: setName ?? null, gate_unit: gateUnit, mode: 'shadow',
+    stage, environment: envId, deltas: deltas.map((x) => x['id'] ?? null), results, coverage })
+  if (setName && coverage['mismatches'].length > 0) {
+    const st = load(ws.setPath(setName))
+    if (st['gate_unit'] !== gateUnit) throw new Bad(`set ${setName} is for ${st['gate_unit']}, not ${gateUnit}`)
+    st['sealed'] = uniqSorted([...st['sealed'], ...coverage['mismatches']])
+    dump(ws.setPath(setName), st)
+  }
+  const counts: Record<string, { passed: number; total: number }> = {}
+  for (const r of results) for (const cl of r['classes']) { const k = (counts[cl] ??= { passed: 0, total: 0 }); k.total++; if (r['pass']) k.passed++ }
+  return { run_id: runId, stage, passed: results.filter((r) => r['pass']).length, total: results.length,
+    classes: Object.entries(counts).map(([cl, v]) => ({ class: cl, ...v })).sort((a, b) => a.class.localeCompare(b.class)),
+    calendar_events: coverage['calendar_events'], mismatches: coverage['mismatches'].length }
+}
+
+export const CUTOVER_STAGES = ['shadow', 'canary', 'primary', 'decommission']
+
+/**
+ * May `gateUnit` enter `stage`? Mechanical conditions only; the go/no-go is a person's, recorded in
+ * cutover/<system>/<gate unit>.json ({"stages": [{"stage", "go_by", "go_on"}]}), which only a person writes.
+ *  - shadow: a person's go for shadow.
+ *  - canary: the go; shadow runs under the V10 key with no mismatch; every obligation on the entry's observables
+ *    discharged (canary traffic is real, §7 Phase F).
+ *  - primary: all of canary, and the V10 verdict PROVEN or PROVISIONAL with accepted obligations (that includes the
+ *    calendar minimum window), and no open obligation at all on its observables.
+ *  - decommission: all of primary, and a canary or primary run under the key.
+ */
+export function cutover(ws: WS, gateUnit: string, stage: string, key: string, req: Obj): Obj {
+  const at = CUTOVER_STAGES.indexOf(stage)
+  if (at < 0) throw new Bad(`stage must be one of ${CUTOVER_STAGES.join(', ')}`)
+  const reasons: string[] = []
+  const file = join(ws.root, 'cutover', ws.system, `${gateUnit.replace(/[^\w.-]+/g, '_')}.json`)
+  const goes: Obj[] = isFile(file) ? (load(file)['stages'] ?? []) : []
+  const go = goes.find((g) => g['stage'] === stage && g['go_by'])
+  if (!go) reasons.push(`no go from a person for ${stage} (${relative(ws.root, file)})`)
+  for (const prev of CUTOVER_STAGES.slice(0, at)) if (!goes.some((g) => g['stage'] === prev && g['go_by'])) reasons.push(`stage ${prev} was never entered`)
+  const runs = ls(join(ws.evidence, key)).map((r) => join(ws.evidence, key, r, 'run.json')).filter(isFile).map(load)
+    .filter((r) => r['gate_unit'] === gateUnit && r['mode'] === 'shadow')
+  let v: Obj | null = null
+  if (at >= 1) {
+    if (runs.length === 0) reasons.push('no shadow run under the current key')
+    const mism = runs.reduce((n, r) => n + r['coverage']['mismatches'].length, 0)
+    if (mism > 0) reasons.push(`${mism} shadow mismatch(es) under the current key`)
+    const surface: string[] = req['observables'] ?? []
+    const mine = discharge(ws).filter((o) => (o['observables'] as string[]).some((x) => surface.includes(x)))
+    const open = mine.filter((o) => o['status'] !== 'discharged')
+    if (open.length > 0) reasons.push(`${open.length} obligation(s) on this entry point not discharged: ${open.slice(0, 5).map((o) => o['id']).join(', ')}${open.length > 5 ? ', ...' : ''}`)
+  }
+  if (at >= 2) {
+    v = verdict(ws, gateUnit, 'V10', key, req, false)
+    if (v['verdict'] !== 'PROVEN' && v['verdict'] !== 'PROVISIONAL') reasons.push(`V10 verdict is ${v['verdict']}: ${(v['reasons'] as string[]).slice(0, 3).join('; ')}`)
+  }
+  if (at >= 3 && !runs.some((r) => r['stage'] === 'canary' || r['stage'] === 'primary')) reasons.push('no canary or primary run under the current key')
+  return { gate_unit: gateUnit, stage, allowed: reasons.length === 0, reasons, shadow_runs: runs.length, ...(v ? { v10: v['verdict'] } : {}) }
+}
+
+// ---------------------------------------------------------------------------
 // Obligations (§6.7)
 // ---------------------------------------------------------------------------
 
@@ -1031,6 +1135,12 @@ export function verdict(ws: WS, gateUnit: string, rung: string, key: string, req
     gaps.push({ observables: cap['observables'], requirement: `class:${cap['class']}`, exclude_environment: cap['environment'],
       reason: `${cap['id']}: class ${cap['class']} is capped in ${cap['environment']} (${cases.size} case(s) not counted); needs evidence from another environment` })
   }
+  if (req['timing_max_ratio'] != null) { // V9: the modern side within the batch window or latency budget
+    const t = runs.reduce((a, r) => { const x = r['coverage']['timing']; return x ? { n: a.n + x.cases, l: a.l + x.legacy_ms, m: a.m + x.modern_ms } : a }, { n: 0, l: 0, m: 0 })
+    const max = Number(req['timing_max_ratio'])
+    if (t.n === 0) gaps.push({ observables: obsReq, requirement: 'class:timing', reason: 'no run recorded elapsed_ms on both sides' })
+    else if (t.m > t.l * max) gaps.push({ observables: obsReq, requirement: 'class:timing', reason: `modern took ${(t.m / Math.max(t.l, 1)).toFixed(2)}x legacy over ${t.n} case(s); the limit is ${max}x` })
+  }
   for (const cap of (req['capped'] ?? []) as Obj[]) { // reference fidelity (§6.8)
     gaps.push({ observables: cap['observables'], requirement: `hazard:${cap['hazard']}`, reason: `environment differs from production: ${cap['hazard']}` })
   }
@@ -1073,7 +1183,7 @@ export function main(argv: string[]): number {
     options: Object.fromEntries([
       'ws', 'system', 'input', 'expected', 'classes', 'origin', 'set', 'gate-unit', 'mode', 'pool', 'required', 'generators',
       'key', 'legacy-dir', 'modern-dir', 'fresh', 'comparator', 'normalizers', 'env', 'rung', 'legacy-root', 'modern',
-      'comparators', 'packs', 'environment', 'file', 'legacy-ids', 'modern-ids', 'samples', 'correlated', 'requirements', 'derived', 'exhaustive', 'deltas', 'legacy-surface', 'modern-surface',
+      'comparators', 'packs', 'environment', 'file', 'legacy-ids', 'modern-ids', 'samples', 'correlated', 'requirements', 'derived', 'exhaustive', 'deltas', 'legacy-surface', 'modern-surface', 'traffic', 'stage',
     ].map((k) => [k, { type: 'string' as const }]).concat([['write-obligations', { type: 'boolean' as const }], ['help', { type: 'boolean' as const }]])),
   })
   const [command, sub] = positionals
@@ -1124,6 +1234,13 @@ export function main(argv: string[]): number {
       for (const run of allRuns(ws)) if (run['gate_unit'] === s('gate-unit')) for (const e of run['coverage']['calendar_events']) seen.add(e)
       out = { required: need, covered: need.filter((e) => seen.has(e)), missing: need.filter((e) => !seen.has(e)) }
       ok = out['missing'].length === 0
+    } else if (command === 'shadow') {
+      out = shadow(ws, s('gate-unit')!, s('key')!, s('traffic')!, s('legacy-dir')!, s('modern-dir')!, s('comparator'),
+        ids(s('normalizers')).map(load), s('env') ?? 'shadow', s('stage') ?? 'shadow', approvedDeltas(ids(s('deltas'))), s('set'))
+      ok = out['mismatches'] === 0
+    } else if (command === 'cutover') {
+      out = cutover(ws, s('gate-unit')!, s('stage')!, s('key')!, s('requirements') ? load(s('requirements')!) : {})
+      ok = out['allowed']
     } else if (command === 'surface' && sub === 'check') {
       const surf = load(s('file')!)
       const problems = (surf['observables'] ?? []).map((o: Obj) => ({ id: o['id'], problem: observableIdProblem(surf['gate_unit'], String(o['id'])) }))

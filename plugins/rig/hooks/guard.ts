@@ -5,7 +5,7 @@
  *
  * 1. Nothing but rig_proof.ts writes `evidence/`, `oracles/<system>/cases/` or `oracles/<system>/sets/`.
  * 2. A subagent never writes `obligations/`, `oracles/<system>/caps/`, `analysis/<system>/attestations.yaml`, or
- *    `analysis/<system>/decomposition/signoffs.json` (the ADR sign-offs).
+ *    `analysis/<system>/decomposition/signoffs.json` (the ADR sign-offs), or `cutover/` (go/no-go per entry point).
  *    Accepting, signing and attesting are a person's decisions, recorded by the main session in /rig:review.
  * 3. `rig:worker` and `rig:fixer` never read `oracles/`, `evidence/`, `obligations/`, or the judge's and reviewers'
  *    folders under `work/`. They learn about failures only through the counts per class the loop hands them.
@@ -28,7 +28,7 @@ const WRITE_TOOLS = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit'])
 const READ_TOOLS = new Set(['Read', 'Grep', 'Glob'])
 
 const SCRIPT_ONLY = [/^evidence\//, /^oracles\/[^/]+\/cases\//, /^oracles\/[^/]+\/sets\//]
-const PERSON_ONLY = [/^obligations\//, /^oracles\/[^/]+\/caps\//, /^analysis\/[^/]+\/attestations\.yaml$/, /^analysis\/[^/]+\/decomposition\/signoffs\.json$/]
+const PERSON_ONLY = [/^obligations\//, /^cutover\//, /^oracles\/[^/]+\/caps\//, /^analysis\/[^/]+\/attestations\.yaml$/, /^analysis\/[^/]+\/decomposition\/signoffs\.json$/]
 const HIDDEN_FROM_WORKERS = [/^oracles(\/|$)/, /^evidence(\/|$)/, /^obligations(\/|$)/, /^work\/[^/]+\/([^/]+\/)?(judge|review-[abc]\d*)(\/|$)/]
 /** Claude Code saves a long tool result here and the agent reads it back. It is outside the workspace. */
 const TOOL_RESULTS = /\/\.claude\/projects\/[^/]+\/[^/]+\/(subagents\/[^/]+\/)?tool-results\/[^/]+$/

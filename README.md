@@ -30,9 +30,11 @@ or add this repo as a marketplace (`/plugin marketplace add /path/to/rig_mod_har
 | 7b | `/rig:design <system>` | Restructure only: boundary evidence, two candidate partitions, a critic's scorecard, and a draft ADR and `MODULES.json` for a person to sign (`/rig:review <system> adrs`). |
 | 8 | `/rig:plan <system> translate` | Work units: one per job or transaction, with scope, oracle, mode, budget and order. |
 | 9 | `/rig:unit <system> <WU>` | The unit loop: brief, implement, self-check, reviews A, B and C, fix, judge, then merge, retry or escalate. |
+| 10 | `/rig:shadow <system> <gate-unit> [stage]` | Traffic through both sides, compared by script (V10), with calendar coverage, timing (V9) and obligations in `CUTOVER.md`. |
+| 11 | `/rig:cutover <system> <gate-unit> <stage>` | Whether the entry point may move to shadow, canary, primary or decommission; a person gives each go in `/rig:review <system> cutover`. |
 | any | `/rig:status <system>` | Where you are, what is stale and open, and the next command. |
 
-Later milestones add data and cutover (`plugins/rig/docs/PROPOSAL.md` §13).
+Data re-platforming (X units) uses the `store-replatform` skill (`plugins/rig/docs/PROPOSAL.md` §13).
 
 ## Models
 
@@ -70,7 +72,8 @@ every artifact format is in [plugins/rig/skills/rig-method/references/artifacts.
 .claude-plugin/marketplace.json      lists the plugin, so the repo can be added as a marketplace
 plugins/rig/                         the plugin (everything Claude Code loads)
   .claude-plugin/plugin.json
-  commands/       start, preflight, map, rules, review, oracles, judge, verify, design, plan, unit, status
+  commands/       start, preflight, map, rules, review, oracles, judge, verify, design, plan, unit, shadow,
+                  cutover, status
   agents/         legacy-analyst, rule-extractor, rule-verifier, oracle-engineer, judge,
                   worker, fixer, reviewer-a, reviewer-b, reviewer-c, merge, version-delta-analyst,
                   architecture-critic
@@ -82,6 +85,7 @@ plugins/rig/                         the plugin (everything Claude Code loads)
   skills/cobol-to-java/   the COBOL-to-Java bridge: porting guide, type map, hazard catalog
   skills/java-uplift/     the Java uplift bridge: delta catalog, OpenRewrite recipes, observing web apps
   skills/java-restructure/   the restructure bridge: contract, reference side, MODULES.json and ADR formats, hazards
+  skills/store-replatform/   the data bridge: store semantics, probe classes, V7 reconciliation, V8 business day
   docs/           the proposal and the two interrogation rounds
 tests/fixtures/carddemo-mini/              a 51-file slice of AWS CardDemo (code only)
 tests/fixtures/carddemo-mini.EXPECTED.md   the M1 exit check, kept outside the code tree

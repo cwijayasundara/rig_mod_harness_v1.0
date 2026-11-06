@@ -41,6 +41,13 @@ entry module last), or one unit for the whole tree when it has fewer than about 
 package folders under `modernized/`), `hazards` (the R-* hazards of `references/restructure.md` found in its files),
 `deltas` (the DELTA ids its ADR declares, or `[]`), and `reference: legacy/$system` (the tree the step started from).
 
+A **data** unit (step `data`, skill `store-replatform`) moves one store: `store`, `target` (the platform and
+version from `INTENT.md`), `gate_units` (every job and transaction that reads or writes the store, from `graph.json`),
+`target_scope` (the owning module's adapter in `MODULES.json`), and `semantics: analysis/$system/stores/<STORE>.semantics.json`.
+Order data units after the R units of the owning module.
+
+A **cutover** step plans no code: list each entry point with its next stage and `/rig:shadow` or `/rig:cutover`.
+
 `source_scope` is the gate unit's runtime closure: the JCL, PROCs, control cards, programs and copybooks. Compute it
 the way `rig_proof.ts key` does: follow the graph from the gate unit and stop at persistent stores. A unit whose closure
 has an open `missing_source` entry cannot be translated: list it in `PLAN.md` as blocked, with the entry id.

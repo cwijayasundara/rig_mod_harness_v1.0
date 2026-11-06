@@ -15,6 +15,9 @@ State comes only from the artifacts on disk. For each phase say done, stale or n
 | map | `inventory.json`, `graph.json`, `unresolved.json`, `surfaces/`, `hazards.json` exist | a legacy file is newer than `graph.json` |
 | rules | `rules/BR-*.yaml` exist | `graph.json` is newer than the newest card |
 | review | every P0 and P1 card is `confirmed` | a card changed after it was confirmed |
+| design | `ADR-*.md` accepted and `decomposition/signoffs.json` matches `rig_arch.ts hash` | the ADR or `MODULES.json` changed after signing |
+| units | `work/$system/WU-*/log.jsonl` per unit: its last outcome | the key changed since its judge runs |
+| cutover | `CUTOVER.md`: each entry point's stage | `rig_proof.ts cutover` refuses the stage it is in |
 
 Then the open items, counted and listed by the person who must act:
 
