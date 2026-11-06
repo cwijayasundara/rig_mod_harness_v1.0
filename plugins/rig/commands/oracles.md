@@ -50,8 +50,13 @@ mode: only recorded production I/O has `expected`, and generated inputs have non
 node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.ts set build --ws . --system $system --set <name> \
   --gate-unit $gate_unit --mode <mode> --pool @<file of case ids> \
   --required oracles/$system/sets/<name>.classes.json --generators oracles/$system/sets/<name>.generators.json \
-  [--exhaustive <classes whose whole input domain is in the pool>]
+  [--exhaustive <classes whose whole input domain is in the pool>] \
+  [--class-observables <JSON file: {class: [observable ids the class needs]}>]
 ```
+
+Give `--class-observables` for a class that is only reached when a particular observable is compared: a start-up
+hazard needs `<U>.timing` (runners record `elapsed_ms`), a second-run hazard needs `<U>.repeat` (its cases carry
+`repeat`). A case of that class that did not compare it does not count toward the class.
 
 A class is **exhaustive** when every possible input of it is already a case (the one empty file, the four values of a
 one-byte flag). Name it with `--exhaustive` and say why in the class description. It is then exempt from the

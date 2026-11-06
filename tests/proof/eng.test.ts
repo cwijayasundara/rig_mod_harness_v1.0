@@ -241,6 +241,12 @@ describe('core 4, 5, 8, 9: the commands say it', () => {
     assert.match(doc('commands/verify.md'), /Required when the surface lists `<U>\.timing`/)
     assert.match(doc('skills/rig-method/references/proof.md'), /stores command to print each table's `semantics`/)
   })
+  test('repeat and class_observables are documented where runners, sets and the Spring hazards are written', () => {
+    assert.match(doc('skills/rig-method/references/proof.md'), /"repeat": N/)
+    assert.match(doc('agents/worker.md'), /write runs 2\.\.N in `repeats`/)
+    assert.match(doc('commands/oracles.md'), /--class-observables/)
+    assert.match(doc('skills/cobol-to-spring/references/spring-hazards.md'), /"repeat": 2/)
+  })
   test('verify.md passes --gate-units to the architecture check', () => {
     assert.match(doc('commands/verify.md'), /rig_arch\.ts check[^`]*--gate-units \$gate_unit/)
   })
@@ -477,5 +483,103 @@ createServer((q, s) => { s.writeHead(200); s.end('ok') }).listen(Number(process.
     assert.ok(o['elapsed_ms'] >= 0)
     assert.deepEqual(o['stores']['owners']['semantics'], { collation: 'UNICODE' })
     assert.ok(P.exactCompare(o, o, 'GET /').compared.includes('GET //owners.store_semantics'))
+  })
+})
+
+describe('round 2 item 10: repeat runs (S-RESTART) and classes that need an observable (S-STARTUP)', () => {
+  const rinp = (n: number, repeat?: number) => ({ ...inp(n), ...(repeat ? { repeat } : {}) })
+  test('repeat is an optional input key: existing case ids do not change, and it must be an integer of at least 2', () => {
+    assert.equal(P.caseId(inp(1)), P.caseId(rinp(1)))
+    assert.notEqual(P.caseId(rinp(1, 2)), P.caseId(inp(1)))
+    assert.throws(() => P.caseId(rinp(1, 1)), /repeat/)
+    assert.throws(() => P.caseId({ ...inp(1), repeat: '2' }), /repeat/)
+  })
+  test('exact compares every repeat run and records <U>.repeat', () => {
+    const a = { ...obs('A'), repeats: [obs('A')] }
+    const same = P.exactCompare(a, structuredClone(a), 'INTCALC')
+    assert.ok(same.equal)
+    assert.ok(same.compared.includes('INTCALC.repeat'))
+    const second = P.exactCompare(a, { ...obs('A'), repeats: [obs('already complete')] }, 'INTCALC')
+    assert.ok(!second.equal, 'S-RESTART: the second run does nothing')
+    assert.ok(second.diffs.includes('INTCALC.repeat'))
+    assert.ok(!P.exactCompare(a, obs('A'), 'INTCALC').equal, 'a side that ran once differs')
+    assert.equal(P.observableIdProblem(GU, 'INTCALC.repeat'), null)
+  })
+  const setWith = (classObs?: Record<string, string[]>) => {
+    const pool = Array.from({ length: 20 }, (_, i) => add(i, ['ok']))
+    const rp = [P.addCase(ws, rinp(50, 2), ['hazard:S-RESTART'], 'hazard', null)['id'] as string,
+                P.addCase(ws, rinp(51, 2), ['hazard:S-RESTART'], 'hazard', null)['id'] as string]
+    P.buildSet(ws, 'S', GU, 'executable', [...pool, ...rp], { ok: 'ok', 'hazard:S-RESTART': 'run twice' }, {}, [], classObs)
+    return { pool, rp }
+  }
+  function observeRepeat(name: string, pool: string[], rp: string[], modernSecond = 'A', sides: ('l' | 'm')[] = ['l', 'm']) {
+    const o = observe(name, [...pool, ...rp])
+    for (const id of rp) {
+      if (sides.includes('l')) writeFileSync(join(o.l, `${id}.json`), JSON.stringify({ ...obs('A'), repeats: [obs('A')] }))
+      if (sides.includes('m')) writeFileSync(join(o.m, `${id}.json`), JSON.stringify({ ...obs('A'), repeats: [obs(modernSecond)] }))
+    }
+    return o
+  }
+  test('a repeat case whose second run differs fails; one that matches passes and reaches the hazard', () => {
+    const { pool, rp } = setWith({ 'hazard:S-RESTART': ['INTCALC.repeat'] })
+    const o = observeRepeat('r1', pool, rp)
+    const r = P.judge(ws, 'S', key(), o.l, o.m, [], undefined, [], 'env')
+    assert.equal(r['passed'], r['total'])
+    assert.equal([...P.allRuns(ws)][0]!['coverage']['hazards']['S-RESTART'], 2)
+    const o2 = observeRepeat('r2', pool, rp, 'already complete')
+    const r2 = P.judge(ws, 'S', key(), o2.l, o2.m, [], undefined, [], 'env')
+    assert.equal(r2['total'] - r2['passed'], 2)
+  })
+  test('the canary sweep changes the repeat runs, so a comparator that ignores them is not trusted', () => {
+    const sample = { ...obs('A'), messages: ['A', 'B'], repeats: [{ ...obs('A'), messages: ['A', 'B'] }] }
+    const muts = P.canaryMutations(sample, []).map(([, d]) => d)
+    assert.ok(muts.some((d) => /repeats: drop the last run/.test(d)))
+    assert.ok(muts.some((d) => /repeats\[0\]/.test(d)))
+    const cmp = join(dir, 'first_run_cmp.ts')
+    writeFileSync(cmp, `import { readFileSync } from 'node:fs'
+const [a, b] = process.argv.slice(2).map((f) => JSON.parse(readFileSync(f, 'utf8')))
+const k = (o: any) => JSON.stringify([o.return_code, o.abend, o.messages])
+console.log(JSON.stringify({ equal: k(a) === k(b), compared: ['INTCALC.return_code', 'INTCALC.abend', 'INTCALC.message', 'INTCALC.repeat'] }))
+`)
+    const sweep = P.canarySweep([sample], `node ${cmp}`, 'INTCALC', [], join(dir, 'tmp'))
+    assert.equal(sweep['trusted'], false)
+    assert.ok(sweep['missed'].some((x: string) => /repeats/.test(x)))
+    assert.equal(P.canarySweep([sample], undefined, 'INTCALC', [], join(dir, 'tmp'))['trusted'], true)
+  })
+  test('a runner that ignored repeat is refused', () => {
+    const { pool, rp } = setWith()
+    const o = observeRepeat('r1', pool, rp, 'A', ['l']) // modern ran once
+    assert.throws(() => P.judge(ws, 'S', key(), o.l, o.m, [], undefined, [], 'env'), /repeat 2.*ran 1 time/)
+  })
+  test('a custom comparator that does not report <U>.repeat on a repeat case is refused', () => {
+    const { pool, rp } = setWith()
+    const o = observeRepeat('r1', pool, rp)
+    const cmp = join(dir, 'once_cmp.ts')
+    writeFileSync(cmp, `console.log(JSON.stringify({ equal: true, compared: ['INTCALC.return_code', 'INTCALC.message'] }))`)
+    assert.throws(() => P.judge(ws, 'S', key(), o.l, o.m, [], `node ${cmp}`, [], 'env'), /did not compare the repeat runs/)
+  })
+  test('class_observables: a hazard case counts only when it compared what reaches the hazard (S-STARTUP needs timing)', () => {
+    const pool = Array.from({ length: 20 }, (_, i) => add(i, ['ok']))
+    const st = [add(60, ['hazard:S-STARTUP']), add(61, ['hazard:S-STARTUP'])]
+    P.buildSet(ws, 'S', GU, 'executable', [...pool, ...st], { ok: 'ok', 'hazard:S-STARTUP': 'start-up time' }, {}, [], { 'hazard:S-STARTUP': ['INTCALC.timing'] })
+    const o = observe('r1', [...pool, ...st]) // no elapsed_ms: not timed
+    P.judge(ws, 'S', key(), o.l, o.m, [], undefined, [], 'env')
+    const run = [...P.allRuns(ws)][0]!
+    assert.equal(run['coverage']['hazards']['S-STARTUP'] ?? 0, 0)
+    assert.equal(run['coverage']['class_unreached']['hazard:S-STARTUP'], 2)
+    const v = P.verdict(ws, GU, 'V4', key(), { hazards: ['S-STARTUP'] }, false)
+    assert.ok(v['reasons'].some((x: string) => /hazard S-STARTUP was never reached/.test(x)))
+    // Timed: it counts.
+    for (const id of st) for (const side of [o.l, o.m]) writeFileSync(join(side, `${id}.json`), JSON.stringify({ ...obs('A'), elapsed_ms: 900 }))
+    P.judge(ws, 'S', key(), o.l, o.m, [], undefined, [], 'env')
+    assert.ok(!P.verdict(ws, GU, 'V4', key(), { hazards: ['S-STARTUP'] }, false)['reasons'].some((x: string) => /S-STARTUP/.test(x)))
+  })
+  test('class_observables are part of the set definition, so the key changes with them; a set without them keeps its hash', () => {
+    const pool = Array.from({ length: 20 }, (_, i) => add(i, ['ok']))
+    const plain = P.buildSet(ws, 'S', GU, 'executable', pool, { ok: 'ok' }, {})
+    const h0 = P.setHash(plain)
+    assert.equal(h0, P.setHash({ ...plain, class_observables: {} }))
+    const withObs = P.buildSet(ws, 'S', GU, 'executable', pool, { ok: 'ok' }, {}, [], { ok: ['INTCALC.message'] })
+    assert.notEqual(P.setHash(withObs), h0)
   })
 })

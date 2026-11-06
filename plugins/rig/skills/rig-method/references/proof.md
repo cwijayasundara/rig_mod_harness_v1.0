@@ -15,7 +15,9 @@ never writes a verdict, a pass or a coverage count by hand. Every command prints
   "expected": { "...observations..." }, "classes": ["hazard:truncation", "random"], "origin": "hazard" }
 ```
 
-All five input keys are required. Use `{}` or `null` for none. The same canonical input is the same case: `case add`
+All five input keys are required. Use `{}` or `null` for none. One optional key: `"repeat": N` (an integer of at least 2)
+runs the unit N times in one environment without resetting it between runs, for hazards that only show on a second run
+(Spring Batch's "job instance already complete", S-RESTART). Leave it out for one run. The same canonical input is the same case: `case add`
 then adds the classes to the existing case and prints `"merged": true` with `previous_classes` (a relabel, not a new
 input). A generator that meant a new input must draw again.
 
@@ -26,7 +28,8 @@ input). A generator that meant a new input must draw again.
   "return_code": 0, "abend": null, "messages": ["..."], "screens": null }
 ```
 
-Values are strings exactly as a consumer sees them. The built-in `exact` comparator compares `return_code`, `abend`,
+A case with `repeat` N has runs 2..N in `"repeats": [<observation>, ...]`, each in this same format; the judge refuses an
+observation whose run count is not N, and a comparator that does not report `<U>.repeat`. Values are strings exactly as a consumer sees them. The built-in `exact` comparator compares `return_code`, `abend`,
 `messages`, `screens`, and for each store: `store_write`, `cardinality`, `record_order`, each `field:<name>`, and
 `store_semantics` when either side has a `semantics` object. A store's `semantics` is what a probe of the store found
 (`{"collation": "EBCDIC", "range_read": ["A01", "B01", "101"], "duplicate_key": "rejected"}`; values are strings or lists
@@ -63,7 +66,9 @@ the requests took (not start-up), which the judge counts as `<U>.timing` (V9; se
 ## Set (`oracles/<system>/sets/<name>.json`, written by `set build` and `judge`)
 
 `dev`, `sealed` (case ids, chosen by hash), `exhaustive_classes`, `required_classes` (`{class: description}`), `generators`
-(`{class: definition}`), `failed_classes` (the last run's), `failure_sealed` (cases a judge or shadow run sealed because
+(`{class: definition}`), `class_observables` (`{class: [observable ids]}`: a case counts toward that class or hazard
+only when its comparison covered every listed id, for example `{"hazard:S-STARTUP": ["<U>.timing"], "hazard:S-RESTART":
+["<U>.repeat"]}`; an unreached one is counted in `coverage.class_unreached`), `failed_classes` (the last run's), `failure_sealed` (cases a judge or shadow run sealed because
 they failed). The set hash covers ids and generator definitions, never seeds, and leaves out `failure_sealed`: a run's
 own failure never moves its key. `set build` seals at least one case of every class (the lowest hash of its new cases,
 while the class keeps a dev case). After the split it prints `unsealed_classes` (no sealed case) and `classes_without_dev` (no dev case, so the worker sees only the description); give each such class new inputs and build again.

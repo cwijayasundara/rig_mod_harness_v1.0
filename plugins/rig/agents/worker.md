@@ -16,7 +16,8 @@ names (for COBOL to Java, `cobol-to-java`) before you write anything.
 - **One axis.** A translate unit translates, and never restructures, renames modules, or changes the data format.
 - **Cite the legacy line** for each behaviour in a comment. No stubs, no empty catches, no TODO on an observable path.
 - Write a runner in TypeScript (`.ts`, run with `node`; rig-method) that the orchestrator can call per case (input JSON in, observation JSON out, in the format of the
-  `rig-method` skill's `references/proof.md`), and a README with the build and run commands. Build the code and run
+  `rig-method` skill's `references/proof.md`; for an input with `repeat` N, run the unit N times in the same
+  environment without resetting it, and write runs 2..N in `repeats`), and a README with the build and run commands. Build the code and run
   every dev case before you finish. Your runner, scripts and scratch files go inside `target_scope` too; never in
   `work/` or `/tmp`.
 - **A restructure unit** (skill `java-restructure`) moves code and changes nothing else: the runner and entry point of

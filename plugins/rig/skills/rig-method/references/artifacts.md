@@ -106,7 +106,7 @@ the gate unit without its prefix (`job:INTCALC` → `INTCALC`, `http:GET /owners
 
 | Level | Id | Kinds |
 |---|---|---|
-| unit | `<U>.<kind>` | `return_code`, `abend`, `message`, `screen`, `timing` |
+| unit | `<U>.<kind>` | `return_code`, `abend`, `message`, `screen`, `timing` (elapsed_ms on both sides, V9), `repeat` (runs 2..N of a `repeat` case) |
 | store | `<U>/<store>.<kind>` | `store_write`, `cardinality`, `record_order`, `store_semantics` |
 | field | `<U>/<store>.field:<name>` | one per field |
 

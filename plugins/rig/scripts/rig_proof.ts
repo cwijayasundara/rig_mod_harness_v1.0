@@ -175,8 +175,13 @@ export function canonicalInput(inp: Obj): Obj {
   if (missing.length > 0) {
     throw new Bad(`canonical input lacks ${JSON.stringify(missing)}: a case must include every input (use null or {} for none)`)
   }
-  const extra = Object.keys(inp).filter((k) => !(INPUT_KEYS as readonly string[]).includes(k)).sort()
+  const extra = Object.keys(inp).filter((k) => !(INPUT_KEYS as readonly string[]).includes(k) && k !== 'repeat').sort()
   if (extra.length > 0) throw new Bad(`canonical input has unknown keys ${JSON.stringify(extra)}`)
+  // Optional: run the unit `repeat` times in one environment without resetting it (S-RESTART). Absent means once, so
+  // every case without it keeps its id (round 2 item 10).
+  if ('repeat' in inp && !(Number.isSafeInteger(inp['repeat']) && inp['repeat'] >= 2)) {
+    throw new Bad(`repeat must be an integer of at least 2 (leave it out for one run), got ${JSON.stringify(inp['repeat'])}`)
+  }
   if (inp['clock'] !== null && (typeof inp['clock'] !== 'string' || !isoDate(inp['clock']))) {
     throw new Bad(`clock must be an ISO date-time, got ${JSON.stringify(inp['clock'])}`)
   }
@@ -216,7 +221,8 @@ export function addCase(ws: WS, inp: Obj, classes: string[], origin: string, exp
  * They cannot draw fresh inputs, so they are exempt from the fresh-input rules; their cases re-run every time instead.
  */
 export function buildSet(ws: WS, name: string, gateUnit: string, mode: string, pool: string[],
-                         required: Record<string, string>, generators: Record<string, string>, exhaustive: string[] = []): Obj {
+                         required: Record<string, string>, generators: Record<string, string>, exhaustive: string[] = [],
+                         classObservables?: Record<string, string[]>): Obj {
   if (mode !== 'executable' && mode !== 'recorded') throw new Bad('mode must be executable or recorded')
   const p = ws.setPath(name)
   const old = isFile(p) ? load(p) : null
@@ -255,6 +261,7 @@ export function buildSet(ws: WS, name: string, gateUnit: string, mode: string, p
     exhaustive_classes: uniqSorted([...(old?.['exhaustive_classes'] ?? []), ...exhaustive]),
     failed_classes: old ? old['failed_classes'] ?? [] : [],
     ...(old?.['failure_sealed'] ? { failure_sealed: old['failure_sealed'] } : {}),
+    ...classObsField(classObservables ?? old?.['class_observables']),
   }
   dump(p, s)
   return Object.defineProperties(s, { unsealed_classes: { value: unsealed }, classes_without_dev: { value: withoutDev } })
@@ -263,13 +270,27 @@ export function buildSet(ws: WS, name: string, gateUnit: string, mode: string, p
 const sortObj = <T,>(o: Record<string, T>) => Object.fromEntries(Object.keys(o).sort().map((k) => [k, o[k]!]))
 
 /**
+ * `class_observables`: {class: [observable ids]}. A case counts toward that class (and its hazard) only when its
+ * comparison covered every listed id, for example `hazard:S-STARTUP` needs `<U>.timing` and `hazard:S-RESTART` needs
+ * `<U>.repeat` (Rule B: a check counts for what it reached; ENG-B core 3).
+ */
+function classObsField(co: Record<string, string[]> | undefined): Obj {
+  if (!co || Object.keys(co).length === 0) return {}
+  for (const [cl, ids] of Object.entries(co)) {
+    if (!Array.isArray(ids) || ids.length === 0 || ids.some((x) => typeof x !== 'string')) throw new Bad(`class_observables.${cl} must be a non-empty list of observable ids`)
+  }
+  return { class_observables: Object.fromEntries(Object.keys(co).sort().map((k) => [k, uniqSorted(co[k]!)])) }
+}
+
+/**
  * Case ids and generator definitions only. Never per-run seeds (§6.5). Cases a run sealed because they failed
  * (`failure_sealed`, written by judge and shadow) are left out: they are a consequence of a run under the key, so
  * counting them would move the key of the very run that found the failure, and hide it (ENG-A core 1).
  */
 export const setHash = (s: Obj): string => {
   const joined = new Set<string>(s['failure_sealed'] ?? [])
-  return sha(canon({ dev: s['dev'], sealed: (s['sealed'] as string[]).filter((id) => !joined.has(id)), generators: s['generators'], exhaustive: s['exhaustive_classes'] ?? [] }))
+  const co = s['class_observables'] && Object.keys(s['class_observables']).length > 0 ? { class_observables: s['class_observables'] } : {}
+  return sha(canon({ dev: s['dev'], sealed: (s['sealed'] as string[]).filter((id) => !joined.has(id)), generators: s['generators'], exhaustive: s['exhaustive_classes'] ?? [], ...co }))
 }
 
 /** Seal cases a run found failing, and remember that a run (not `set build`) sealed them. */
@@ -377,7 +398,7 @@ const withDeltas = (legacy: Obj, modern: Obj, deltas: Obj[], unit: string) =>
 /** The name a gate unit's observable ids start with: `job:INTCALC` → `INTCALC`, `http:GET /owners` → `GET /owners`. */
 export const unitName = (gateUnit: string): string => gateUnit.includes(':') ? gateUnit.slice(gateUnit.indexOf(':') + 1) : gateUnit
 
-const UNIT_KINDS = new Set(['return_code', 'abend', 'message', 'screen', 'timing'])
+const UNIT_KINDS = new Set(['return_code', 'abend', 'message', 'screen', 'timing', 'repeat'])
 const STORE_KINDS_OBS = /^(.+)\.(store_write|cardinality|record_order|store_semantics|field:[^\s:]+)$/
 
 /**
@@ -406,6 +427,14 @@ export type Comparison = { equal: boolean; compared: string[]; diffs: string[] }
 /** Compare every observable. Cardinality and order are separate observables. */
 /** Values JSON would parse lossily are refused: a field value is a string, a return code an integer or null (R3-08). */
 export function observationProblem(o: Obj): string | null {
+  if (o['repeats'] !== undefined) {
+    if (!Array.isArray(o['repeats']) || o['repeats'].some((x: unknown) => x === null || typeof x !== 'object' || Array.isArray(x))) return 'repeats must be a list of observations'
+    for (const [i, x] of (o['repeats'] as Obj[]).entries()) {
+      if ('repeats' in x) return `repeats[${i}] has its own repeats`
+      const p = observationProblem(x)
+      if (p) return `repeats[${i}]: ${p}`
+    }
+  }
   const rc = o['return_code']
   if (rc != null && !Number.isSafeInteger(rc)) return `return_code ${JSON.stringify(rc)} is not an integer`
   for (const [store, st] of Object.entries<Obj>(o['stores'] ?? {})) {
@@ -469,6 +498,18 @@ export function exactCompare(legacy: Obj, modern: Obj, unit: string, tolerances:
       const pairs = (rs: Obj[]) => rs.map((r) => canon([r[f] ?? null, Object.fromEntries(Object.entries(r).filter(([k]) => k !== f))])).sort()
       cmp(oid, pairs(a), pairs(b))
     }
+  }
+  // Repeat runs (S-RESTART): runs 2..N, compared one by one with the same ids, and as <U>.repeat.
+  if (legacy['repeats'] !== undefined || modern['repeats'] !== undefined) {
+    const A: Obj[] = legacy['repeats'] ?? [], B: Obj[] = modern['repeats'] ?? []
+    compared.push(`${unit}.repeat`)
+    let same = A.length === B.length
+    for (let i = 0; i < Math.min(A.length, B.length); i++) {
+      const c = exactCompare(A[i]!, B[i]!, unit, tolerances)
+      compared.push(...c.compared)
+      if (!c.equal) { same = false; diffs.push(...c.diffs) }
+    }
+    if (!same) diffs.push(`${unit}.repeat`)
   }
   return { equal: diffs.length === 0, compared: uniqSorted(compared), diffs: uniqSorted(diffs) }
 }
@@ -534,7 +575,7 @@ export function calendarEvents(clock: string | null | undefined, params: Obj | n
 // ---------------------------------------------------------------------------
 
 type Coverage = { observables: Record<string, number>; classes: Record<string, number>; hazards: Record<string, number>
-  calendar_events: string[]; mismatches: string[]; not_run?: Record<string, number>
+  calendar_events: string[]; mismatches: string[]; not_run?: Record<string, number>; class_unreached?: Record<string, number>
   timing?: { cases: number; legacy_ms: number; modern_ms: number } }
 
 const bump = (o: Record<string, number>, k: string) => { o[k] = (o[k] ?? 0) + 1 }
@@ -582,6 +623,14 @@ export function judge(ws: WS, setName: string, key: string, legacyDir: string, m
       bump(coverage.not_run ??= {}, nrM!)
       continue
     }
+    const repeat: number = c['input']['repeat'] ?? 1
+    if (repeat > 1) {
+      for (const [side, o] of [['legacy', legacy], ['modern', modern]] as const) {
+        if (o === null) continue
+        const ran = ((o['repeats'] as unknown[] | undefined)?.length ?? 0) + 1
+        if (ran !== repeat) throw new Bad(`a case asks for repeat ${repeat}; the ${side} runner ran ${ran} time(s): runs 2..N go in "repeats"`)
+      }
+    }
     let r: Obj
     if (legacy === null) {
       // No legacy output exists, so only properties that need none are checked. An abend is behaviour the
@@ -595,6 +644,7 @@ export function judge(ws: WS, setName: string, key: string, legacyDir: string, m
       // 67/67 and the verdict then said "never compared").
       const badIds = cmpd.compared.map((id) => [id, observableIdProblem(unit, id)]).filter(([, p]) => p !== null)
       if (badIds.length > 0) throw new Bad(`comparator ${JSON.stringify(comparator ?? 'exact')} reports ids outside the observable id grammar: ${badIds.slice(0, 3).map(([id, p]) => `${id} (${p})`).join('; ')}`)
+      if (repeat > 1 && !cmpd.compared.includes(`${unit}.repeat`)) throw new Bad(`comparator ${JSON.stringify(comparator ?? 'exact')} did not compare the repeat runs (${unit}.repeat) of a case run ${repeat} times`)
       r = { case: id, classes: c['classes'], pass: cmpd.equal, compared: cmpd.compared }
       // Timing is an observable, never an equality: with elapsed_ms on both sides <U>.timing counts as compared, and the
       // verdict holds the sum against timing_max_ratio (V9). It never fails a case (round 2 item 27).
@@ -608,7 +658,9 @@ export function judge(ws: WS, setName: string, key: string, legacyDir: string, m
     }
     r['fresh'] = fresh.includes(id)
     results.push(r)
+    const needs: Obj = s['class_observables'] ?? {}
     for (const cl of c['classes'] as string[]) {
+      if (needs[cl] && !(needs[cl] as string[]).every((x) => (r['compared'] as string[]).includes(x))) { bump(coverage.class_unreached ??= {}, cl); continue }
       bump(coverage.classes, cl)
       if (cl.startsWith('hazard:')) bump(coverage.hazards, cl.slice(7))
     }
@@ -1023,6 +1075,18 @@ export function canaryMutations(obs: Obj, correlated: Obj[]): Mutation[] {
   out.push(...listMutations(obs, 'screens', 'screens'))
   if ('return_code' in obs) out.push(['value', 'return_code changed', { ...structuredClone(obs), return_code: (obs['return_code'] ?? 0) + 4 }])
   out.push(['value', 'abend changed', { ...structuredClone(obs), abend: (obs['abend'] ?? null) === null ? 'S0C7' : null }])
+  // Repeat runs (S-RESTART): a missing run, and each mutation of each run, must be caught too.
+  const reps: Obj[] | undefined = obs['repeats']
+  if (Array.isArray(reps) && reps.length > 0) {
+    out.push(['structural', 'repeats: drop the last run', { ...structuredClone(obs), repeats: reps.slice(0, -1) }])
+    reps.forEach((run, i) => {
+      for (const [cls, desc, m] of canaryMutations(run, [])) {
+        const nr = structuredClone(reps)
+        nr[i] = m
+        out.push([cls, `repeats[${i}]: ${desc}`, { ...structuredClone(obs), repeats: nr }])
+      }
+    })
+  }
   return out
 }
 
@@ -1382,7 +1446,7 @@ export function main(argv: string[]): number {
     options: Object.fromEntries([
       'ws', 'system', 'input', 'expected', 'classes', 'origin', 'set', 'gate-unit', 'mode', 'pool', 'required', 'generators',
       'key', 'legacy-dir', 'modern-dir', 'fresh', 'comparator', 'normalizers', 'env', 'rung', 'legacy-root', 'modern',
-      'comparators', 'packs', 'environment', 'file', 'legacy-ids', 'modern-ids', 'samples', 'correlated', 'requirements', 'derived', 'exhaustive', 'deltas', 'legacy-surface', 'modern-surface', 'traffic', 'stage',
+      'comparators', 'packs', 'environment', 'file', 'legacy-ids', 'modern-ids', 'samples', 'correlated', 'requirements', 'derived', 'exhaustive', 'class-observables', 'deltas', 'legacy-surface', 'modern-surface', 'traffic', 'stage',
     ].map((k) => [k, { type: 'string' as const }]).concat([['write-obligations', { type: 'boolean' as const }], ['help', { type: 'boolean' as const }]])),
   })
   const [command, sub] = positionals
@@ -1398,7 +1462,7 @@ export function main(argv: string[]): number {
       out = { id: c['id'], classes: c['classes'], ...(c.merged ? { merged: true, previous_classes: c.previous_classes,
         note: 'this input is already a case: no case was added, only its classes (a relabel). Draw a new input for a new case.' } : {}) }
     } else if (command === 'set' && sub === 'build') {
-      const st = buildSet(ws, s('set')!, s('gate-unit')!, s('mode')!, ids(s('pool')), s('required') ? load(s('required')!) : {}, s('generators') ? load(s('generators')!) : {}, ids(s('exhaustive')))
+      const st = buildSet(ws, s('set')!, s('gate-unit')!, s('mode')!, ids(s('pool')), s('required') ? load(s('required')!) : {}, s('generators') ? load(s('generators')!) : {}, ids(s('exhaustive')), s('class-observables') ? load(s('class-observables')!) : undefined)
       out = { set: st['name'], dev: st['dev'].length, sealed: st['sealed'].length, hash: setHash(st),
         unsealed_classes: st['unsealed_classes'], classes_without_dev: st['classes_without_dev'] }
       const notes = [
