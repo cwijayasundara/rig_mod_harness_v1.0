@@ -247,6 +247,11 @@ describe('core 4, 5, 8, 9: the commands say it', () => {
     assert.match(doc('commands/oracles.md'), /--class-observables/)
     assert.match(doc('skills/cobol-to-spring/references/spring-hazards.md'), /"repeat": 2/)
   })
+  test('input_digest is part of the runner contract and the requirements', () => {
+    assert.match(doc('skills/rig-method/references/proof.md'), /"input_digest"/)
+    assert.match(doc('agents/worker.md'), /write `input_digest`/)
+    assert.match(doc('commands/verify.md'), /`input_digests`: `true`/)
+  })
   test('verify.md passes --gate-units to the architecture check', () => {
     assert.match(doc('commands/verify.md'), /rig_arch\.ts check[^`]*--gate-units \$gate_unit/)
   })
@@ -581,5 +586,45 @@ console.log(JSON.stringify({ equal: k(a) === k(b), compared: ['INTCALC.return_co
     assert.equal(h0, P.setHash({ ...plain, class_observables: {} }))
     const withObs = P.buildSet(ws, 'S', GU, 'executable', pool, { ok: 'ok' }, {}, [], { ok: ['INTCALC.message'] })
     assert.notEqual(P.setHash(withObs), h0)
+  })
+})
+
+describe('round 2 item 11: inputs the modern side receives identically while legacy does not are a gap', () => {
+  const dobs = (v: string, digest?: string) => ({ ...obs(v), ...(digest ? { input_digest: digest } : {}) })
+  /** Cases with digests per side: [caseIndex, legacyDigest, modernDigest]. */
+  function setupDigests(rows: [number, string | undefined, string | undefined][]) {
+    const pool = Array.from({ length: 20 }, (_, i) => add(i, ['ok']))
+    const extra = rows.map(([n]) => add(n, ['store:status']))
+    P.buildSet(ws, 'S', GU, 'executable', [...pool, ...extra], { ok: 'ok', 'store:status': 'file states' }, {})
+    const o = observe('r1', [...pool, ...extra])
+    rows.forEach(([, ld, md], i) => {
+      writeFileSync(join(o.l, `${extra[i]}.json`), JSON.stringify(dobs('A', ld)))
+      writeFileSync(join(o.m, `${extra[i]}.json`), JSON.stringify(dobs('A', md)))
+    })
+    P.judge(ws, 'S', key(), o.l, o.m, [], undefined, [], 'env')
+    return extra
+  }
+  test('an empty KSDS and an empty plain file that reach the modern side as the same bytes are recorded and are a gap', () => {
+    const [a, b] = setupDigests([[300, 'ksds-empty', 'flat-empty'], [301, 'plain-empty', 'flat-empty'], [302, 'ksds-3', 'flat-3']])
+    const run = [...P.allRuns(ws)][0]!
+    assert.deepEqual(run['coverage']['ambiguous_inputs'], [[a, b].sort()])
+    const v = P.verdict(ws, GU, 'V4', key(), {}, false)
+    assert.equal(v['verdict'], 'NOT_PROVEN')
+    assert.ok(v['reasons'].some((x: string) => /2 case\(s\) in 1 group\(s\) reached the modern side as the same input/.test(x)), v['reasons'].join('; '))
+  })
+  test('the same input on both sides is not ambiguous', () => {
+    setupDigests([[310, 'same', 'm-same'], [311, 'same', 'm-same']])
+    assert.equal([...P.allRuns(ws)][0]!['coverage']['ambiguous_inputs'], undefined)
+    assert.equal(P.verdict(ws, GU, 'V4', key(), {}, false)['verdict'], 'PROVEN')
+  })
+  test('with input_digests required, a compared case without digests on both sides is a gap', () => {
+    setupDigests([[320, 'x', 'y']])
+    const v = P.verdict(ws, GU, 'V4', key(), { input_digests: true }, false)
+    assert.equal(v['verdict'], 'NOT_PROVEN')
+    assert.ok(v['reasons'].some((x: string) => /20 case\(s\) were compared without an input_digest on both sides/.test(x)), v['reasons'].join('; '))
+  })
+  test('input_digest is never compared and must be a string', () => {
+    assert.ok(P.exactCompare(dobs('A', 'x'), dobs('A', 'y'), 'INTCALC').equal)
+    assert.match(P.observationProblem({ ...obs('A'), input_digest: 5 })!, /input_digest/)
   })
 })

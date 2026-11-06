@@ -98,7 +98,7 @@ or transaction (`tx-CC00.json`).
 ```
 
 Observable kinds: `field`, `record_order`, `cardinality`, `store_write`, `store_semantics`, `return_code`, `abend`,
-`message`, `screen`, `timing`. Every output store gets at least `store_write`, `record_order`, `cardinality` and one
+`message`, `screen`, `timing`, `repeat`. Every output store gets at least `store_write`, `record_order`, `cardinality` and one
 `field` per elementary field of its record. Every gate unit gets `return_code` and `abend`.
 
 **Observable ids** are exactly the ids the comparator records, so that a verdict can tell what was compared. `<U>` is

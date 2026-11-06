@@ -427,6 +427,7 @@ export type Comparison = { equal: boolean; compared: string[]; diffs: string[] }
 /** Compare every observable. Cardinality and order are separate observables. */
 /** Values JSON would parse lossily are refused: a field value is a string, a return code an integer or null (R3-08). */
 export function observationProblem(o: Obj): string | null {
+  if (o['input_digest'] !== undefined && (typeof o['input_digest'] !== 'string' || o['input_digest'] === '')) return 'input_digest must be a non-empty string (a hash of what the runner gave the program)'
   if (o['repeats'] !== undefined) {
     if (!Array.isArray(o['repeats']) || o['repeats'].some((x: unknown) => x === null || typeof x !== 'object' || Array.isArray(x))) return 'repeats must be a list of observations'
     for (const [i, x] of (o['repeats'] as Obj[]).entries()) {
@@ -576,7 +577,7 @@ export function calendarEvents(clock: string | null | undefined, params: Obj | n
 
 type Coverage = { observables: Record<string, number>; classes: Record<string, number>; hazards: Record<string, number>
   calendar_events: string[]; mismatches: string[]; not_run?: Record<string, number>; class_unreached?: Record<string, number>
-  timing?: { cases: number; legacy_ms: number; modern_ms: number } }
+  timing?: { cases: number; legacy_ms: number; modern_ms: number }; ambiguous_inputs?: string[][] }
 
 const bump = (o: Record<string, number>, k: string) => { o[k] = (o[k] ?? 0) + 1 }
 
@@ -597,6 +598,7 @@ export function judge(ws: WS, setName: string, key: string, legacyDir: string, m
   const results: Obj[] = []
   const coverage: Coverage = { observables: {}, classes: {}, hazards: {}, calendar_events: [], mismatches: [] }
   const tmp = join(ws.evidence, '.tmp')
+  const digests: [string, string, string][] = []
   // Errors name no case: the judge returns no case id (judge.md). They count, and say where to look.
   const noModern = cases.filter((id) => !isFile(join(modernDir, `${id}.json`))).length
   if (noModern > 0) throw new Bad(`no modern observation for ${noModern} of ${cases.length} case(s) (set plus fresh) in ${modernDir}`)
@@ -655,6 +657,10 @@ export function judge(ws: WS, setName: string, key: string, legacyDir: string, m
         t.cases++; t.legacy_ms += le; t.modern_ms += me
       }
       for (const oid of r['compared'] as string[]) bump(coverage.observables, oid)
+      // What each runner actually gave the program (round 2 item 11): never compared, used to find inputs the modern
+      // side cannot tell apart although legacy can.
+      const ld = isFile(lpath) ? legacy['input_digest'] : undefined, md = modern['input_digest']
+      if (typeof ld === 'string' && typeof md === 'string') { r['digested'] = true; digests.push([id, ld, md]) }
     }
     r['fresh'] = fresh.includes(id)
     results.push(r)
@@ -672,6 +678,15 @@ export function judge(ws: WS, setName: string, key: string, legacyDir: string, m
     if (!r['pass']) coverage.mismatches.push(id)
   }
   coverage.calendar_events = uniqSorted(coverage.calendar_events)
+  const byModern = new Map<string, Map<string, string[]>>()
+  for (const [id, ld, md] of digests) {
+    const g = byModern.get(md) ?? new Map<string, string[]>()
+    g.set(ld, [...(g.get(ld) ?? []), id])
+    byModern.set(md, g)
+  }
+  const ambiguous = [...byModern.values()].filter((g) => g.size > 1).map((g) => uniqSorted([...g.values()].flat()))
+    .sort((a, b) => a[0]!.localeCompare(b[0]!))
+  if (ambiguous.length > 0) coverage.ambiguous_inputs = ambiguous
   const compared = results.filter((r) => !r['not_run'])
   // Rule 3 again, on what ran: a fresh input that was not run brought nothing back to the class that failed.
   const ranFresh = new Set(compared.filter((r) => r['fresh']).flatMap((r) => r['classes'] as string[]))
@@ -1388,6 +1403,21 @@ export function verdict(ws: WS, gateUnit: string, rung: string, key: string, req
   }
   for (const ev of (req['calendar_events'] ?? []) as string[]) {
     if (!cov.calendar.has(ev)) gaps.push({ observables: obsReq, requirement: `calendar:${ev}`, reason: `calendar event ${ev} not covered` })
+  }
+  // Inputs the modern side received identically although legacy received them differently (round 2 item 11, ENG-B core
+  // 8): the modern input form loses a distinction, so nothing tested the modern side on it (Rule A).
+  const amb = new Map<string, string[]>()
+  for (const run of runs) for (const g of (run['coverage']['ambiguous_inputs'] ?? []) as string[][]) amb.set(g.join(','), g)
+  if (amb.size > 0) {
+    const n = new Set([...amb.values()].flat()).size
+    gaps.push({ observables: obsReq, requirement: 'ambiguous_input',
+      reason: `${n} case(s) in ${amb.size} group(s) reached the modern side as the same input (input_digest) while legacy received different input: the modern input form loses a distinction` })
+  }
+  if (req['input_digests'] === true) {
+    const undigested = new Set<string>()
+    for (const run of runs) for (const r of run['results']) if (!r['not_run'] && !r['property_only'] && !r['digested']) undigested.add(r['case'])
+    if (undigested.size > 0) gaps.push({ observables: obsReq, requirement: 'input_digest',
+      reason: `${undigested.size} case(s) were compared without an input_digest on both sides, so inputs the modern side cannot tell apart cannot be found` })
   }
   if (notRunCases.size > 0) {
     const why = uniqSorted(notRunCases.values())

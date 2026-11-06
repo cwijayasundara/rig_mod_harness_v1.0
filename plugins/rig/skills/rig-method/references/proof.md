@@ -29,7 +29,11 @@ input). A generator that meant a new input must draw again.
 ```
 
 A case with `repeat` N has runs 2..N in `"repeats": [<observation>, ...]`, each in this same format; the judge refuses an
-observation whose run count is not N, and a comparator that does not report `<U>.repeat`. Values are strings exactly as a consumer sees them. The built-in `exact` comparator compares `return_code`, `abend`,
+observation whose run count is not N, and a comparator that does not report `<U>.repeat`. Every runner should also write
+`"input_digest"`: the sha256 of what it actually gave the program (each file's bytes and organization, the environment
+variables, the arguments). It is never compared. The judge groups a run's cases by the modern digest, and cases with one
+modern digest but different legacy digests are `coverage.ambiguous_inputs`: the modern input form lost a distinction
+(an empty indexed file and an empty plain file written as the same bytes), and the verdict lists it as a gap. Values are strings exactly as a consumer sees them. The built-in `exact` comparator compares `return_code`, `abend`,
 `messages`, `screens`, and for each store: `store_write`, `cardinality`, `record_order`, each `field:<name>`, and
 `store_semantics` when either side has a `semantics` object. A store's `semantics` is what a probe of the store found
 (`{"collation": "EBCDIC", "range_read": ["A01", "B01", "101"], "duplicate_key": "rejected"}`; values are strings or lists
