@@ -75,7 +75,7 @@ only when its comparison covered every listed id, for example `{"hazard:S-STARTU
 ["<U>.repeat"]}`; an unreached one is counted in `coverage.class_unreached`), `failed_classes` (the last run's), `failure_sealed` (cases a judge or shadow run sealed because
 they failed). The set hash covers ids and generator definitions, never seeds, and leaves out `failure_sealed`: a run's
 own failure never moves its key. `set build` seals at least one case of every class (the lowest hash of its new cases,
-while the class keeps a dev case). After the split it prints `unsealed_classes` (no sealed case) and `classes_without_dev` (no dev case, so the worker sees only the description); give each such class new inputs and build again.
+while the class keeps a dev case). After the split it prints `unsealed_classes` (no sealed case) and `classes_without_dev` (no dev case, so the worker sees only the description); give each such class new inputs and build again. An exhaustive class with no dev case is listed as `exhaustive_without_dev` instead: it has no other input, so that is reported, not fixed.
 
 ## Normalizer (`oracles/<system>/normalizers/NORM-*.json`)
 

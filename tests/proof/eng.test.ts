@@ -614,7 +614,7 @@ describe('round 2 item 11: inputs the modern side receives identically while leg
   })
   test('the same input on both sides is not ambiguous', () => {
     setupDigests([[310, 'same', 'm-same'], [311, 'same', 'm-same']])
-    assert.equal([...P.allRuns(ws)][0]!['coverage']['ambiguous_inputs'], undefined)
+    assert.deepEqual([...P.allRuns(ws)][0]!['coverage']['ambiguous_inputs'], [])
     assert.equal(P.verdict(ws, GU, 'V4', key(), {}, false)['verdict'], 'PROVEN')
   })
   test('with input_digests required, a compared case without digests on both sides is a gap', () => {
@@ -626,5 +626,46 @@ describe('round 2 item 11: inputs the modern side receives identically while leg
   test('input_digest is never compared and must be a string', () => {
     assert.ok(P.exactCompare(dobs('A', 'x'), dobs('A', 'y'), 'INTCALC').equal)
     assert.match(P.observationProblem({ ...obs('A'), input_digest: 5 })!, /input_digest/)
+  })
+})
+
+describe('round 2 items 30-32: reports that say what they mean', () => {
+  test('30: an exhaustive class whose whole domain is sealed is listed apart, and the note never asks for its inputs', () => {
+    // 20 cases in executable mode: the 20-case minimum seals every one, so no class has a dev case.
+    const pool = Array.from({ length: 19 }, (_, i) => add(i, ['ok']))
+    const empty = add(700, ['structural:empty'])
+    writeFileSync(join(dir, 'pool.txt'), [...pool, empty].join('\n'))
+    writeFileSync(join(dir, 'req.json'), JSON.stringify({ ok: 'ok', 'structural:empty': 'the one empty file' }))
+    const log = console.log
+    let out = ''
+    console.log = (x: string) => { out = x }
+    try {
+      P.main(['set', 'build', '--ws', dir, '--system', 'cd', '--set', 'S', '--gate-unit', GU, '--mode', 'executable',
+        '--pool', `@${join(dir, 'pool.txt')}`, '--required', join(dir, 'req.json'), '--exhaustive', 'structural:empty'])
+    } finally { console.log = log }
+    const j = JSON.parse(out)
+    assert.equal(j['sealed'], 20)
+    assert.deepEqual(j['classes_without_dev'], ['ok'])
+    assert.deepEqual(j['exhaustive_without_dev'], ['structural:empty'])
+    assert.match(j['note'], /classes_without_dev .*Add new inputs/)
+    assert.match(j['note'], /exhaustive_without_dev .*cannot/)
+  })
+  test('31: run.json always records not_run, ambiguous_inputs, class_unreached and timing, empty when nothing happened', () => {
+    const pool = Array.from({ length: 20 }, (_, i) => add(i, ['ok']))
+    P.buildSet(ws, 'S', GU, 'executable', pool, { ok: 'ok' }, {})
+    const o = observe('r1', pool)
+    const r = P.judge(ws, 'S', key(), o.l, o.m, [], undefined, [], 'env')
+    assert.equal(r['not_run'], 0)
+    const c = [...P.allRuns(ws)][0]!['coverage']
+    assert.deepEqual(c['not_run'], {})
+    assert.deepEqual(c['ambiguous_inputs'], [])
+    assert.deepEqual(c['class_unreached'], {})
+    assert.deepEqual(c['timing'], { cases: 0, legacy_ms: 0, modern_ms: 0 })
+    assert.equal(P.verdict(ws, GU, 'V4', key(), {}, false)['verdict'], 'PROVEN')
+  })
+  test('32: verify.md: class_observables ids join the requirements; a .ts comparator example', () => {
+    const v = readFileSync(new URL('../../plugins/rig/commands/verify.md', import.meta.url), 'utf8')
+    assert.match(v, /every id the set's `class_observables` names/)
+    assert.match(readFileSync(new URL('../../plugins/rig/commands/judge.md', import.meta.url), 'utf8'), /--comparator "node oracles\/\$system\/comparators\/<name>\.ts"/)
   })
 })

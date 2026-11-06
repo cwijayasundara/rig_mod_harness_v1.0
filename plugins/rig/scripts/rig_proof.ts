@@ -251,7 +251,11 @@ export function buildSet(ws: WS, name: string, gateUnit: string, mode: string, p
   for (const id of fresh) if (!sealed.has(id)) (sealed.size < want ? sealed : dev).add(id) // sorted by hash: nobody chooses
   // Reported after the fill, from the split as written (round 2 item 20: the fill can seal a class the rule above left).
   const unsealed = allClasses.filter((cl) => has(sealed, cl).length === 0)
-  const withoutDev = allClasses.filter((cl) => has(dev, cl).length === 0)
+  // An exhaustive class has no other input to draw, so "no dev case" cannot be fixed by new inputs: listed apart (ENG-E 2).
+  const exhaustiveAll = new Set<string>([...(old?.['exhaustive_classes'] ?? []), ...exhaustive])
+  const noDev = allClasses.filter((cl) => has(dev, cl).length === 0)
+  const withoutDev = noDev.filter((cl) => !exhaustiveAll.has(cl))
+  const exhaustiveWithoutDev = noDev.filter((cl) => exhaustiveAll.has(cl))
   if (mode === 'executable' && sealed.size < SEALED_MIN) {
     throw new Bad(`executable mode needs at least ${SEALED_MIN} sealed cases; the pool gives ${sealed.size}`)
   }
@@ -264,7 +268,8 @@ export function buildSet(ws: WS, name: string, gateUnit: string, mode: string, p
     ...classObsField(classObservables ?? old?.['class_observables']),
   }
   dump(p, s)
-  return Object.defineProperties(s, { unsealed_classes: { value: unsealed }, classes_without_dev: { value: withoutDev } })
+  return Object.defineProperties(s, { unsealed_classes: { value: unsealed }, classes_without_dev: { value: withoutDev },
+    exhaustive_without_dev: { value: exhaustiveWithoutDev } })
 }
 
 const sortObj = <T,>(o: Record<string, T>) => Object.fromEntries(Object.keys(o).sort().map((k) => [k, o[k]!]))
@@ -596,7 +601,9 @@ export function judge(ws: WS, setName: string, key: string, legacyDir: string, m
   if (missingRetry.length > 0) throw new Bad(`classes that failed last run need fresh inputs this run: ${JSON.stringify(missingRetry)}`)
 
   const results: Obj[] = []
-  const coverage: Coverage = { observables: {}, classes: {}, hazards: {}, calendar_events: [], mismatches: [] }
+  // Every field is written, empty when nothing happened, so an absent field means "not recorded" (ENG-E 5).
+  const coverage: Coverage = { observables: {}, classes: {}, hazards: {}, calendar_events: [], mismatches: [], not_run: {},
+    class_unreached: {}, ambiguous_inputs: [], timing: { cases: 0, legacy_ms: 0, modern_ms: 0 } }
   const tmp = join(ws.evidence, '.tmp')
   const digests: [string, string, string][] = []
   // Errors name no case: the judge returns no case id (judge.md). They count, and say where to look.
@@ -686,7 +693,7 @@ export function judge(ws: WS, setName: string, key: string, legacyDir: string, m
   }
   const ambiguous = [...byModern.values()].filter((g) => g.size > 1).map((g) => uniqSorted([...g.values()].flat()))
     .sort((a, b) => a[0]!.localeCompare(b[0]!))
-  if (ambiguous.length > 0) coverage.ambiguous_inputs = ambiguous
+  coverage.ambiguous_inputs = ambiguous
   const compared = results.filter((r) => !r['not_run'])
   // Rule 3 again, on what ran: a fresh input that was not run brought nothing back to the class that failed.
   const ranFresh = new Set(compared.filter((r) => r['fresh']).flatMap((r) => r['classes'] as string[]))
@@ -722,7 +729,7 @@ export function judge(ws: WS, setName: string, key: string, legacyDir: string, m
   // Counts and class descriptions only: never an input, an expected output, or a diff.
   const notRunN = results.length - compared.length
   return { run_id: runId, classes: [...counts.values()].sort((a, b) => a.class.localeCompare(b.class)),
-           passed: compared.filter((r) => r['pass']).length, total: compared.length, ...(notRunN > 0 ? { not_run: notRunN } : {}) }
+           passed: compared.filter((r) => r['pass']).length, total: compared.length, not_run: notRunN }
 }
 
 /** The reason a runner gives for not running a case, or null when it ran. */
@@ -1494,12 +1501,16 @@ export function main(argv: string[]): number {
     } else if (command === 'set' && sub === 'build') {
       const st = buildSet(ws, s('set')!, s('gate-unit')!, s('mode')!, ids(s('pool')), s('required') ? load(s('required')!) : {}, s('generators') ? load(s('generators')!) : {}, ids(s('exhaustive')), s('class-observables') ? load(s('class-observables')!) : undefined)
       out = { set: st['name'], dev: st['dev'].length, sealed: st['sealed'].length, hash: setHash(st),
-        unsealed_classes: st['unsealed_classes'], classes_without_dev: st['classes_without_dev'] }
-      const notes = [
+        unsealed_classes: st['unsealed_classes'], classes_without_dev: st['classes_without_dev'], exhaustive_without_dev: st['exhaustive_without_dev'] }
+      const fixable = [
         ...(st['unsealed_classes'].length > 0 ? ['unsealed_classes have no sealed case: nothing checks them on inputs the worker did not see'] : []),
         ...(st['classes_without_dev'].length > 0 ? ['classes_without_dev have no dev case: the worker sees only their description'] : []),
       ]
-      if (notes.length > 0) out['note'] = notes.join('; ') + '. Add new inputs of each, then build again.'
+      const notes = [
+        ...(fixable.length > 0 ? [fixable.join('; ') + '. Add new inputs of each, then build again.'] : []),
+        ...(st['exhaustive_without_dev'].length > 0 ? ['exhaustive_without_dev have their whole domain sealed, so the worker sees only their description; new inputs cannot change that (there are none).'] : []),
+      ]
+      if (notes.length > 0) out['note'] = notes.join(' ')
     } else if (command === 'compare') {
       // Self-check is not evidence: a draft delta may be tried here before a person approves it.
       out = compareOnly(s('legacy-dir')!, s('modern-dir')!, s('comparator'), unitName(String(s('gate-unit') ?? '')), join(ws.root, '.rig-tmp'), ids(s('deltas')).map(load))

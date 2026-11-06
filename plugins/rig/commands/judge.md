@@ -49,6 +49,9 @@ script's counts and class descriptions only.
      --legacy-dir <legacy obs> --modern-dir <modern obs> --fresh <fresh case ids> --env <environment id> \
      [--comparator exact|"<cmd>"] [--normalizers <approved files>] [--deltas <approved DELTA files>]
    ```
+   A TypeScript comparator is run as a command, and its file goes in the key: the judge gets
+   `--comparator "node oracles/$system/comparators/<name>.ts"`, and the key's `--comparators` lists
+   `oracles/$system/comparators/<name>.ts` (and each local file it imports).
    It exits 0 when every case was compared and passed, and 1 when a case failed **or** was not run: read `passed`,
    `total` and `not_run` in its JSON, never the exit code alone.
    A restructure unit passes every approved delta its ADR declares (`--deltas`), the same files as in the key's

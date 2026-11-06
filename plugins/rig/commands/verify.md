@@ -32,7 +32,7 @@ canary, makes every rung that used it NOT_PROVEN.
 
 Write `work/$system/requirements/<gate-unit>-<rung>.json` (not under `evidence/`, which only the script writes):
 
-- `observables`: every observable id on the gate unit's surface (Rule B: each must have been compared).
+- `observables`: every observable id on the gate unit's surface (Rule B: each must have been compared), plus every id the set's `class_observables` names (`<U>.timing`, `<U>.repeat`), even when the surface does not list it: a class that needs an observable is only covered if that observable is required.
 - `input_digests`: `true` when the unit's runners write `input_digest` (they should). Then a compared case without
   one on both sides is a gap, so an input form that loses a distinction cannot go unseen.
 - `timing_max_ratio`: the limit for modern against legacy elapsed time (V9), from the owner's batch window or latency
