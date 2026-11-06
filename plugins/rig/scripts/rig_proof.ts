@@ -621,6 +621,10 @@ export function judge(ws: WS, setName: string, key: string, legacyDir: string, m
       counts.set(cl, k)
     }
   }
+  // A required class no case reached is printed as 0 of 0, so the counts show it was never exercised (ENG-D core 6).
+  for (const [cl, description] of Object.entries<string>(s['required_classes'] ?? {})) {
+    if (!counts.has(cl)) counts.set(cl, { class: cl, description, passed: 0, total: 0 })
+  }
   // Counts and class descriptions only: never an input, an expected output, or a diff.
   return { run_id: runId, classes: [...counts.values()].sort((a, b) => a.class.localeCompare(b.class)),
            passed: results.filter((r) => r['pass']).length, total: results.length }

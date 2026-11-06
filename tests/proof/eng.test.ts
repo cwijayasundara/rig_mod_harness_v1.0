@@ -4,6 +4,8 @@ import assert from 'node:assert/strict'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { spawnSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, test } from 'node:test'
 
 import * as P from '../../plugins/rig/scripts/rig_proof.ts'
@@ -233,8 +235,42 @@ describe('core 4, 5, 8, 9: the commands say it', () => {
   test('rig-method: no background waits, helper scripts in TypeScript', () => {
     const m = doc('skills/rig-method/SKILL.md')
     assert.match(m, /Never use Monitor, ScheduleWakeup/)
+    assert.match(m, /pass `run_in_background: false` on\s+each Agent call/)
     assert.match(m, /Scripts are TypeScript/)
     assert.match(m, /each\s+side's runner/)
     assert.match(doc('agents/worker.md'), /runner in TypeScript/)
+  })
+})
+
+describe('round 2 item 17: rig_http.ts exits as soon as the run is done', () => {
+  test('one case against an app that stops on SIGTERM takes seconds, not the 60 s shutdown allowance', () => {
+    const srv = join(dir, 'srv.mjs')
+    writeFileSync(srv, `import { createServer } from 'node:http'
+createServer((q, s) => { s.writeHead(200, { 'content-type': 'text/html' }); s.end('<p>ok</p>') }).listen(Number(process.argv[2]), '127.0.0.1')
+`)
+    const c = join(dir, 'http-case.json')
+    writeFileSync(c, JSON.stringify({ records: { requests: [{ method: 'GET', path: '/' }] }, params: {}, clock: null, stores: {}, session: null }))
+    const t0 = Date.now()
+    const r = spawnSync(process.execPath, [fileURLToPath(new URL('../../plugins/rig/scripts/rig_http.ts', import.meta.url)), 'run',
+      '--case', c, '--out', join(dir, 'http-out.json'), '--start', `node ${srv} {port}`, '--workdir', join(dir, 'http-wd')],
+      { encoding: 'utf8', timeout: 40_000 })
+    const ms = Date.now() - t0
+    assert.equal(r.status, 0, `exit ${r.status} ${r.signal ?? ''} ${r.stdout} ${r.stderr}`)
+    assert.ok(ms < 15_000, `took ${ms} ms`)
+    const o = P.load(join(dir, 'http-out.json'))
+    assert.equal(o['abend'], null)
+    assert.equal(o['screens'].length, 1)
+  })
+})
+
+describe('round 2 item 22: judge counts show required classes that had no case', () => {
+  test('a required class with no case is printed as 0 of 0, and does not fail the run', () => {
+    const pool = Array.from({ length: 20 }, (_, i) => add(i, ['ok']))
+    P.buildSet(ws, 'S', GU, 'executable', pool, { ok: 'ok', 'hazard:H-0012': 'invalid packed data' }, {})
+    const o = observe('r1', pool)
+    const r = P.judge(ws, 'S', key(), o.l, o.m, [], undefined, [], 'env')
+    assert.deepEqual(r['classes'].find((c: any) => c.class === 'hazard:H-0012'),
+      { class: 'hazard:H-0012', description: 'invalid packed data', passed: 0, total: 0 })
+    assert.equal(r['passed'], r['total'])
   })
 })

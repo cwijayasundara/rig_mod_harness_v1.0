@@ -42,9 +42,11 @@ did not reach the risk does not cover it. Reruns never clear a failure.
 - **Never edit `legacy/`.** Write only under `analysis/<system>/`, `oracles/<system>/`, `work/<system>/`,
   `evidence/<system>/` and `modernized/`.
 - **People decide** the things listed under *Human gates* below. Never mark one decided for them.
-- **Wait for every agent you dispatch.** Run agents in the foreground, or wait for each background agent's result,
-  before you go on or end your turn. A headless run (`claude -p`) ends when your turn ends, and that kills any agent
-  still running. A stage is done only when its agent has returned and you have logged the result.
+- **Wait for every agent you dispatch.** Dispatch every agent in the foreground: pass `run_in_background: false` on
+  each Agent call, because the default may run it in the background. If one still runs in the background, do not
+  poll it (`ListAgents`, sleeps, wakeups): go on with other parts of the task, and do not end your turn before its
+  result arrives. A headless run (`claude -p`) ends when your turn ends, and that kills any agent still running. A
+  stage is done only when its agent has returned and you have logged the result.
 - **No background waits.** Never use Monitor, ScheduleWakeup, `run_in_background` or a polling loop
   (`until [ -f … ]; do sleep …`) to wait for a command. Run each command in the foreground with a timeout that covers
   it (up to 600000 ms). When a step would take longer, split it (fewer cases per command) instead of backgrounding it. A

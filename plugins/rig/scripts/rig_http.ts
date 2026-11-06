@@ -263,7 +263,11 @@ export async function run(o: Obj): Promise<Obj> {
   }
   const kill = (sig: NodeJS.Signals) => { try { process.kill(-app.pid!, sig) } catch { /* already gone */ } }
   kill('SIGTERM')
-  const rc = await Promise.race([done, sleep(60_000).then(() => null)])
+  // The shutdown allowance is cleared as soon as the app exits: a pending timer kept node alive 60 s after every run
+  // (ENG-C core 2: 63 s per case instead of about 3.5 s).
+  let allowance: NodeJS.Timeout | undefined
+  const rc = await Promise.race([done, new Promise<null>((r) => { allowance = setTimeout(() => r(null), 60_000) })])
+  clearTimeout(allowance)
   let returnCode: number
   if (rc === null) { kill('SIGKILL'); returnCode = await done; abend = abend ?? 'shutdown_timeout' } else returnCode = rc
   writeFileSync(join(workdir, 'app.log'), Buffer.concat(log))
