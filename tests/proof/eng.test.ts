@@ -856,3 +856,77 @@ createServer((q, s) => { s.writeHead(200); s.end('ok') }).listen(Number(process.
     assert.equal(typeof plain['elapsed_ms'], 'number')
   })
 })
+
+describe('ENG-C3 fixes: a run the harness disturbed is never recorded as behaviour', () => {
+  const HTTP = fileURLToPath(new URL('../../plugins/rig/scripts/rig_http.ts', import.meta.url))
+  const twoRequests = (name: string) => {
+    const c = join(dir, `${name}.json`)
+    writeFileSync(c, JSON.stringify({ records: { requests: [{ method: 'GET', path: '/a' }, { method: 'GET', path: '/b' }] }, params: {}, clock: null, stores: {}, session: null }))
+    return c
+  }
+  const server = (name: string, onSecond: string) => {
+    const srv = join(dir, `${name}.mjs`)
+    writeFileSync(srv, `import { createServer } from 'node:http'
+import { writeFileSync } from 'node:fs'
+writeFileSync(process.argv[3], String(process.pid))
+let n = 0
+createServer((q, s) => { n++; if (n === 2) { ${onSecond} } s.writeHead(200); s.end('ok') }).listen(Number(process.argv[2]), '127.0.0.1')
+`)
+    return srv
+  }
+
+  // (a) C3: a 90-of-91 legacy folder was judged; the missing case fell back to its `expected` from an older runner,
+  // failed, and the rerun under the same key made the rung FLAKY.
+  test('executable mode: a case with an expected but no legacy observation is refused, not compared with expected', () => {
+    const ids = Array.from({ length: 24 }, (_, n) => P.addCase(ws, inp(n), ["random"], "random", obs("OLD RUNNER"))["id"] as string)
+    P.buildSet(ws, 'S', GU, 'executable', ids, { random: 'any' }, { random: 'gen' })
+    const o = observe('c3a', ids)
+    rmSync(join(o.l, `${ids[2]}.json`))
+    assert.throws(() => P.judge(ws, 'S', key(), o.l, o.m, [], undefined, [], 'env'), /no legacy observation for 1 of 24/)
+    assert.equal(existsSync(join(ws.evidence)) ? readdirSync(ws.evidence).filter((f) => !f.startsWith('.')).length : 0, 0, 'nothing recorded')
+  })
+
+  // (b) C3: an app killed from outside mid-case (pkill of leftover JVMs) was written as an observation.
+  test('an app killed by a signal the runner did not send is untrusted (exit 3, nothing written)', () => {
+    const srv = server('killed', `process.kill(process.pid, 'SIGKILL')`)
+    const out = join(dir, 'killed-out.json')
+    const r = spawnSync(process.execPath, [HTTP, 'run', '--case', twoRequests('killed'), '--out', out,
+      '--start', `${process.execPath} ${srv} {port} ${join(dir, 'killed.pid')}`], { encoding: 'utf8', timeout: 30_000 })
+    assert.equal(r.status, 3, r.stdout + r.stderr)
+    assert.match(r.stdout, /signal the runner did not send/)
+    assert.equal(existsSync(out), false)
+  })
+  test('an app that exits by itself mid-case is still behaviour (an observation with its abend)', () => {
+    const srv = server('crashed', `process.exit(1)`)
+    const out = join(dir, 'crashed-out.json')
+    const r = spawnSync(process.execPath, [HTTP, 'run', '--case', twoRequests('crashed'), '--out', out,
+      '--start', `${process.execPath} ${srv} {port} ${join(dir, 'crashed.pid')}`], { encoding: 'utf8', timeout: 30_000 })
+    assert.equal(r.status, 0, r.stdout + r.stderr)
+    const o = P.load(out)
+    assert.match(String(o['abend']), /request\[1\]:connection_error/)
+    assert.equal(o['return_code'], 1)
+  })
+
+  // (c) C3: `timeout` stopped the runner, the app JVM lived on, and the session had to pkill it.
+  test('a runner that is stopped stops the app, writes nothing and exits 3', async () => {
+    const srv = join(dir, 'slow.mjs'), pidf = join(dir, 'slow.pid')
+    writeFileSync(srv, `import { createServer } from 'node:http'
+import { writeFileSync } from 'node:fs'
+writeFileSync(process.argv[3], String(process.pid))
+createServer((q, s) => { setTimeout(() => { s.writeHead(200); s.end('ok') }, 20000) }).listen(Number(process.argv[2]), '127.0.0.1')
+`)
+    const out = join(dir, 'slow-out.json')
+    const { spawn } = await import('node:child_process')
+    const p = spawn(process.execPath, [HTTP, 'run', '--case', twoRequests('slow'), '--out', out, '--start', `${process.execPath} ${srv} {port} ${pidf}`], { stdio: ['ignore', 'pipe', 'pipe'] })
+    let stdout = ''; p.stdout.on('data', (d) => stdout += d)
+    for (let i = 0; i < 100 && !existsSync(pidf); i++) await new Promise((r) => setTimeout(r, 100))
+    await new Promise((r) => setTimeout(r, 500)) // the request is in flight
+    const code = await new Promise<number | null>((res) => { p.on('close', (c) => res(c)); p.kill('SIGTERM') })
+    assert.equal(code, 3, stdout)
+    assert.equal(existsSync(out), false)
+    const appPid = Number(readFileSync(pidf, 'utf8'))
+    let alive = true
+    for (let i = 0; i < 50 && alive; i++) { try { process.kill(appPid, 0); await new Promise((r) => setTimeout(r, 100)) } catch { alive = false } }
+    assert.equal(alive, false, 'the app outlived the runner')
+  })
+})

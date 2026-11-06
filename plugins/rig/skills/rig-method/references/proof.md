@@ -20,8 +20,9 @@ runs the unit N times in one environment without resetting it between runs, for 
 (Spring Batch's "job instance already complete", S-RESTART). Leave it out for one run. The same canonical input is the same case: `case add`
 then adds the classes to the existing case and prints `"merged": true` with `previous_classes` (a relabel, not a new
 input). A generator that meant a new input must draw again. A case's `expected` never changes: `case add` refuses a
-different one. In executable and reconcile mode the judge compares the live legacy observation, so an `expected` from
-an older runner is harmless there; in recorded mode `expected` is the recorded production output and is the only
+different one. In executable and reconcile mode the judge compares the live legacy observation and never `expected`: a
+case with no legacy observation file makes the judge refuse the whole run (exit 2, nothing recorded), so run the
+missing cases first; in recorded mode `expected` is the recorded production output and is the only
 legacy evidence.
 
 ## Observations (one file per case per side)
@@ -61,7 +62,9 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_http.ts run --case <case.json> --out <dir
 Run it from the plugin, never a copy; in the key's `--modern` it is `plugin:scripts/rig_http.ts`. Only `--start` differs between legacy and modern. The header of `rig_http.ts` gives every step. It fixes the
 environment, `Host` and the order of requests. It records a request that hangs as `{status: null, timeout: true}`,
 an app that does not start as `abend`, and the exit code as `return_code`. Exit 3 (nothing written) means the run
-could not be trusted: rerun it. Clock: with `clock` set, pass `--clock-wrap`, a shell prefix put in front of the start command, with `{clock_datetime}`
+could not be trusted: rerun it. That includes an app stopped by HUP, INT, KILL or TERM before the runner stopped it
+(something else killed it, such as a `pkill`), and a runner that was itself stopped (by `timeout`, for example): it stops
+the app first, so no JVM is left behind. Clock: with `clock` set, pass `--clock-wrap`, a shell prefix put in front of the start command, with `{clock_datetime}`
 (`YYYY-MM-DD HH:MM:SS`, UTC) filled in. With libfaketime on macOS: `export DYLD_INSERT_LIBRARIES=/opt/homebrew/lib/faketime/libfaketime.1.dylib DYLD_FORCE_FLAT_NAMESPACE=1 FAKETIME='@{clock_datetime}';`
 (Linux: `LD_PRELOAD` with the `.so`). Set the variables inside the shell like this; macOS drops `DYLD_*` when it starts
 `/bin/sh`, so `faketime` around the command does not reach the JVM. Check once that the app sees the date.

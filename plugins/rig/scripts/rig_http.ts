@@ -32,7 +32,9 @@
  *     requests took is `elapsed_ms` (start-up and shutdown excluded), which the judge counts as `<U>.timing` (V9). A case
  *     run through `--clock-wrap` records none: the wrap slows the app, so the time would measure the wrap.
  *  6. Stops the process group with SIGTERM (SIGKILL after 60 s, `abend: shutdown_timeout`). `return_code` is the exit
- *     code, or 128 + the signal number.
+ *     code, or 128 + the signal number. An app that exits by itself is behaviour; one stopped earlier by HUP, INT, KILL
+ *     or TERM was stopped by something else, so the run exits 3. A runner that is stopped by one of those signals stops
+ *     the app's process group, writes nothing and exits 3.
  *  7. Reads the stores with `--stores-cmd` after shutdown. A failing or unparsable stores command exits 3. A store may
  *     carry `semantics` (probe results) beside its records; it is kept as printed and compared as `store_semantics`.
  *
@@ -229,6 +231,8 @@ const signalNo = (s: string | null) => (s ? SIGNALS[s] : undefined)
 const shq = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`
 const utcDate = () => new Date().toISOString().slice(0, 10)
 
+let current: ChildProcess | null = null // the app being run, so a stopped runner can stop it (c)
+
 export async function run(o: Obj): Promise<Obj> {
   const inp = loadInput(o.case)
   const notes: string[] = []
@@ -260,6 +264,15 @@ export async function run(o: Obj): Promise<Obj> {
   const log: Buffer[] = []
   app.stdout!.on('data', (c) => log.push(c)); app.stderr!.on('data', (c) => log.push(c))
   const done = exited(app)
+  current = app
+  // (b) An app stopped by HUP/INT/KILL/TERM before the runner stops it was stopped by someone else (ENG-C3: a pkill of
+  // leftover JVMs): that is the harness, not the app. `sh` reports a killed child as exit 128 + n.
+  let stopping = false, foreign: string | null = null
+  app.once('exit', (code, sig) => {
+    if (stopping) return
+    const n = sig ? signalNo(sig) : code !== null && code > 128 ? code - 128 : undefined
+    if (n !== undefined && [1, 2, 9, 15].includes(n)) foreign = sig ?? `exit ${code}`
+  })
   let abend: string | null = null
   let screens: Screen[] = []
   let elapsedMs: number | null = null
@@ -280,6 +293,10 @@ export async function run(o: Obj): Promise<Obj> {
     abend = r.abend
   }
   const kill = (sig: NodeJS.Signals) => { try { process.kill(-app.pid!, sig) } catch { /* already gone */ } }
+  // A dropped connection reaches the runner before the app's exit does: give the app 2 s to exit by itself, so its exit
+  // is judged before the runner's own SIGTERM could be blamed for it.
+  if (abend) { let t: NodeJS.Timeout | undefined; await Promise.race([done, new Promise((r) => { t = setTimeout(r, 2000) })]); clearTimeout(t) }
+  stopping = true
   kill('SIGTERM')
   // The shutdown allowance is cleared as soon as the app exits: a pending timer kept node alive 60 s after every run
   // (ENG-C core 2: 63 s per case instead of about 3.5 s).
@@ -289,6 +306,8 @@ export async function run(o: Obj): Promise<Obj> {
   let returnCode: number
   if (rc === null) { kill('SIGKILL'); returnCode = await done; abend = abend ?? 'shutdown_timeout' } else returnCode = rc
   writeFileSync(join(workdir, 'app.log'), Buffer.concat(log))
+  current = null
+  if (foreign) throw new Untrusted(`the app was stopped by ${foreign}, a signal the runner did not send: rerun the case`)
 
   if (clock && !o['clock-wrap'] && utcDate() !== clock.slice(0, 10)) throw new Untrusted('the UTC date changed during the run')
   let stores: Obj = {}
@@ -319,6 +338,13 @@ export async function main(argv: string[]): Promise<number> {
       'startup-timeout': { type: 'string', default: '180' }, 'request-timeout': { type: 'string', default: '30' },
       host: { type: 'string', default: 'localhost:8080' }, workdir: { type: 'string' }, help: { type: 'boolean' },
     },
+  })
+  // (c) A runner that is stopped (`timeout`, Ctrl-C, a closed terminal) stops the app's process group too and writes
+  // nothing: ENG-C3 found app JVMs left running after `timeout` stopped the runner.
+  for (const sig of ['SIGTERM', 'SIGINT', 'SIGHUP'] as const) process.once(sig, () => {
+    if (current?.pid) { try { process.kill(-current.pid, 'SIGKILL') } catch { /* already gone */ } }
+    console.log(JSON.stringify({ untrusted: `the runner was stopped by ${sig}; the app was stopped and nothing was written` }))
+    process.exit(3)
   })
   if (a.help || positionals[0] !== 'run') { console.log(readFileSync(fileURLToPath(import.meta.url), 'utf8').split('*/')[0]); return a.help ? 0 : 2 }
   try {

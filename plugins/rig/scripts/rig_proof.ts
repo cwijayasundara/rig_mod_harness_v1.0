@@ -612,8 +612,10 @@ export function judge(ws: WS, setName: string, key: string, legacyDir: string, m
   const noModern = cases.filter((id) => !isFile(join(modernDir, `${id}.json`))).length
   if (noModern > 0) throw new Bad(`no modern observation for ${noModern} of ${cases.length} case(s) (set plus fresh) in ${modernDir}`)
   if (s['mode'] !== 'recorded') {
-    const noLegacy = cases.filter((id) => !isFile(join(legacyDir, `${id}.json`)) && (ws.case(id)['expected'] ?? null) === null).length
-    if (noLegacy > 0) throw new Bad(`no legacy observation for ${noLegacy} of ${cases.length} case(s) in ${legacyDir}: in ${s['mode']} mode every case is compared (R3-01)`)
+    // A case's `expected` is never a stand-in here: it may come from an older runner, and judging an incomplete folder
+    // against it records a false failure that no rerun under the key can remove (ENG-C3: 90 of 91 files, then FLAKY).
+    const noLegacy = cases.filter((id) => !isFile(join(legacyDir, `${id}.json`))).length
+    if (noLegacy > 0) throw new Bad(`no legacy observation for ${noLegacy} of ${cases.length} case(s) in ${legacyDir}: in ${s['mode']} mode every case is compared against a live legacy run, never its expected; run the missing cases, then judge (R3-01, ENG-C3)`)
   }
   for (const id of cases) {
     const c = ws.case(id)
