@@ -61,7 +61,10 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_http.ts run --case <case.json> --out <dir
 Run it from the plugin, never a copy; in the key's `--modern` it is `plugin:scripts/rig_http.ts`. Only `--start` differs between legacy and modern. The header of `rig_http.ts` gives every step. It fixes the
 environment, `Host` and the order of requests. It records a request that hangs as `{status: null, timeout: true}`,
 an app that does not start as `abend`, and the exit code as `return_code`. Exit 3 (nothing written) means the run
-could not be trusted: rerun it. Clock: with `clock` set, pass `--clock-wrap` (for example `faketime '{clock}'`).
+could not be trusted: rerun it. Clock: with `clock` set, pass `--clock-wrap`, a shell prefix put in front of the start command, with `{clock_datetime}`
+(`YYYY-MM-DD HH:MM:SS`, UTC) filled in. With libfaketime on macOS: `export DYLD_INSERT_LIBRARIES=/opt/homebrew/lib/faketime/libfaketime.1.dylib DYLD_FORCE_FLAT_NAMESPACE=1 FAKETIME='@{clock_datetime}';`
+(Linux: `LD_PRELOAD` with the `.so`). Set the variables inside the shell like this; macOS drops `DYLD_*` when it starts
+`/bin/sh`, so `faketime` around the command does not reach the JVM. Check once that the app sees the date.
 Otherwise the case runs only on that UTC day; on any other day the runner exits 4 and writes `{"not_run": "<reason>"}`
 as the observation. Keep that file on both sides: the judge records the case as not run, and the verdict shows it as a
 gap ("N case(s) never ran on both sides") until a run compares it or a person accepts the obligation. Write the stores command for the application's database (for H2, the H2 jar's

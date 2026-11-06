@@ -9,13 +9,15 @@
  *     node rig_http.ts run --case <case.json|input.json> --out <observation.json> \
  *       --start '<command; {port} and {workdir} are filled in>' \
  *       [--env NAME=VALUE]... [--stores-cmd '<command; prints {"<store>": {"records": [...]}} on stdout>'] \
- *       [--message-class <css class>] [--clock-wrap '<prefix; {clock} is filled in>'] \
+ *       [--message-class <css class>] [--clock-wrap '<shell prefix; {clock} and {clock_datetime} are filled in>'] \
  *       [--startup-timeout 180] [--request-timeout 30] [--host localhost:8080] [--workdir <empty dir>]
  *
  * What a run does, the same on both sides:
  *  1. Checks the input has exactly the keys records, params, clock, stores, session.
- *  2. Clock. With `clock` set and `--clock-wrap` given (for example `faketime '{clock}'`), the start command runs under
- *     that wrapper. Without a wrapper the date is held only by running on that UTC day. On any other day nothing is
+ *  2. Clock. With `clock` set and `--clock-wrap` given, the wrap is put in front of the start command inside the shell.
+ *     With libfaketime on macOS: `export DYLD_INSERT_LIBRARIES=/opt/homebrew/lib/faketime/libfaketime.1.dylib
+ *     DYLD_FORCE_FLAT_NAMESPACE=1 FAKETIME='@{clock_datetime}';` (on Linux, LD_PRELOAD with the .so). The variables must
+ *     be set inside the shell: macOS drops DYLD_* when it starts /bin/sh, so a `faketime` wrapper around it fails. Without a wrapper the date is held only by running on that UTC day. On any other day nothing is
  *     started: it writes `{"not_run": "<reason>"}` as the observation and exits 4, and the judge records the case as
  *     not run (a gap) on both sides. If the day changes during the run, it exits 3 and writes nothing. There is no
  *     Java fake clock built in.
@@ -237,10 +239,15 @@ export async function run(o: Obj): Promise<Obj> {
   const workdir = o.workdir ? resolve(o.workdir) : mkdtempSync(join(tmpdir(), 'rig-http-'))
   mkdirSync(join(workdir, 'app'), { recursive: true })
   const port = await freePort()
-  const fill = (s: string) => s.replaceAll('{port}', String(port)).replaceAll('{workdir}', workdir).replaceAll('{clock}', clock ?? '')
+  // {clock_datetime}: "YYYY-MM-DD HH:MM:SS" in UTC, the form libfaketime's FAKETIME="@..." takes.
+  const clockDatetime = clock ? new Date(clock).toISOString().slice(0, 19).replace('T', ' ') : ''
+  const fill = (s: string) => s.replaceAll('{port}', String(port)).replaceAll('{workdir}', workdir)
+    .replaceAll('{clock_datetime}', clockDatetime).replaceAll('{clock}', clock ?? '')
   const params = Object.entries((inp['params'] ?? {}) as Obj).map(([k, v]) => shq(`--${k}=${v}`)).join(' ')
   let cmd = fill(o.start) + (params ? ' ' + params : '')
-  if (clock && o['clock-wrap']) { cmd = `${fill(o['clock-wrap'])} sh -c ${shq(cmd)}`; notes.push(`clock held by --clock-wrap at ${clock}`) }
+  // The wrap is a prefix inside the shell, right before the start command: macOS drops DYLD_* variables when it starts
+  // the protected /bin/sh, so a wrapper around `sh -c` never reaches the JVM (owner's libfaketime spike, 2026-11-06).
+  if (clock && o['clock-wrap']) { cmd = `${fill(o['clock-wrap'])} ${cmd}`; notes.push(`clock held by --clock-wrap at ${clock}`) }
   else if (clock) notes.push(`clock ${clock}: held only by running on that UTC day`)
   else notes.push('input.clock is null: the case asserts it is date-insensitive; the app ran on the host clock')
   const env: Record<string, string> = {

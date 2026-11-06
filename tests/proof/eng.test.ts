@@ -1,7 +1,7 @@
 /** Engineering pass (2026-11-06): core changes found by sessions A, B and C, one regression test each. */
 
 import assert from 'node:assert/strict'
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
@@ -812,5 +812,25 @@ describe('owner decision V9: an absolute budget per run (timing_max_ms)', () => 
     P.judge(ws, 'S', key(), o.l, o.m, [], undefined, [], 'env')
     const v = P.verdict(ws, GU, 'V4', key(), { timing_max_ms: 2000 }, false)
     assert.ok(v['reasons'].some((x: string) => /no run recorded elapsed_ms on both sides/.test(x)), v['reasons'].join('; '))
+  })
+})
+
+describe('owner decision: a clock held by libfaketime through rig_http --clock-wrap', () => {
+  const LIB = '/opt/homebrew/lib/faketime/libfaketime.1.dylib'
+  test('the app sees the case clock, and the observation says the clock was applied', { skip: !existsSync(LIB) && 'libfaketime is not installed' }, () => {
+    const srv = join(dir, 'clocksrv.mjs')
+    writeFileSync(srv, `import { createServer } from 'node:http'
+createServer((q, s) => { s.writeHead(200); s.end('today ' + new Date().toISOString().slice(0, 10)) }).listen(Number(process.argv[2]), '127.0.0.1')
+`)
+    const c = join(dir, 'clock-case3.json')
+    writeFileSync(c, JSON.stringify({ records: { requests: [{ method: 'GET', path: '/' }] }, params: {}, clock: '2020-01-01T10:00:00Z', stores: {}, session: null }))
+    const out = join(dir, 'clock-out3.json')
+    const wrap = `export DYLD_INSERT_LIBRARIES=${LIB} DYLD_FORCE_FLAT_NAMESPACE=1 FAKETIME='@{clock_datetime}';`
+    const r = spawnSync(process.execPath, [fileURLToPath(new URL('../../plugins/rig/scripts/rig_http.ts', import.meta.url)), 'run',
+      '--case', c, '--out', out, '--start', `${process.execPath} ${srv} {port}`, '--clock-wrap', wrap], { encoding: 'utf8', timeout: 30_000 })
+    assert.equal(r.status, 0, r.stdout + r.stderr)
+    const o = P.load(out)
+    assert.equal(o['clock_applied'], '2020-01-01T10:00:00Z')
+    assert.match(o['screens'][0]['body'], /today 2020-01-01/)
   })
 })
