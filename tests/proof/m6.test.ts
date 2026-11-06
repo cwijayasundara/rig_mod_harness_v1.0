@@ -11,7 +11,8 @@ import * as P from '../../plugins/rig/scripts/rig_proof.ts'
 
 const GU = 'job:READCUST'
 let dir: string, ws: P.WS
-const obs = (msgs: string[], ms?: number) => ({ return_code: 0, abend: null, messages: msgs, stores: {}, ...(ms != null && { elapsed_ms: ms }) })
+const obs = (msgs: string[], ms?: number, clock?: string) => ({ return_code: 0, abend: null, messages: msgs, stores: {}, ...(ms != null && { elapsed_ms: ms }), ...(clock && { clock_applied: clock }) })
+let APPLY = true
 
 /** One traffic item per clock, both sides written; `bad` names the clocks where modern differs. */
 function day(name: string, clocks: string[], bad: string[] = [], ms: [number, number] = [100, 120]) {
@@ -19,8 +20,8 @@ function day(name: string, clocks: string[], bad: string[] = [], ms: [number, nu
   for (const clock of clocks) {
     const f = `${clock.slice(0, 10)}.json`
     writeFileSync(join(dir, name, 't', f), JSON.stringify({ input: { records: { CUSTFILE: [] }, params: {}, clock, stores: {}, session: null } }))
-    writeFileSync(join(dir, name, 'l', f), JSON.stringify(obs(['A'], ms[0])))
-    writeFileSync(join(dir, name, 'm', f), JSON.stringify(obs(bad.includes(clock) ? ['B'] : ['A'], ms[1])))
+    writeFileSync(join(dir, name, 'l', f), JSON.stringify(obs(['A'], ms[0], APPLY ? clock : undefined)))
+    writeFileSync(join(dir, name, 'm', f), JSON.stringify(obs(bad.includes(clock) ? ['B'] : ['A'], ms[1], APPLY ? clock : undefined)))
   }
   return { t: join(dir, name, 't'), l: join(dir, name, 'l'), m: join(dir, name, 'm') }
 }
@@ -35,7 +36,7 @@ const REQ = { observables: ['READCUST.message', 'READCUST.return_code'], calenda
 const WINDOW = ['2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05', '2026-11-06', '2026-09-30', '2026-10-31', '2027-02-28', '2026-12-31']
   .map((d) => `${d}T02:00:00Z`)
 
-beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'rig-m6-')); ws = new P.WS(dir, 'cd') })
+beforeEach(() => { APPLY = true; dir = mkdtempSync(join(tmpdir(), 'rig-m6-')); ws = new P.WS(dir, 'cd') })
 afterEach(() => rmSync(dir, { recursive: true, force: true }))
 
 describe('shadow runs', () => {
@@ -66,6 +67,16 @@ describe('shadow runs', () => {
     const cmp = join(dir, 'cmp.ts')
     writeFileSync(cmp, "console.log(JSON.stringify({equal: true, compared: ['READCUST/return_code']}))\n")
     assert.throws(() => P.shadow(ws, GU, 'K10', d.t, d.l, d.m, `node ${cmp}`, [], 'e', 'shadow'), /outside the observable id grammar/)
+  })
+})
+
+describe('calendar events need the clock applied (M6 exit run)', () => {
+  test('a clock that is only a label covers no calendar event', () => {
+    APPLY = false
+    const out = run(day('d1', WINDOW))
+    assert.deepEqual(out['calendar_events'], [])
+    assert.equal([...P.allRuns(ws)][0]!['coverage']['clock_not_applied']['cases'], 9)
+    assert.ok((P.verdict(ws, GU, 'V10', 'K10', REQ, false)['reasons'] as string[]).some((x) => /calendar event weekday_mon not covered/.test(x)))
   })
 })
 

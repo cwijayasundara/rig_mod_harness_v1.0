@@ -914,7 +914,12 @@ export function shadow(ws: WS, gateUnit: string, key: string, trafficDir: string
     const r: Obj = { case: c['id'], classes: c['classes'], pass: cmpd.equal, compared: cmpd.compared, fresh: false, traffic: f }
     for (const oid of cmpd.compared) bump(coverage['observables'], oid)
     for (const cl of c['classes'] as string[]) { bump(coverage['classes'], cl); if (cl.startsWith('hazard:')) bump(coverage['hazards'], cl.slice(7)) }
-    coverage['calendar_events'].push(...calendarEvents(c['input']['clock'], c['input']['params']))
+    // Rule B: a calendar event counts only when both runners applied the clock to the process and say so
+    // (`clock_applied` equal to the input clock). A clock that is only a label exercised no date (M6 exit run).
+    const clock = c['input']['clock']
+    if (clock != null && legacy['clock_applied'] === clock && modern['clock_applied'] === clock) {
+      coverage['calendar_events'].push(...calendarEvents(clock, c['input']['params']))
+    } else if (clock != null) bump(coverage['clock_not_applied'] ??= {}, 'cases')
     const le = elapsed(legacy), me = elapsed(modern)
     if (le !== null && me !== null) { coverage['timing'].cases++; coverage['timing'].legacy_ms += le; coverage['timing'].modern_ms += me }
     if (!r['pass']) coverage['mismatches'].push(c['id'])

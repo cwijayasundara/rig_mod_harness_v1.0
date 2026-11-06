@@ -29,6 +29,10 @@ Traffic is what the entry point would see in production, one `<name>.json` per r
 Run every item on legacy and on modern with the runners the judge uses, each side seeded only from the item, and
 write `<name>.json` observations to `work/$system/shadow/<run>/legacy/` and `.../modern/`. Each runner adds
 `elapsed_ms` (wall clock of the job or request alone) to its observation when it can measure it; it is not compared.
+A runner that sets the process clock to the item's clock (an environment variable the code reads, or a fake-time
+library for code that reads the system clock) writes `clock_applied: <that clock>`. Without it on both sides, the
+item covers no calendar event (Rule B): a clock that is only a label exercised no date. Say in `CUTOVER.md` how the
+clock was applied, or that it was not.
 
 ## 3 — Record
 

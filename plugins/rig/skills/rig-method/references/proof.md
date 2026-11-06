@@ -108,7 +108,8 @@ only when it passed in one reference environment and failed in another. Reruns a
 
 The same `run.json` with `mode: "shadow"`, `stage` (shadow, canary, primary), every traffic item as a case with
 origin `shadow` and class `shadow:traffic`, and `coverage.timing` (`cases`, `legacy_ms`, `modern_ms`: the sum of each
-side's `elapsed_ms` where both recorded one). Verdict, calendar and obligations read it like any run. V9 is the gap
+side's `elapsed_ms` where both recorded one). Calendar events come only from items whose two observations both carry
+`clock_applied` equal to the input clock; the others are counted in `coverage.clock_not_applied`. Verdict, calendar and obligations read it like any run. V9 is the gap
 `timing_max_ratio` in the requirements adds when modern exceeds that multiple of legacy, or when no run timed both sides.
 
 ## Verdicts
