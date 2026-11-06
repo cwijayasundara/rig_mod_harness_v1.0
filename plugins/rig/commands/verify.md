@@ -35,8 +35,10 @@ Write `work/$system/requirements/<gate-unit>-<rung>.json` (not under `evidence/`
 - `observables`: every observable id on the gate unit's surface (Rule B: each must have been compared), plus every id the set's `class_observables` names (`<U>.timing`, `<U>.repeat`), even when the surface does not list it: a class that needs an observable is only covered if that observable is required.
 - `input_digests`: `true` when the unit's runners write `input_digest` (they should). Then a compared case without
   one on both sides is a gap, so an input form that loses a distinction cannot go unseen.
-- `timing_max_ratio`: the limit for modern against legacy elapsed time (V9), from the owner's batch window or latency
-  budget. Required when the surface lists `<U>.timing`: that id counts as compared only where both sides recorded
+- `timing_max_ms` and/or `timing_max_ratio` (V9), from the owner's batch window or latency budget: `timing_max_ms` is a
+  budget for the slowest modern run, in milliseconds (for a job whose legacy run is too short for a ratio to mean
+  anything, such as a 4 ms COBOL job against a JVM start-up); `timing_max_ratio` holds the summed modern time to a
+  multiple of legacy. Either is required when the surface lists `<U>.timing`: that id counts as compared only where both sides recorded
   `elapsed_ms`, and without a limit it is a gap.
 - `classes`: `{class: minimum inputs}` from the set.
 - `fresh_classes` (V4): every required class.

@@ -238,7 +238,7 @@ describe('core 4, 5, 8, 9: the commands say it', () => {
     assert.match(doc('commands/oracles.md'), /small finite domain/)
   })
   test('verify.md requires timing_max_ratio for <U>.timing; proof.md: HTTP stores print semantics', () => {
-    assert.match(doc('commands/verify.md'), /Required when the surface lists `<U>\.timing`/)
+    assert.match(doc('commands/verify.md'), /[Rr]equired when the surface lists `<U>\.timing`/)
     assert.match(doc('skills/rig-method/references/proof.md'), /stores command to print each table's `semantics`/)
   })
   test('repeat and class_observables are documented where runners, sets and the Spring hazards are written', () => {
@@ -455,7 +455,7 @@ describe('round 2 item 27: timing and HTTP store semantics are recorded', () => 
     P.judge(ws, 'S', key(), o.l, o.m, [], undefined, [], 'env')
     const run = [...P.allRuns(ws)][0]!
     assert.equal(run['coverage']['observables']['INTCALC.timing'], 20)
-    assert.deepEqual(run['coverage']['timing'], { cases: 20, legacy_ms: 2000, modern_ms: 3000 })
+    assert.deepEqual(run['coverage']['timing'], { cases: 20, legacy_ms: 2000, modern_ms: 3000, modern_max_ms: 150 })
     const req = { observables: ['INTCALC.timing', 'INTCALC.message'], timing_max_ratio: 2 }
     assert.equal(P.verdict(ws, GU, 'V4', key(), req, false)['verdict'], 'PROVEN')
     const slow = P.verdict(ws, GU, 'V4', key(), { ...req, timing_max_ratio: 1.2 }, false)
@@ -673,7 +673,7 @@ describe('round 2 items 30-32: reports that say what they mean', () => {
     assert.deepEqual(c['not_run'], {})
     assert.deepEqual(c['ambiguous_inputs'], [])
     assert.deepEqual(c['class_unreached'], {})
-    assert.deepEqual(c['timing'], { cases: 0, legacy_ms: 0, modern_ms: 0 })
+    assert.deepEqual(c['timing'], { cases: 0, legacy_ms: 0, modern_ms: 0, modern_max_ms: 0 })
     assert.equal(P.verdict(ws, GU, 'V4', key(), {}, false)['verdict'], 'PROVEN')
   })
   test('32: verify.md: class_observables ids join the requirements; a .ts comparator example', () => {
@@ -768,5 +768,49 @@ describe('round 2 item 29 (owner decision): who has seen judge outcomes may not 
       assert.match(run({ session_id: 's1', ...edit }), /has seen judge outcomes/)
       assert.equal(run({ session_id: 's2', ...edit }), '', 'another session is not marked')
     } finally { rmSync(root, { recursive: true, force: true }) }
+  })
+})
+
+describe('owner decision V9: an absolute budget per run (timing_max_ms)', () => {
+  const timedObs = (ms: number) => ({ ...obs('A'), elapsed_ms: ms })
+  function run(lms: number, mms: number[]) {
+    const pool = Array.from({ length: 20 }, (_, i) => add(i, ['ok']))
+    P.buildSet(ws, 'S', GU, 'executable', pool, { ok: 'ok' }, {})
+    const l = join(dir, 'obs', 'r1', 'l'), m = join(dir, 'obs', 'r1', 'm')
+    mkdirSync(l, { recursive: true }); mkdirSync(m, { recursive: true })
+    pool.forEach((id, i) => { writeFileSync(join(l, `${id}.json`), JSON.stringify(timedObs(lms))); writeFileSync(join(m, `${id}.json`), JSON.stringify(timedObs(mms[i % mms.length]!))) })
+    P.judge(ws, 'S', key(), l, m, [], undefined, [], 'env')
+  }
+  test('the slowest modern run is recorded', () => {
+    run(4, [860, 974, 647])
+    assert.equal([...P.allRuns(ws)][0]!['coverage']['timing']['modern_max_ms'], 974)
+  })
+  test('within the budget the timing passes, although the ratio is about 200x; over it, a gap names the slowest run', () => {
+    run(4, [860, 974, 647])
+    const req = { observables: ['INTCALC.timing'], timing_max_ms: 2000 }
+    assert.equal(P.verdict(ws, GU, 'V4', key(), req, false)['verdict'], 'PROVEN')
+    const tight = P.verdict(ws, GU, 'V4', key(), { ...req, timing_max_ms: 900 }, false)
+    assert.equal(tight['verdict'], 'NOT_PROVEN')
+    assert.ok(tight['reasons'].some((x: string) => /974 ms.*budget is 900 ms/.test(x)), tight['reasons'].join('; '))
+  })
+  test('with both limits, both apply', () => {
+    run(4, [860])
+    const v = P.verdict(ws, GU, 'V4', key(), { observables: ['INTCALC.timing'], timing_max_ms: 2000, timing_max_ratio: 2 }, false)
+    assert.ok(v['reasons'].some((x: string) => /x legacy/.test(x)))
+  })
+  test('a run recorded before timing_max_ms existed is a gap that says so, not "Infinity ms"', () => {
+    run(4, [860])
+    const rp = join(ws.evidence, key(), readdirSync(join(ws.evidence, key()))[0]!, 'run.json')
+    const r = P.load(rp); delete r['coverage']['timing']['modern_max_ms']; writeFileSync(rp, JSON.stringify(r))
+    const v = P.verdict(ws, GU, 'V4', key(), { timing_max_ms: 2000 }, false)
+    assert.ok(v['reasons'].some((x: string) => /predates timing_max_ms/.test(x)), v['reasons'].join('; '))
+  })
+  test('a budget with no timed run is a gap', () => {
+    const pool = Array.from({ length: 20 }, (_, i) => add(i, ['ok']))
+    P.buildSet(ws, 'S', GU, 'executable', pool, { ok: 'ok' }, {})
+    const o = observe('r1', pool)
+    P.judge(ws, 'S', key(), o.l, o.m, [], undefined, [], 'env')
+    const v = P.verdict(ws, GU, 'V4', key(), { timing_max_ms: 2000 }, false)
+    assert.ok(v['reasons'].some((x: string) => /no run recorded elapsed_ms on both sides/.test(x)), v['reasons'].join('; '))
   })
 })

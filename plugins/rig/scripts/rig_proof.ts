@@ -584,7 +584,7 @@ export function calendarEvents(clock: string | null | undefined, params: Obj | n
 
 type Coverage = { observables: Record<string, number>; classes: Record<string, number>; hazards: Record<string, number>
   calendar_events: string[]; mismatches: string[]; not_run?: Record<string, number>; class_unreached?: Record<string, number>
-  timing?: { cases: number; legacy_ms: number; modern_ms: number }; ambiguous_inputs?: string[][] }
+  timing?: { cases: number; legacy_ms: number; modern_ms: number; modern_max_ms: number }; ambiguous_inputs?: string[][] }
 
 const bump = (o: Record<string, number>, k: string) => { o[k] = (o[k] ?? 0) + 1 }
 
@@ -605,7 +605,7 @@ export function judge(ws: WS, setName: string, key: string, legacyDir: string, m
   const results: Obj[] = []
   // Every field is written, empty when nothing happened, so an absent field means "not recorded" (ENG-E 5).
   const coverage: Coverage = { observables: {}, classes: {}, hazards: {}, calendar_events: [], mismatches: [], not_run: {},
-    class_unreached: {}, ambiguous_inputs: [], timing: { cases: 0, legacy_ms: 0, modern_ms: 0 } }
+    class_unreached: {}, ambiguous_inputs: [], timing: { cases: 0, legacy_ms: 0, modern_ms: 0, modern_max_ms: 0 } }
   const tmp = join(ws.evidence, '.tmp')
   const digests: [string, string, string][] = []
   // Errors name no case: the judge returns no case id (judge.md). They count, and say where to look.
@@ -662,8 +662,8 @@ export function judge(ws: WS, setName: string, key: string, legacyDir: string, m
       const le = elapsed(legacy), me = elapsed(modern)
       if (le !== null && me !== null) {
         r['compared'] = uniqSorted([...cmpd.compared, `${unit}.timing`])
-        const t = (coverage.timing ??= { cases: 0, legacy_ms: 0, modern_ms: 0 })
-        t.cases++; t.legacy_ms += le; t.modern_ms += me
+        const t = (coverage.timing ??= { cases: 0, legacy_ms: 0, modern_ms: 0, modern_max_ms: 0 })
+        t.cases++; t.legacy_ms += le; t.modern_ms += me; t.modern_max_ms = Math.max(t.modern_max_ms, me)
       }
       for (const oid of r['compared'] as string[]) bump(coverage.observables, oid)
       // What each runner actually gave the program (round 2 item 11): never compared, used to find inputs the modern
@@ -1168,7 +1168,7 @@ export function shadow(ws: WS, gateUnit: string, key: string, trafficDir: string
   const items = ls(trafficDir).filter((f) => f.endsWith('.json'))
   if (items.length === 0) throw new Bad(`no traffic in ${trafficDir}`)
   const results: Obj[] = []
-  const coverage: Obj = { observables: {}, classes: {}, hazards: {}, calendar_events: [], mismatches: [], timing: { cases: 0, legacy_ms: 0, modern_ms: 0 } }
+  const coverage: Obj = { observables: {}, classes: {}, hazards: {}, calendar_events: [], mismatches: [], timing: { cases: 0, legacy_ms: 0, modern_ms: 0, modern_max_ms: 0 } }
   const tmp = join(ws.evidence, '.tmp')
   // One canonical input with two different legacy outputs: the recorded input is incomplete (R4-03, PROPOSAL §14).
   const legacyOf = new Map<string, string>(), collided = new Set<string>()
@@ -1200,6 +1200,7 @@ export function shadow(ws: WS, gateUnit: string, key: string, trafficDir: string
     const le = elapsed(legacy), me = elapsed(modern)
     if (le !== null && me !== null) {
       coverage['timing'].cases++; coverage['timing'].legacy_ms += le; coverage['timing'].modern_ms += me
+      coverage['timing'].modern_max_ms = Math.max(coverage['timing'].modern_max_ms ?? 0, me)
       r['compared'] = uniqSorted([...r['compared'], `${unit}.timing`]); bump(coverage['observables'], `${unit}.timing`)
     }
     if (!r['pass']) coverage['mismatches'].push(c['id'])
@@ -1428,8 +1429,8 @@ export function verdict(ws: WS, gateUnit: string, rung: string, key: string, req
     const bad = observableIdProblem(gateUnit, oid)
     if (bad) gaps.push({ observables: [oid], requirement: 'class:any', reason: `observable ${oid} is not an id the comparator records: ${bad}` })
     else if ((cov.observables[oid] ?? 0) < 1) gaps.push({ observables: [oid], requirement: 'class:any', reason: `observable ${oid} was never compared` })
-    else if (oid === `${unitName(gateUnit)}.timing` && req['timing_max_ratio'] == null) {
-      gaps.push({ observables: [oid], requirement: 'class:timing', reason: `observable ${oid} was timed but has no limit: set timing_max_ratio in the requirements (V9)` })
+    else if (oid === `${unitName(gateUnit)}.timing` && req['timing_max_ratio'] == null && req['timing_max_ms'] == null) {
+      gaps.push({ observables: [oid], requirement: 'class:timing', reason: `observable ${oid} was timed but has no limit: set timing_max_ms or timing_max_ratio in the requirements (V9)` })
     }
   }
   for (const [cl, n] of Object.entries((req['classes'] ?? {}) as Record<string, number>)) {
@@ -1485,6 +1486,16 @@ export function verdict(ws: WS, gateUnit: string, rung: string, key: string, req
     const max = Number(req['timing_max_ratio'])
     if (t.n === 0) gaps.push({ observables: obsReq, requirement: 'class:timing', reason: 'no run recorded elapsed_ms on both sides' })
     else if (t.m > t.l * max) gaps.push({ observables: obsReq, requirement: 'class:timing', reason: `modern took ${(t.m / Math.max(t.l, 1)).toFixed(2)}x legacy over ${t.n} case(s); the limit is ${max}x` })
+  }
+  // V9 by an absolute budget per run (the owner's choice for jobs whose legacy run is too short for a ratio to mean
+  // anything, 2026-11-06): the slowest modern run against timing_max_ms.
+  if (req['timing_max_ms'] != null) {
+    const budget = Number(req['timing_max_ms'])
+    const timed = runs.filter((r) => (r['coverage']['timing']?.['cases'] ?? 0) > 0)
+    const slowest = Math.max(0, ...timed.map((r) => Number(r['coverage']['timing']['modern_max_ms'] ?? Infinity)))
+    if (timed.length === 0) gaps.push({ observables: obsReq, requirement: 'class:timing', reason: 'no run recorded elapsed_ms on both sides' })
+    else if (timed.some((r) => r['coverage']['timing']['modern_max_ms'] == null)) gaps.push({ observables: obsReq, requirement: 'class:timing', reason: 'a timed run recorded no slowest run (modern_max_ms; it predates timing_max_ms): judge again' })
+    else if (slowest > budget) gaps.push({ observables: obsReq, requirement: 'class:timing', reason: `the slowest modern run took ${slowest} ms; the budget is ${budget} ms per run` })
   }
   for (const cap of (req['capped'] ?? []) as Obj[]) { // reference fidelity (§6.8)
     gaps.push({ observables: cap['observables'], requirement: `hazard:${cap['hazard']}`, reason: `environment differs from production: ${cap['hazard']}` })

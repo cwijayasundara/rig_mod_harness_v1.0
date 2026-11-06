@@ -13,4 +13,4 @@ oracle-engineer adds an input class `hazard:<id>` for each one the generator col
 | `S-RESTART` | `JobRepository`, identical job parameters | "Job instance already complete": the second run does nothing | The same case with `"repeat": 2` (both runners run it twice in one environment); `class_observables` `["<U>.repeat"]` |
 | `S-CONVERT` | Spring conversion, `@Value`, Jackson | Numbers and dates parsed by the framework (locale, leading zeros, sign) | PARM and fields with leading zeros, trailing sign, spaces |
 | `S-ORDER` | Bean or step ordering, parallel steps, `@Async` | Output order differs from the JCL step order | Any job with more than one step or output line |
-| `S-STARTUP` | Application context start-up | V9: the batch window, per run | Every case; both runners record `elapsed_ms`; `class_observables` `["<U>.timing"]`, and `timing_max_ratio` in the requirements |
+| `S-STARTUP` | Application context start-up | V9: the batch window, per run | Every case; both runners record `elapsed_ms`; `class_observables` `["<U>.timing"]`, and `timing_max_ms` (a per-run budget; a ratio over a few ms of COBOL means little) or `timing_max_ratio` in the requirements |
