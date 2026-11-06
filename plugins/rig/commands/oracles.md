@@ -58,6 +58,9 @@ Give `--class-observables` for a class that is only reached when a particular ob
 hazard needs `<U>.timing` (runners record `elapsed_ms`), a second-run hazard needs `<U>.repeat` (its cases carry
 `repeat`). A case of that class that did not compare it does not count toward the class.
 
+When a change to the oracle needs the modern runner to change too (a new observation field, `repeat`), do not edit
+`modernized/`: hand the contract to the fixer (`agents/fixer.md`, "A runner-contract change").
+
 A class is **exhaustive** when every possible input of it is already a case (the one empty file, the four values of a
 one-byte flag). Name it with `--exhaustive` and say why in the class description. It is then exempt from the
 fresh-input rules, and its cases re-run every time instead. A generator with a small finite domain (a handful of

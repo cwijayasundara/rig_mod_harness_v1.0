@@ -19,7 +19,10 @@ All five input keys are required. Use `{}` or `null` for none. One optional key:
 runs the unit N times in one environment without resetting it between runs, for hazards that only show on a second run
 (Spring Batch's "job instance already complete", S-RESTART). Leave it out for one run. The same canonical input is the same case: `case add`
 then adds the classes to the existing case and prints `"merged": true` with `previous_classes` (a relabel, not a new
-input). A generator that meant a new input must draw again.
+input). A generator that meant a new input must draw again. A case's `expected` never changes: `case add` refuses a
+different one. In executable and reconcile mode the judge compares the live legacy observation, so an `expected` from
+an older runner is harmless there; in recorded mode `expected` is the recorded production output and is the only
+legacy evidence.
 
 ## Observations (one file per case per side)
 
@@ -107,7 +110,7 @@ Per case: `classes`, `pass`, `compared`, `fresh`, `property_only` (recorded mode
 `accepted_by` (a person, through `/rig:review`), `status`. Discharged only by runs that exercised the requirement on
 those observables, at least `min_count` times with no mismatch, in any environment and any later gate unit.
 
-## Oracle cap (`oracles/<system>/caps/CAP-*.json`)
+## Oracle cap (`oracles/<system>/caps/CAP-*.json`; an agent writes only the draft `work/<system>/caps/CAP-*.draft.json`)
 
 ```json
 { "id": "CAP-001", "gate_unit": "job:READCUST", "class": "abend:open_failure", "environment": "gnucobol-3.2-bdb",

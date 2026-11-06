@@ -44,10 +44,11 @@ the person's name to `approved_by`.
 
 ## Oracle caps (`caps`)
 
-For each `oracles/$system/caps/CAP-*.json` with an empty `signed_by`: show the class, the environment, the reason and
-its evidence (the PREFLIGHT row), how many cases it would take out of pass and fail, and the obligation it creates.
-Ask *Sign: the oracle cannot be trusted for this class here*, *Reject*, or *Not now*. Sign writes the person's name
-and the date. Rejecting deletes nothing: write `"rejected_by"` and leave it unsigned.
+For each draft `work/$system/caps/CAP-*.draft.json` (agents write only drafts) and each `oracles/$system/caps/CAP-*.json`
+with an empty `signed_by`: show the class, the environment, the reason and its evidence (the PREFLIGHT row), how many
+cases it would take out of pass and fail, and the obligation it creates. Ask *Sign: the oracle cannot be trusted for
+this class here*, *Reject*, or *Not now*. Sign writes the person's name and the date, and moves a draft to
+`oracles/$system/caps/CAP-*.json`. Rejecting deletes nothing: write `"rejected_by"` and leave it unsigned.
 
 ## ADRs (`adrs`)
 

@@ -4,8 +4,10 @@ argument-hint: <system> <gate-unit> <set>
 arguments: system gate_unit set
 ---
 
-Load the `rig-method` skill and read `references/proof.md` first. Dispatch the `judge` agent with these steps. It is
-the only role that runs the sealed cases. Whatever it returns to a session that edits `modernized/` must be the
+Load the `rig-method` skill and read `references/proof.md` first. Run these steps in the `judge` agent, or in a main
+session that will not change `modernized/` afterwards (a driver session; the owner's decision, 2026-11-06). The guard
+enforces the order: once a session or agent has run `rig_proof.ts judge` or read the judge's observations or
+`evidence/`, it may no longer write `modernized/`. Whatever reaches a session that edits `modernized/` must be the
 script's counts and class descriptions only.
 
 1. **Fresh inputs.** For every required class of the set, draw new inputs with its generator (a new seed each run),

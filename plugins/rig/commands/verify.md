@@ -21,9 +21,9 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.ts canary --ws . --system $system -
 ```
 
 If a class fails because the reference environment behaves unlike production (you can cite the difference, as in
-`PREFLIGHT.md` check 4), never change the port or the oracle to make it pass. Write an unsigned
-`oracles/$system/caps/CAP-*.json` (format in `references/proof.md`) and list it for a person to sign with
-`/rig:review $system caps`.
+`PREFLIGHT.md` check 4), never change the port or the oracle to make it pass. Write a draft `work/$system/caps/CAP-*.draft.json` (format in
+`references/proof.md`, `signed_by` null) and list it for a person with `/rig:review $system caps`. Never write under
+`oracles/$system/caps/`: a cap there is a person's decision, and only `/rig:review` puts one there.
 
 An illegal normalizer, a delta that is not total or leaves an obligation unmapped, or a comparator that misses a
 canary, makes every rung that used it NOT_PROVEN.

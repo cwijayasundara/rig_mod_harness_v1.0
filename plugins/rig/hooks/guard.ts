@@ -13,16 +13,21 @@
  *    only `work/<system>/<WU>/review-b<n>/` and the legacy tree. `<n>` is empty for attempt 1 and the attempt number
  *    after that (`review-a2/`). Either may also read Claude Code's own saved tool output (`~/.claude/projects/…/
  *    tool-results/`), which is where a long result of its own tool call is put.
+ * 5. Whoever has seen judge outcomes may not then change the modern code. Once a session (or a subagent of it) runs
+ *    `rig_proof.ts judge` or reads the judge's observations (`work/<system>/judge/`) or `evidence/`, that session or
+ *    subagent may no longer write `modernized/`. The judge steps may run in the judge agent or in a main session that
+ *    does not edit the modern code afterwards (the owner's decision, 2026-11-06). The mark is kept in
+ *    `.rig/judge-seen/`, per session and agent.
  *
  * The guard is a second line of defence: the commands already say all this. It matches paths in file tools exactly
  * and in Bash commands by pattern, so a determined script could still get round it. The hard boundary is the
  * operating system (a sandbox, or separate checkouts).
  */
 
-import { appendFileSync, mkdirSync, readFileSync } from 'node:fs'
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { isAbsolute, join, normalize, relative, sep } from 'node:path'
 
-type Input = { tool_name?: string; tool_input?: Record<string, unknown>; agent_type?: string; cwd?: string }
+type Input = { tool_name?: string; tool_input?: Record<string, unknown>; agent_type?: string; agent_id?: string; session_id?: string; cwd?: string }
 
 const WRITE_TOOLS = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit'])
 const READ_TOOLS = new Set(['Read', 'Grep', 'Glob'])
@@ -102,7 +107,22 @@ function relativize(cmd: string, root: string, cwd?: string): string {
 /** A path at or above a folder hidden from workers: searching it searches the hidden folder too. */
 const aboveHidden = (p: string) => p === '' || p === '.' || p === 'work' || /^work\/[^/]+(\/[^/]+)?$/.test(p)
 
-export function decide(inp: Input, root: string): string | null {
+const JUDGE_OUTCOMES = [/^work\/[^/]+\/([^/]+\/)?judge(\/|$)/, /^evidence(\/|$)/]
+
+/** Does this call show the caller judge outcomes: running the judge, or reading its observations or the evidence? */
+export function seesJudge(inp: Input, root: string): boolean {
+  const tool = inp.tool_name ?? ''
+  if (tool === 'Bash') {
+    const cmd = relativize(String(inp.tool_input?.['command'] ?? ''), root, inp.cwd)
+    if (/rig_proof\.ts\s+judge\b/.test(cmd)) return true
+    if (/rig_proof\.ts\b/.test(cmd)) return false // the script's other commands print counts and verdicts only
+    return bashMentions(cmd).some((p) => JUDGE_OUTCOMES.some((r) => r.test(p)))
+  }
+  return READ_TOOLS.has(tool) && pathsOf(inp, root).some((p) => JUDGE_OUTCOMES.some((r) => r.test(p)))
+}
+
+/** `sawJudge`: this session or subagent has seen judge outcomes before (rule 5). */
+export function decide(inp: Input, root: string, sawJudge = false): string | null {
   const tool = inp.tool_name ?? ''
   const who = role(inp.agent_type)
   const sub = Boolean(inp.agent_type)
@@ -132,6 +152,13 @@ export function decide(inp: Input, root: string): string | null {
       const p = written.find((f) => PERSON_ONLY.some((r) => r.test(f)))
       if (p) return `${p} records a person's decision; a subagent may not write it`
     }
+  }
+
+  // 5. who has seen judge outcomes does not change the modern code afterwards
+  if (sawJudge) {
+    const touched = tool === 'Bash' ? written : WRITE_TOOLS.has(tool) ? files : []
+    const p = touched.find((f) => /^modernized(\/|$)/.test(f))
+    if (p) return `${p}: this ${sub ? 'agent' : 'session'} has seen judge outcomes, so it may not change the modern code; a change goes through the fixer`
   }
 
   // 3. workers and fixers never see the oracle
@@ -174,7 +201,14 @@ function main(): void {
     return // not our input: allow
   }
   const root = process.env['CLAUDE_PROJECT_DIR'] ?? inp.cwd ?? process.cwd()
-  const reason = decide(inp, root)
+  const key = `${inp.session_id ?? 'no-session'}--${inp.agent_id ?? inp.agent_type ?? 'main'}`.replace(/[^\w.-]+/g, '_')
+  const mark = join(root, '.rig', 'judge-seen', key)
+  let reason = decide(inp, root, existsSync(mark))
+  if (reason === null && seesJudge(inp, root)) {
+    // Fail closed: a judge outcome nobody recorded seeing would let the same caller edit the modern code afterwards.
+    try { mkdirSync(join(root, '.rig', 'judge-seen'), { recursive: true }); writeFileSync(mark, new Date().toISOString() + '\n') }
+    catch { reason = 'cannot record in .rig/judge-seen/ that this caller sees judge outcomes (rule 5), so it may not see them' }
+  }
   if (reason === null) return
   // Every denial is recorded by the guard itself, so a run's report cannot leave one out (M3 exit run 2 did).
   try {

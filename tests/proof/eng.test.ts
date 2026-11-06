@@ -257,6 +257,14 @@ describe('core 4, 5, 8, 9: the commands say it', () => {
     assert.match(doc('commands/judge.md'), /`--harness` lists the oracle harness files/)
     assert.match(doc('commands/oracles.md'), /A third\s+mode, `reconcile`/)
   })
+  test('owner decisions 23, 25, 29, 33 are in the commands and agents', () => {
+    assert.match(doc('commands/verify.md'), /work\/\$system\/caps\/CAP-\*\.draft\.json/)
+    assert.match(doc('commands/review.md'), /moves a draft to/)
+    assert.match(doc('skills/rig-method/references/proof.md'), /A case's `expected` never changes/)
+    assert.match(doc('commands/judge.md'), /or in a main\s+session that will not change `modernized\/` afterwards/)
+    assert.match(doc('agents/fixer.md'), /A runner-contract change/)
+    assert.match(doc('commands/oracles.md'), /hand the contract to the fixer/)
+  })
   test('verify.md passes --gate-units to the architecture check', () => {
     assert.match(doc('commands/verify.md'), /rig_arch\.ts check[^`]*--gate-units \$gate_unit/)
   })
@@ -724,5 +732,41 @@ describe('round 2 item 24: V7 reconciliation of one dataset can be proven, and i
     const before = P.evidenceKey(ws, GU, 'V3', join(dir, 'legacy'), ['modern/Intcalc.java'], undefined, [], {}, {})['key']
     assert.equal(P.evidenceKey(ws, GU, 'V3', join(dir, 'legacy'), ['modern/Intcalc.java'], undefined, [], {}, {}, [])['key'], before)
     assert.notEqual(P.evidenceKey(ws, GU, 'V3', join(dir, 'legacy'), ['modern/Intcalc.java'], undefined, [], {}, {}, harness())['key'], before)
+  })
+})
+
+describe('round 2 item 29 (owner decision): who has seen judge outcomes may not then edit modernized/', () => {
+  test('decide: after seeing the judge, a write to modernized/ is denied; before, it is allowed', async () => {
+    const G = await import('../../plugins/rig/hooks/guard.ts')
+    const w = { tool_name: 'Edit', tool_input: { file_path: '/ws/modernized/app/Run.ts' }, cwd: '/ws' }
+    assert.equal(G.decide(w, '/ws', false), null)
+    assert.match(G.decide(w, '/ws', true) ?? '', /has seen judge outcomes/)
+    assert.match(G.decide({ tool_name: 'Bash', tool_input: { command: 'echo x > modernized/app/x.txt' }, cwd: '/ws' }, '/ws', true) ?? '', /has seen judge outcomes/)
+    assert.equal(G.decide({ tool_name: 'Write', tool_input: { file_path: '/ws/work/sys/ENG.md' }, cwd: '/ws' }, '/ws', true), null, 'reports are still allowed')
+  })
+  test('seesJudge: running the judge or reading judge observations or evidence marks the caller', async () => {
+    const G = await import('../../plugins/rig/hooks/guard.ts')
+    const at = (tool: string, input: object) => G.seesJudge({ tool_name: tool, tool_input: input, cwd: '/ws' }, '/ws')
+    assert.ok(at('Bash', { command: 'node /p/scripts/rig_proof.ts judge --ws . --system s --set S --key K' }))
+    assert.ok(at('Read', { file_path: '/ws/work/sys/judge/obs/r1/modern/abc.json' }))
+    assert.ok(at('Read', { file_path: '/ws/evidence/sys/K/r/run.json' }))
+    assert.ok(at('Bash', { command: 'cat work/sys/judge/obs/r1/legacy/a.json' }))
+    assert.ok(!at('Bash', { command: 'node /p/scripts/rig_proof.ts verdict --ws . --system s --gate-unit job:X --rung V3 --key K' }), 'the verdict prints no case outcome')
+    assert.ok(!at('Read', { file_path: '/ws/modernized/app/Run.ts' }))
+  })
+  test('the hook keeps the mark per session and agent: the judge subagent is marked, the main session is not', () => {
+    const root = mkdtempSync(join(tmpdir(), 'rig-guard-'))
+    const G = fileURLToPath(new URL('../../plugins/rig/hooks/guard.ts', import.meta.url))
+    const run = (inp: object) => spawnSync(process.execPath, [G], { input: JSON.stringify({ cwd: root, ...inp }), encoding: 'utf8', env: { ...process.env, CLAUDE_PROJECT_DIR: root } }).stdout
+    try {
+      const edit = { tool_name: 'Edit', tool_input: { file_path: join(root, 'modernized/a.ts') } }
+      assert.equal(run({ session_id: 's1', ...edit }), '', 'main session edits before any judge')
+      run({ session_id: 's1', agent_id: 'j1', agent_type: 'rig:judge', tool_name: 'Bash', tool_input: { command: 'node /p/rig_proof.ts judge --set S' } })
+      assert.equal(run({ session_id: 's1', ...edit }), '', 'the judge subagent ran it, not the main session')
+      assert.match(run({ session_id: 's1', agent_id: 'j1', agent_type: 'rig:judge', ...edit }), /deny/)
+      run({ session_id: 's1', tool_name: 'Read', tool_input: { file_path: join(root, 'work/sys/judge/obs/r/m/a.json') } })
+      assert.match(run({ session_id: 's1', ...edit }), /has seen judge outcomes/)
+      assert.equal(run({ session_id: 's2', ...edit }), '', 'another session is not marked')
+    } finally { rmSync(root, { recursive: true, force: true }) }
   })
 })
