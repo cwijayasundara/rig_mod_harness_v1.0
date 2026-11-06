@@ -205,7 +205,7 @@ export function addCase(ws: WS, inp: Obj, classes: string[], origin: string, exp
     previous = [...c['classes']]
     c['classes'] = uniqSorted([...c['classes'], ...classes])
     if (expected !== null && c['expected'] !== null && canon(c['expected']) !== canon(expected)) {
-      throw new Bad(`case ${id.slice(0, 12)} already has a different expected output`)
+      throw new Bad(`case ${id.slice(0, 12)} already has a different expected output: one input cannot give two outputs, so the recorded input is incomplete (a masked field the output depends on, or an input that was not recorded). Mask so that different values stay different (shadow.md)`)
     }
     if (expected !== null) c['expected'] = expected
   } else {
@@ -1170,6 +1170,9 @@ export function shadow(ws: WS, gateUnit: string, key: string, trafficDir: string
   const results: Obj[] = []
   const coverage: Obj = { observables: {}, classes: {}, hazards: {}, calendar_events: [], mismatches: [], timing: { cases: 0, legacy_ms: 0, modern_ms: 0 } }
   const tmp = join(ws.evidence, '.tmp')
+  // One canonical input with two different legacy outputs: the recorded input is incomplete (R4-03, PROPOSAL §14).
+  const legacyOf = new Map<string, string>(), collided = new Set<string>()
+  const outcome = (o: Obj) => canon(Object.fromEntries(Object.entries(o).filter(([k]) => !['elapsed_ms', 'notes', 'input_digest', 'workdir'].includes(k))))
   for (const f of items) {
     const t = load(join(trafficDir, f))
     const classes = uniqSorted(['shadow:traffic', ...((t['classes'] ?? []) as string[])])
@@ -1177,6 +1180,9 @@ export function shadow(ws: WS, gateUnit: string, key: string, trafficDir: string
     const lp = join(legacyDir, f), mp = join(modernDir, f)
     if (!isFile(lp) || !isFile(mp)) throw new Bad(`traffic ${f}: both sides need an observation (legacy and modern)`)
     const legacy = load(lp), modern = load(mp)
+    const seen = legacyOf.get(c['id']), mine = outcome(legacy)
+    if (seen !== undefined && seen !== mine) collided.add(c['id'])
+    legacyOf.set(c['id'], seen ?? mine)
     const d = withDeltas(applyNormalizers(legacy, normalizers), applyNormalizers(modern, normalizers), deltas, unit)
     const cmpd = runComparator(comparator, d.legacy, d.modern, unit, tmp)
     const badIds = cmpd.compared.map((id) => [id, observableIdProblem(unit, id)]).filter(([, q]) => q !== null)
@@ -1200,6 +1206,7 @@ export function shadow(ws: WS, gateUnit: string, key: string, trafficDir: string
     results.push(r)
   }
   coverage['calendar_events'] = uniqSorted(coverage['calendar_events'])
+  coverage['input_collisions'] = uniqSorted(collided).map((id) => [id])
   const runId = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + '-' + randomUUID().replaceAll('-', '').slice(0, 6)
   dump(join(ws.evidence, key, runId, 'run.json'), { run_id: runId, key, set: setName ?? null, gate_unit: gateUnit, mode: 'shadow',
     stage, environment: envId, deltas: deltas.map((x) => x['id'] ?? null), results, coverage })
@@ -1329,6 +1336,20 @@ const cappedBy = (caps: Obj[], r: Obj, env: string) =>
 
 type Gap = { observables: string[]; requirement: string; reason: string; exclude_environment?: string }
 
+/**
+ * Hazard ids of analysis/<system>/hazards.json whose site is a file of the gate unit's runtime closure. A hazards.json
+ * that exists while graph.json does not cannot be read against a closure, so that is refused (Rule A).
+ */
+export function closureHazards(ws: WS, gateUnit: string): string[] {
+  const hp = join(ws.analysis, 'hazards.json')
+  if (!isFile(hp)) return []
+  if (!isFile(join(ws.analysis, 'graph.json'))) throw new Bad('hazards.json exists but graph.json does not, so the hazards in this gate unit cannot be found')
+  const files = new Set(runtimeClosure(ws, gateUnit))
+  return uniqSorted(((load(hp)['hazards'] ?? []) as Obj[])
+    .filter((h) => typeof h['loc'] === 'string' && files.has(String(h['loc']).replace(/:\d+(-\d+)?$/, '')))
+    .map((h) => String(h['id'])))
+}
+
 /** PROVEN / PROVISIONAL / NOT_PROVEN / FLAKY from every run under the key. Reruns never clear a failure. */
 export function verdict(ws: WS, gateUnit: string, rung: string, key: string, req: Obj, writeObligations: boolean): Obj {
   const keyDir = join(ws.evidence, key)
@@ -1370,6 +1391,11 @@ export function verdict(ws: WS, gateUnit: string, rung: string, key: string, req
   for (const { cases } of capHits.values()) for (const id of cases) notRunCases.delete(id)
   if ([...outcomes.values()].reduce((n, v) => n + v.length, 0) === 0) {
     return { verdict: 'NOT_PROVEN', reasons: ['the runs executed zero cases', ...(notRunCases.size > 0 ? [`${notRunCases.size} case(s) were not run`] : [])], gaps: [] }
+  }
+  const collisions = new Set<string>()
+  for (const run of runs) for (const g of (run['coverage']['input_collisions'] ?? []) as string[][]) for (const id of g) collisions.add(id)
+  if (collisions.size > 0) {
+    return { verdict: 'NOT_PROVEN', gaps: [], reasons: [`${collisions.size} case(s) have recordings with the same case id but different legacy outputs: the recorded input is incomplete (a masked field the output depends on, or an input that was not recorded); mask so that different values stay different`, ...capNote] }
   }
   const flaky: string[] = [], failed: string[] = [], infra: string[] = []
   for (const [id, res] of outcomes) {
@@ -1417,8 +1443,15 @@ export function verdict(ws: WS, gateUnit: string, rung: string, key: string, req
   for (const cl of ((req['fresh_classes'] ?? []) as string[]).filter((c) => !exhaustiveSets.has(c))) {
     if ((freshByClass[cl] ?? 0) < 1) gaps.push({ observables: obsReq, requirement: `class:${cl}`, reason: `class ${cl} had no fresh input compared against legacy` })
   }
-  for (const hz of (req['hazards'] ?? []) as string[]) {
-    if ((cov.hazards[hz] ?? 0) < 1) gaps.push({ observables: obsReq, requirement: `hazard:${hz}`, reason: `hazard ${hz} was never reached` })
+  // Rule A on the requirements file: every hazard the map found in this gate unit's runtime closure is required, whether
+  // or not the file lists it (R4-02: a SYNCPOINT unit of work left out was never injected, and cutover went ahead).
+  const listed = new Set<string>((req['hazards'] ?? []) as string[])
+  const mapped = closureHazards(ws, gateUnit)
+  for (const hz of uniqSorted([...listed, ...mapped])) {
+    if ((cov.hazards[hz] ?? 0) < 1) {
+      const why = listed.has(hz) ? '' : ' (in hazards.json, in the runtime closure, left out of the requirements)'
+      gaps.push({ observables: obsReq, requirement: `hazard:${hz}`, reason: `hazard ${hz}${why} was never reached` })
+    }
   }
   for (const ev of (req['calendar_events'] ?? []) as string[]) {
     if (!cov.calendar.has(ev)) gaps.push({ observables: obsReq, requirement: `calendar:${ev}`, reason: `calendar event ${ev} not covered` })

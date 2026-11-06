@@ -629,15 +629,15 @@ v0.3 is the last paper revision. The next step is the plugin, and the 48 repro s
 
 ## 14. Open risks
 
-Nobody has proven these by a run yet. Each needs a probe before the milestone named.
+Nobody has proven these by a run yet. Each needs a probe before the milestone named. Three were probed by tests on 2026-11-06 (`tests/proof/round4/`, `tests/repros/round4/FINDINGS.md`).
 
 | Risk | Milestone |
 |---|---|
-| CICS SYNCPOINT scope split across two services loses atomicity, and shadow runs do not exercise partial failure | M6 |
-| A REDEFINES mapping to a sealed type cannot express writing through one view and reading through another | M3 |
+| CICS SYNCPOINT scope split across two services loses atomicity, and shadow runs do not exercise partial failure | M6. **Probed 2026-11-06 (R4-02):** real; fixed: `syncpoint` hazard kind with an injected-failure generator, and the verdict requires every mapped hazard in the closure |
+| A REDEFINES mapping to a sealed type cannot express writing through one view and reading through another | M3. **Probed 2026-11-06 (R4-01):** handled by design (one byte area with typed views); pinned by a test |
 | Consumer completeness may stay `False` for most datasets in a real estate. Then normalizers are rarely usable, and V3 must compare exactly almost everywhere. That is safe, but it may produce many differences for humans to review. | M1 |
 | The fixed calendar minimum lengthens every parallel run to at least a quarter end | M6 |
-| Near-duplicate recordings that differ only in masked fields could defeat deduplication | M2 |
+| Near-duplicate recordings that differ only in masked fields could defeat deduplication | M2. **Probed 2026-11-06 (R4-03):** real (FLAKY instead of a failure); fixed: `input_collisions`, deterministic pseudonymization in `shadow.md` |
 
 The third and fourth risks are costs that Rule A imposes on purpose. M1 and M6 should measure them on CardDemo before anyone tunes them.
 

@@ -16,13 +16,18 @@ Traffic is what the entry point would see in production, one `<name>.json` per r
 (`{input, classes?}`, the canonical input of `references/proof.md`) in `work/$system/shadow/<run>/traffic/`:
 
 - **Recorded traffic** first: production inputs captured at the entry point, if `PREFLIGHT.md` lists a Record capability.
+  Recordings are masked before they enter `oracles/`, and the masking must be deterministic pseudonymization: equal values give equal tokens and different values different tokens (a keyed hash per field, the key kept outside the
+  workspace), never one placeholder for every value. Otherwise two recordings become one case id, and the script reports
+  their different legacy outputs as an incomplete input (`input_collisions`), which blocks the verdict.
 - **Replayed days** otherwise: one business day per item, drawn with the set's generators (class `random` and every
   hazard class), with the clock set to the day. Cover the **calendar minimum window** (`rig_proof.ts calendar
   --gate-unit $gate_unit --derived <events from scheduler, PARMs, control cards>` prints it) plus every derived event.
   Say in `CUTOVER.md` that the traffic is replayed, not production: a replay covers an event, it does not prove
   production will look like it.
-- **Injected inputs** for hazards that never occur on their own (invalid packed data): add them as items with their
-  `hazard:<id>` class, so the obligations that need them can be discharged.
+- **Injected inputs** for hazards that never occur on their own (invalid packed data, a failure inside a `syncpoint`
+  unit of work): add them as items with their `hazard:<id>` class, so the obligations that need them can be discharged.
+  Every hazard of `hazards.json` in the entry point's closure is required by the V10 verdict, so cutover to primary
+  waits until each one was injected and compared.
 
 ## 2 — Both sides
 

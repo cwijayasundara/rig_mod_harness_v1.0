@@ -147,7 +147,9 @@ keys), `redefines`, `packed_in_char`, `invalid_packed` (COMP-3 fields read from 
 `month_length`, `day_of_week` (`ACCEPT FROM DAY-OF-WEEK`: COBOL Monday=1, Java `Calendar` Sunday=1), `century_window`
 (`ACCEPT FROM DATE` without YYYYMMDD, two-digit years), `run_mode` (a PARM or control card that selects a branch),
 `file_status` (a status the program tests or prints), `abend` (`CEE3ABD`, return codes), `display_bytes` (DISPLAY of
-groups, zoned and edited fields). The bridge skill for the language pair has each one's generator (for COBOL to
+groups, zoned and edited fields), `syncpoint` (`EXEC CICS SYNCPOINT` or `SYNCPOINT ROLLBACK`, and any CICS task or batch
+commit scope that writes more than one store: one unit of work whose writes must all happen or none). Every hazard whose
+`loc` is a file of a gate unit's runtime closure is required by its verdict, listed in the requirements or not. The bridge skill for the language pair has each one's generator (for COBOL to
 Java, `cobol-to-java/references/hazards.md`).
 
 ## rules/BR-*.yaml
