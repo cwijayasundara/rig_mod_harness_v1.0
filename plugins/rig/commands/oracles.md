@@ -12,6 +12,9 @@ that every construct in this gate unit can run here.
 Dispatch the `oracle-engineer` agent for steps 1–3. It writes under `oracles/$system/` only. It never sees or writes
 `modernized/`.
 
+Harness scripts keep their scratch files under `work/$system/judge/obs/` or `work/$system/tmp/`, never under
+`evidence/` (only `rig_proof.ts` writes there, and the guard refuses a command that names it).
+
 ## 1 — Classes
 
 List the input classes this gate unit needs, each with a one-line description a worker may see:

@@ -44,6 +44,13 @@ first line's `ts`) has passed, go to **escalate**.
    *production behaviour unknown: implement what the legacy code and the documented target-platform behaviour say,
    cite both, and flag it in your report*. Self-check never covers those classes. (M3 exit run 1: two dev cases taught
    the worker Berkeley DB's status 30, and no reviewer caught it.)
+   An environment difference that touches **every** case of an observable (a code page or spool length on all of
+   SYSOUT) does not withhold every case: withhold the classes the difference row names, keep the others, and say in
+   the brief which bytes of that observable are reference-only (for example *the code page of every message line*),
+   so the worker implements the target platform's form and self-check reads those bytes as unverified.
+   - **The runner contract.** Copy into the brief the format of a canonical input and of an observation
+     (`references/proof.md`), and the harness's description of how a case seeds each store and how an abend is
+     marked (its README, never its scripts, cases or sets), so the worker's runner and the judge read the same thing.
 2. **recipes** — run any deterministic rewrite tool the bridge names (OpenRewrite for Java uplift, Rector for PHP).
    COBOL to Java has none: log `skipped`. A restructure has none either; the worker moves the code.
 3. **implement** — dispatch the `worker` agent with the brief path and the unit file. It writes only in `target_scope`.
