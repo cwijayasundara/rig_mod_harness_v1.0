@@ -29,7 +29,8 @@
  *  5. Replays `records.requests` in order, with a cookie jar seeded from `session.cookies`. A request that gets no
  *     answer in `--request-timeout` seconds is recorded as a screen `{ "status": null, "timeout": true }`; a hang is
  *     an observable difference, not an error of the runner (the M4 run found pages where legacy hangs). The time the
- *     requests took is `elapsed_ms` (start-up and shutdown excluded), which the judge counts as `<U>.timing` (V9).
+ *     requests took is `elapsed_ms` (start-up and shutdown excluded), which the judge counts as `<U>.timing` (V9). A case
+ *     run through `--clock-wrap` records none: the wrap slows the app, so the time would measure the wrap.
  *  6. Stops the process group with SIGTERM (SIGKILL after 60 s, `abend: shutdown_timeout`). `return_code` is the exit
  *     code, or 128 + the signal number.
  *  7. Reads the stores with `--stores-cmd` after shutdown. A failing or unparsable stores command exits 3. A store may
@@ -300,8 +301,12 @@ export async function run(o: Obj): Promise<Obj> {
   for (const s of screens) if (typeof s['body'] === 'string' && s['body'].includes(String(port))) { notes.push(`a screen contains the server port ${port}: it varies run to run`); break }
   if (!clock && screens.some((s) => typeof s['body'] === 'string' && s['body'].includes(utcDate()))) notes.push("a screen contains today's date but the case has clock null")
   // The clock was applied (by the wrap, or by running on that UTC day, checked above), so its calendar events count.
+  // Under the wrap libfaketime makes every clock read ~470x slower (ENG-C3: ~30 s a case instead of 4 s), so the time
+  // measures the wrap, not the app: it is left out, and <U>.timing is not compared for this case.
+  const wrapped = Boolean(clock && o['clock-wrap'])
+  if (wrapped && elapsedMs !== null) notes.push('no elapsed_ms: a run through --clock-wrap is not timed (the wrap slows the app)')
   return { screens, messages: messagesOf(screens, o['message-class']), stores, return_code: returnCode, abend, notes, workdir,
-           ...(elapsedMs !== null ? { elapsed_ms: elapsedMs } : {}),
+           ...(elapsedMs !== null && !wrapped ? { elapsed_ms: elapsedMs } : {}),
            ...(clock ? { clock_applied: clock } : {}) }
 }
 

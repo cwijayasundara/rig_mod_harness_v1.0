@@ -71,7 +71,9 @@ gap ("N case(s) never ran on both sides") until a run compares it or a person ac
 `RunScript` with `CSVWRITE` per table, ordered by primary key). A surface that lists `<U>/<table>.store_semantics` needs
 the stores command to print each table's `semantics` too (probe results as strings, for example the order a query by
 name returns, or whether a duplicate key is rejected), the same on both sides. The runner records `elapsed_ms`, the time
-the requests took (not start-up), which the judge counts as `<U>.timing` (V9; see `timing_max_ratio` in `verify.md`).
+the requests took (not start-up), which the judge counts as `<U>.timing` (V9; see `timing_max_ratio` in `verify.md`). A case run through `--clock-wrap` records
+no `elapsed_ms` (libfaketime makes each clock read far slower, so the time would measure the wrap); time the unit
+with cases whose clock is null.
 
 ## Set (`oracles/<system>/sets/<name>.json`, written by `set build` and `judge`)
 

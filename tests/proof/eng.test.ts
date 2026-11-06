@@ -832,5 +832,27 @@ createServer((q, s) => { s.writeHead(200); s.end('today ' + new Date().toISOStri
     const o = P.load(out)
     assert.equal(o['clock_applied'], '2020-01-01T10:00:00Z')
     assert.match(o['screens'][0]['body'], /today 2020-01-01/)
+    assert.equal(o['elapsed_ms'], undefined)
+  })
+  // ENG-C3: under libfaketime every clock read costs ~10 µs (a case took ~30 s instead of 4 s), so a time measured
+  // through the wrap says nothing about the app. No elapsed_ms is recorded, and the note says why.
+  test('a case run through --clock-wrap records no elapsed_ms, and says why; without a clock it is timed', () => {
+    const srv = join(dir, 'plainsrv.mjs')
+    writeFileSync(srv, `import { createServer } from 'node:http'
+createServer((q, s) => { s.writeHead(200); s.end('ok') }).listen(Number(process.argv[2]), '127.0.0.1')
+`)
+    const runCase = (clock: string | null, name: string) => {
+      const c = join(dir, `${name}.json`), out = join(dir, `${name}-out.json`)
+      writeFileSync(c, JSON.stringify({ records: { requests: [{ method: 'GET', path: '/' }] }, params: {}, clock, stores: {}, session: null }))
+      const r = spawnSync(process.execPath, [fileURLToPath(new URL('../../plugins/rig/scripts/rig_http.ts', import.meta.url)), 'run',
+        '--case', c, '--out', out, '--start', `${process.execPath} ${srv} {port}`, '--clock-wrap', 'true;'], { encoding: 'utf8', timeout: 30_000 })
+      assert.equal(r.status, 0, r.stdout + r.stderr)
+      return P.load(out)
+    }
+    const wrapped = runCase('2020-01-01T10:00:00Z', 'wrap-timing')
+    assert.equal(wrapped['elapsed_ms'], undefined)
+    assert.ok(wrapped['notes'].some((n: string) => /no elapsed_ms.*clock-wrap/.test(n)), wrapped['notes'].join('; '))
+    const plain = runCase(null, 'wrap-timing-null-clock') // the wrap applies only to a case with a clock
+    assert.equal(typeof plain['elapsed_ms'], 'number')
   })
 })
