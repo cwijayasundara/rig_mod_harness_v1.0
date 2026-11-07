@@ -18,6 +18,7 @@
  *   delta          check a delta's totality and obligation mapping (ids from --legacy-surface/--modern-surface)
  *   canary         run the canary sweep against a comparator
  *   verdict        compute the verdict of a gate unit and rung from every run under its key
+ *   hazards        hazards a gate unit's requirements must list (its runtime closure plus bridge hazards), per set
  *   obligations    discharge obligations by coverage, and list what is open
  *   calendar       required calendar events for a gate unit and which runs covered them
  *   surface check  check that every observable id on a surface is one the comparator records
@@ -1353,6 +1354,40 @@ export function closureHazards(ws: WS, gateUnit: string): string[] {
     .map((h) => String(h['id'])))
 }
 
+/**
+ * The hazards a gate unit's requirements must hold, computed rather than copied by hand (ENG-C3: ~20 per PetClinic
+ * route were left out): every hazard of hazards.json in the runtime closure, plus whatever the requirements file
+ * lists (bridge hazards such as S-*). With a set, how many of its cases carry each `hazard:<id>` class, so a hazard
+ * no case reaches shows before any run. It passes when the requirements file leaves none of the closure out.
+ */
+export function hazardsReport(ws: WS, gateUnit: string, req: Obj | null, setName?: string): Obj {
+  const closure = closureHazards(ws, gateUnit)
+  const hp = join(ws.analysis, 'hazards.json')
+  const byId = new Map<string, Obj>()
+  if (isFile(hp)) for (const h of (load(hp)['hazards'] ?? []) as Obj[]) byId.set(String(h['id']), h)
+  const listed = new Set<string>(((req?.['hazards'] ?? []) as string[]))
+  let counts: Record<string, number> | null = null
+  if (setName) {
+    if (!isFile(ws.setPath(setName))) throw new Bad(`no set ${setName}`)
+    const st = load(ws.setPath(setName))
+    counts = {}
+    for (const id of [...(st['dev'] ?? []), ...(st['sealed'] ?? [])] as string[]) {
+      for (const cl of (ws.case(id)['classes'] ?? []) as string[]) if (cl.startsWith('hazard:')) bump(counts, cl.slice(7))
+    }
+  }
+  const required = uniqSorted([...closure, ...listed])
+  const inClosure = new Set(closure)
+  const hazards = required.map((id) => {
+    const h = byId.get(id)
+    return { id, hazard: h?.['hazard'] ?? null, loc: h?.['loc'] ?? null, why: h?.['why'] ?? null,
+      source: inClosure.has(id) ? 'closure' : 'requirements', in_requirements: req ? listed.has(id) : null,
+      ...(counts ? { set_cases: counts[id] ?? 0 } : {}) }
+  })
+  return { gate_unit: gateUnit, required, hazards,
+    missing_from_requirements: req ? closure.filter((id) => !listed.has(id)) : null,
+    ...(counts ? { unreached_by_set: required.filter((id) => (counts![id] ?? 0) < 1) } : {}) }
+}
+
 /** PROVEN / PROVISIONAL / NOT_PROVEN / FLAKY from every run under the key. Reruns never clear a failure. */
 export function verdict(ws: WS, gateUnit: string, rung: string, key: string, req: Obj, writeObligations: boolean): Obj {
   const keyDir = join(ws.evidence, key)
@@ -1593,6 +1628,9 @@ export function main(argv: string[]): number {
     } else if (command === 'verdict') {
       out = verdict(ws, s('gate-unit')!, s('rung')!, s('key')!, s('requirements') ? load(s('requirements')!) : {}, Boolean(a['write-obligations']))
       ok = out['verdict'] === 'PROVEN' || out['verdict'] === 'PROVISIONAL'
+    } else if (command === 'hazards') {
+      out = hazardsReport(ws, s('gate-unit')!, s('requirements') ? load(s('requirements')!) : null, s('set'))
+      ok = (out['missing_from_requirements'] ?? []).length === 0
     } else if (command === 'obligations') {
       const obs = discharge(ws)
       out = { open: obs.filter((o) => o['status'] === 'open').map((o) => o['id']), discharged: obs.filter((o) => o['status'] === 'discharged').map((o) => o['id']) }

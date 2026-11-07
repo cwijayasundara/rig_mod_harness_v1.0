@@ -31,6 +31,13 @@ run used, with the version that smoke run printed, for example
 `{"rig": "0.1.0", "cobol-to-java": "rig 0.1.0", "gnucobol": "3.2.0", "openjdk": "21.0.13", "maven": "3.9.9"}`. Rerun
 preflight when a version changes: the keys change with it.
 
+Every tool that builds or runs either side, or produces what is compared, belongs in the block, not only compilers:
+build tools (`maven`, `gradle`), the runtime that runs the runners and RIG's scripts (`node`), and anything that wraps
+a run (`libfaketime` for a held clock). A version change in any of them can change an observation, so a key that
+leaves one out can carry evidence over a change nobody checked. Leave out tools that touch neither side's output, such
+as an editor or `git`. If a tool is first used after preflight (a later unit adds Maven, say), rerun this check: never
+add a version to the block that no smoke run printed.
+
 From the gaps, state per gate unit (each job, each transaction) the strongest verdict it can reach: executable mode
 (PROVEN possible) or recorded mode (PROVISIONAL at best), and why.
 

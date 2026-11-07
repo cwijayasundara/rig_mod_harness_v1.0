@@ -36,7 +36,10 @@ or its configuration.
    immediate writes, or a chunk size of 1 with the same rollback behaviour, and test the abend-after-write case.
 4. **No restart state leaks into behaviour.** The `JobRepository` runs in memory (H2, recreated per run), and the same
    job parameters must run again: add a run id parameter, or `RunIdIncrementer`. A second run of the same input must
-   give the same observation (the judge reruns cases).
+   give the same observation (the judge reruns cases). A `"repeat"` case (S-RESTART) is the one exception to a fresh
+   repository: its launches share one persistent repository, so with an incrementer it tests that a second launch
+   against that repository behaves like the legacy rerun, not "job instance already complete" (which an incrementer
+   rules out). Say in the unit file which of the two S-RESTART tests, as `spring-hazards.md` asks.
 5. **No framework conversion on observable data.** No `@Value`/Spring conversion of PARM or record fields into
    numbers or dates; parse them with the `cobol-to-java` type map. Character set is explicit (`ISO-8859-1` or the
    code page the bridge says), never the platform default.

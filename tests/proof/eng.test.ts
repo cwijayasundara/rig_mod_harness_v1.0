@@ -930,3 +930,68 @@ createServer((q, s) => { setTimeout(() => { s.writeHead(200); s.end('ok') }, 200
     assert.equal(alive, false, 'the app outlived the runner')
   })
 })
+
+describe('owner decision (2026-11-07): the hazards a requirements file must list are computed, not copied by hand', () => {
+  const writeHazards = () => writeFileSync(join(ws.analysis, 'hazards.json'), JSON.stringify({ hazards: [
+    { id: 'H-0001', hazard: 'truncation', loc: 'INTCALC.cbl:12', why: 'PIC 9(3) receives 4 digits' },
+    { id: 'H-0002', hazard: 'rounding', loc: 'INTCALC.cbl:40-44', why: 'COMPUTE without ROUNDED' },
+    { id: 'H-0099', hazard: 'truncation', loc: 'OTHER.cbl:3', why: 'outside this unit' }] }))
+  const run = (...args: string[]) => {
+    const r = spawnSync(process.execPath, [fileURLToPath(new URL('../../plugins/rig/scripts/rig_proof.ts', import.meta.url)),
+      'hazards', '--ws', dir, '--system', 'cd', '--gate-unit', GU, ...args], { encoding: 'utf8' })
+    return { code: r.status, out: JSON.parse(r.stdout) }
+  }
+  test('the closure hazards plus the bridge hazards the file lists, and which ones the file leaves out', () => {
+    writeHazards()
+    const req = join(dir, 'req.json')
+    writeFileSync(req, JSON.stringify({ hazards: ['H-0001', 'S-RESTART'] }))
+    const { code, out } = run('--requirements', req)
+    assert.equal(code, 1, 'a closure hazard left out fails the check')
+    assert.deepEqual(out['required'], ['H-0001', 'H-0002', 'S-RESTART'])
+    assert.deepEqual(out['missing_from_requirements'], ['H-0002'])
+    const h2 = out['hazards'].find((h: any) => h.id === 'H-0002')
+    assert.deepEqual([h2.source, h2.loc, h2.in_requirements], ['closure', 'INTCALC.cbl:40-44', false])
+    assert.equal(out['hazards'].find((h: any) => h.id === 'S-RESTART').source, 'requirements')
+    assert.ok(!out['required'].includes('H-0099'), 'a hazard outside the runtime closure is not required')
+    // The same list the verdict holds the unit to.
+    assert.deepEqual(P.hazardsReport(ws, GU, { hazards: out['required'] })['missing_from_requirements'], [])
+  })
+  test('with a set, the hazards no case of the set reaches show before any run', () => {
+    writeHazards()
+    const pool = [...Array.from({ length: 23 }, (_, i) => add(i, ['ok'])), add(50, ['hazard:H-0001'])]
+    P.buildSet(ws, 'S', GU, 'executable', pool, { ok: 'ok', 'hazard:H-0001': 'h1' }, {})
+    const { code, out } = run('--set', 'S')
+    assert.equal(code, 0, 'no requirements file: nothing to leave out')
+    assert.equal(out['missing_from_requirements'], null)
+    assert.deepEqual(out['unreached_by_set'], ['H-0002'])
+    assert.equal(out['hazards'].find((h: any) => h.id === 'H-0001').set_cases, 1)
+  })
+  test('hazards.json without graph.json is refused (Rule A), and verify.md uses the command', () => {
+    writeHazards()
+    rmSync(join(ws.analysis, 'graph.json'))
+    assert.equal(run().code, 2)
+    assert.match(readFileSync(new URL('../../plugins/rig/commands/verify.md', import.meta.url), 'utf8'), /rig_proof\.ts hazards --ws/)
+  })
+})
+
+describe('owner decision (2026-11-07): S-RESTART says which restart it tests', () => {
+  const read = (p: string) => readFileSync(new URL(`../../plugins/rig/${p}`, import.meta.url), 'utf8')
+  test('with an incrementer, a second launch against a persistent repository; without one, identical parameters', () => {
+    const row = read('skills/cobol-to-spring/references/spring-hazards.md').split('\n').find((l) => l.startsWith('| `S-RESTART`'))!
+    assert.match(row, /RunIdIncrementer/)
+    assert.match(row, /second launch against the persistent repository/)
+    assert.match(row, /without one, that identical parameters do/)
+    assert.match(row, /The unit file says which one/)
+    assert.match(read('skills/cobol-to-spring/SKILL.md'), /launches share one persistent repository/)
+    assert.match(read('skills/rig-method/references/proof.md'), /S-RESTART: a second launch against a persistent Spring Batch job repository/)
+  })
+})
+
+describe('owner decision (2026-11-07): Pack versions name every tool that builds, runs or wraps either side', () => {
+  test('preflight check 2 names build tools, the script runtime and run wrappers, from a smoke run', () => {
+    const d = readFileSync(new URL('../../plugins/rig/commands/preflight.md', import.meta.url), 'utf8')
+    assert.match(d, /Every tool that builds or runs either side, or produces what is compared, belongs in the block/)
+    for (const t of ['`maven`', '`node`', '`libfaketime`']) assert.ok(d.includes(t), t)
+    assert.match(d, /never\s+add a version to the block that no smoke run printed/)
+  })
+})

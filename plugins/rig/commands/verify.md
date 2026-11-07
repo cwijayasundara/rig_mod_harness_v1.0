@@ -42,8 +42,15 @@ Write `work/$system/requirements/<gate-unit>-<rung>.json` (not under `evidence/`
   `elapsed_ms`, and without a limit it is a gap.
 - `classes`: `{class: minimum inputs}` from the set.
 - `fresh_classes` (V4): every required class.
-- `hazards`: every hazard in `hazards.json` within the gate unit's programs, plus every hazard the unit file lists
-  from its bridge (target-framework hazards such as `S-*`, which the legacy map cannot find).
+- `hazards`: every hazard in `hazards.json` within the gate unit's runtime closure, plus every hazard the unit file
+  lists from its bridge (target-framework hazards such as `S-*`, which the legacy map cannot find). Compute the list
+  instead of copying it by hand: write the bridge hazards into the file, then run
+  `node ${CLAUDE_PLUGIN_ROOT}/scripts/rig_proof.ts hazards --ws . --system $system --gate-unit $gate_unit --requirements <file> --set <set>`
+  and set `hazards` to its `required`. It exits 1 while `missing_from_requirements` is not empty. Each entry gives the
+  hazard's `loc` and `why`, and `set_cases` is how many cases of the set reach it. `unreached_by_set` lists the hazards
+  that will be gaps unless `/rig:oracles` adds inputs for them. The verdict requires every closure hazard whether or not the file lists it, so
+  leaving one out never removes a gap. A closure hazard that cannot belong to this unit's behaviour is the owner's call
+  through `/rig:review $system obligations`, never a silent omission.
 - `capped`: each difference between the reference environment and production from `PREFLIGHT.md`, as
   `{hazard, observables}`.
 - `calendar_events` (V10 only): run `rig_proof.ts calendar --gate-unit $gate_unit --derived <events from scheduler

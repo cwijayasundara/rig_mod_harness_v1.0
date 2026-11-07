@@ -17,7 +17,7 @@ never writes a verdict, a pass or a coverage count by hand. Every command prints
 
 All five input keys are required. Use `{}` or `null` for none. One optional key: `"repeat": N` (an integer of at least 2)
 runs the unit N times in one environment without resetting it between runs, for hazards that only show on a second run
-(Spring Batch's "job instance already complete", S-RESTART). Leave it out for one run. The same canonical input is the same case: `case add`
+(S-RESTART: a second launch against a persistent Spring Batch job repository, or, for a job with no incrementer, "job instance already complete"). Leave it out for one run. The same canonical input is the same case: `case add`
 then adds the classes to the existing case and prints `"merged": true` with `previous_classes` (a relabel, not a new
 input). A generator that meant a new input must draw again. A case's `expected` never changes: `case add` refuses a
 different one. In executable and reconcile mode the judge compares the live legacy observation and never `expected`: a
