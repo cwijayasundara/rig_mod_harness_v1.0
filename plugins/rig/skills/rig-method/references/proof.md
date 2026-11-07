@@ -64,10 +64,15 @@ environment, `Host` and the order of requests. It records a request that hangs a
 an app that does not start as `abend`, and the exit code as `return_code`. Exit 3 (nothing written) means the run
 could not be trusted: rerun it. That includes an app stopped by HUP, INT, KILL or TERM before the runner stopped it
 (something else killed it, such as a `pkill`), and a runner that was itself stopped (by `timeout`, for example): it stops
-the app first, so no JVM is left behind. Clock: with `clock` set, pass `--clock-wrap`, a shell prefix put in front of the start command, with `{clock_datetime}`
+the app first, so no JVM is left behind. A runner killed with SIGKILL cannot do that, so a watchdog it starts kills the
+app's process group within a second. Never clean up with `pkill -f java` or similar: it kills every Java process on the
+machine, and the runner already stops its own apps. Clock: with `clock` set, pass `--clock-wrap`, a shell prefix put in front of the start command, with `{clock_datetime}`
 (`YYYY-MM-DD HH:MM:SS`, UTC) filled in. With libfaketime on macOS: `export DYLD_INSERT_LIBRARIES=/opt/homebrew/lib/faketime/libfaketime.1.dylib DYLD_FORCE_FLAT_NAMESPACE=1 FAKETIME='@{clock_datetime}';`
 (Linux: `LD_PRELOAD` with the `.so`). Set the variables inside the shell like this; macOS drops `DYLD_*` when it starts
-`/bin/sh`, so `faketime` around the command does not reach the JVM. Check once that the app sees the date.
+`/bin/sh`, so `faketime` around the command does not reach the JVM. Check once that the app sees the date. A wrapped
+run adds `-XX:+UseSerialGC` to `JAVA_TOOL_OPTIONS` itself (a JVM's parallel collector spins under libfaketime and never
+starts), so do not add it to the wrap. Under the wrap an app that does not listen within `--startup-timeout` is the
+wrap's failure, not the app's: the runner exits 3 and writes nothing; raise `--startup-timeout` and rerun.
 Otherwise the case runs only on that UTC day; on any other day the runner exits 4 and writes `{"not_run": "<reason>"}`
 as the observation. Keep that file on both sides: the judge records the case as not run, and the verdict shows it as a
 gap ("N case(s) never ran on both sides") until a run compares it or a person accepts the obligation. Write the stores command for the application's database (for H2, the H2 jar's

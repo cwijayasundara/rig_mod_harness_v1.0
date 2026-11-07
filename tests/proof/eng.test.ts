@@ -995,3 +995,77 @@ describe('owner decision (2026-11-07): Pack versions name every tool that builds
     assert.match(d, /never\s+add a version to the block that no smoke run printed/)
   })
 })
+
+describe('ENG-C4 fixes: rig_http under --clock-wrap, and an app that outlives a killed runner', () => {
+  const HTTP = fileURLToPath(new URL('../../plugins/rig/scripts/rig_http.ts', import.meta.url))
+  const oneRequest = (name: string, clock: string | null) => {
+    const c = join(dir, `${name}.json`)
+    writeFileSync(c, JSON.stringify({ records: { requests: [{ method: 'GET', path: '/' }] }, params: {}, clock, stores: {}, session: null }))
+    return c
+  }
+  const run = (name: string, clock: string | null, start: string, extra: string[] = []) => {
+    const out = join(dir, `${name}-out.json`)
+    const r = spawnSync(process.execPath, [HTTP, 'run', '--case', oneRequest(name, clock), '--out', out, '--start', start, '--clock-wrap', 'true;', ...extra],
+      { encoding: 'utf8', timeout: 60_000 })
+    return { code: r.status, stdout: r.stdout + r.stderr, out, obs: existsSync(out) ? P.load(out) : null }
+  }
+
+  // ENG-C4 core 1: under libfaketime the JVM's parallel GC threads spun on clock reads and the app never started.
+  test('a wrapped run gives a JVM the serial collector (added to any JAVA_TOOL_OPTIONS); an unwrapped run does not', () => {
+    const srv = join(dir, 'envsrv.mjs')
+    writeFileSync(srv, `import { createServer } from 'node:http'
+createServer((q, s) => { s.writeHead(200); s.end('JTO=' + (process.env.JAVA_TOOL_OPTIONS ?? '')) }).listen(Number(process.argv[2]), '127.0.0.1')
+`)
+    const start = `${process.execPath} ${srv} {port}`
+    const w = run('jto-wrapped', '2020-01-01T10:00:00Z', start, ['--env', 'JAVA_TOOL_OPTIONS=-Xmx256m'])
+    assert.equal(w.code, 0, w.stdout)
+    assert.equal(w.obs!['screens'][0]['body'], 'JTO=-Xmx256m -XX:+UseSerialGC')
+    assert.ok(w.obs!['notes'].some((n: string) => /UseSerialGC/.test(n)), w.obs!['notes'].join('; '))
+    const p = run('jto-plain', null, start)
+    assert.equal(p.code, 0, p.stdout)
+    assert.equal(p.obs!['screens'][0]['body'], 'JTO=')
+  })
+
+  // ENG-C4 core 2: a wrapped JVM too slow to start was written as `abend: startup_timeout`, app behaviour.
+  test('a wrapped app that never listens is untrusted (exit 3, nothing written); unwrapped it stays behaviour', () => {
+    const w = run('st-wrapped', '2020-01-01T10:00:00Z', 'sleep 30', ['--startup-timeout', '1'])
+    assert.equal(w.code, 3, w.stdout)
+    assert.match(w.stdout, /--clock-wrap/)
+    assert.equal(w.obs, null)
+    const p = run('st-plain', null, 'sleep 30', ['--startup-timeout', '1'])
+    assert.equal(p.code, 0, p.stdout)
+    assert.equal(p.obs!['abend'], 'startup_timeout')
+  })
+
+  // ENG-C4 core 4: a runner killed with SIGKILL cannot run its handler; its app (a JVM ignoring SIGTERM) lived on and
+  // the session ran `pkill -9 -f bin/java`, which kills every Java process on the machine.
+  test('a runner killed with SIGKILL still takes its app down, even one that ignores SIGTERM', async () => {
+    const srv = join(dir, 'stubborn.mjs'), pidf = join(dir, 'stubborn.pid')
+    writeFileSync(srv, `import { createServer } from 'node:http'
+import { writeFileSync } from 'node:fs'
+process.on('SIGTERM', () => {})
+writeFileSync(process.argv[3], String(process.pid))
+createServer((q, s) => { setTimeout(() => { s.writeHead(200); s.end('ok') }, 30000) }).listen(Number(process.argv[2]), '127.0.0.1')
+`)
+    const { spawn } = await import('node:child_process')
+    const p = spawn(process.execPath, [HTTP, 'run', '--case', oneRequest('stubborn', null), '--out', join(dir, 'stubborn-out.json'),
+      '--start', `${process.execPath} ${srv} {port} ${pidf}`], { stdio: 'ignore' })
+    for (let i = 0; i < 100 && !existsSync(pidf); i++) await new Promise((r) => setTimeout(r, 100))
+    await new Promise((r) => setTimeout(r, 500))
+    await new Promise((res) => { p.on('close', res); p.kill('SIGKILL') })
+    const appPid = Number(readFileSync(pidf, 'utf8'))
+    let alive = true
+    for (let i = 0; i < 60 && alive; i++) { try { process.kill(appPid, 0); await new Promise((r) => setTimeout(r, 100)) } catch { alive = false } }
+    if (alive) process.kill(appPid, 'SIGKILL')
+    assert.equal(alive, false, 'the app outlived a SIGKILLed runner')
+  })
+})
+
+describe('ENG-C4 fixes: proof.md describes the runner as it now behaves', () => {
+  test('serial GC is the runner\'s job, a wrapped start-up timeout is exit 3, and no pkill of every JVM', () => {
+    const d = readFileSync(new URL('../../plugins/rig/skills/rig-method/references/proof.md', import.meta.url), 'utf8')
+    assert.match(d, /adds `-XX:\+UseSerialGC` to `JAVA_TOOL_OPTIONS` itself/)
+    assert.match(d, /the runner exits 3 and writes nothing; raise `--startup-timeout`/)
+    assert.match(d, /Never clean up with `pkill -f java`/)
+  })
+})

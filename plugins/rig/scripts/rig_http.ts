@@ -17,7 +17,8 @@
  *  2. Clock. With `clock` set and `--clock-wrap` given, the wrap is put in front of the start command inside the shell.
  *     With libfaketime on macOS: `export DYLD_INSERT_LIBRARIES=/opt/homebrew/lib/faketime/libfaketime.1.dylib
  *     DYLD_FORCE_FLAT_NAMESPACE=1 FAKETIME='@{clock_datetime}';` (on Linux, LD_PRELOAD with the .so). The variables must
- *     be set inside the shell: macOS drops DYLD_* when it starts /bin/sh, so a `faketime` wrapper around it fails. Without a wrapper the date is held only by running on that UTC day. On any other day nothing is
+ *     be set inside the shell: macOS drops DYLD_* when it starts /bin/sh, so a `faketime` wrapper around it fails. A wrapped
+ *     run adds `-XX:+UseSerialGC` to JAVA_TOOL_OPTIONS (a JVM's parallel GC spins under libfaketime and never starts). Without a wrapper the date is held only by running on that UTC day. On any other day nothing is
  *     started: it writes `{"not_run": "<reason>"}` as the observation and exits 4, and the judge records the case as
  *     not run (a gap) on both sides. If the day changes during the run, it exits 3 and writes nothing. There is no
  *     Java fake clock built in.
@@ -25,7 +26,8 @@
  *     TZ=UTC, LANG and LC_ALL=en_US.UTF-8, and the `--env` pairs. Nothing else from the caller's environment.
  *     Each `params` key becomes `--key=value` after the start command.
  *  4. Waits until the port accepts a TCP connection (no HTTP probe, so no extra request reaches the app). An app that
- *     exits or never listens is behaviour: `abend` is `startup_exit:<code>` or `startup_timeout`.
+ *     exits or never listens is behaviour: `abend` is `startup_exit:<code>` or `startup_timeout`, except that under
+ *     `--clock-wrap` a start-up timeout measures the wrap, so the run exits 3 and writes nothing.
  *  5. Replays `records.requests` in order, with a cookie jar seeded from `session.cookies`. A request that gets no
  *     answer in `--request-timeout` seconds is recorded as a screen `{ "status": null, "timeout": true }`; a hang is
  *     an observable difference, not an error of the runner (the M4 run found pages where legacy hangs). The time the
@@ -34,7 +36,8 @@
  *  6. Stops the process group with SIGTERM (SIGKILL after 60 s, `abend: shutdown_timeout`). `return_code` is the exit
  *     code, or 128 + the signal number. An app that exits by itself is behaviour; one stopped earlier by HUP, INT, KILL
  *     or TERM was stopped by something else, so the run exits 3. A runner that is stopped by one of those signals stops
- *     the app's process group, writes nothing and exits 3.
+ *     the app's process group, writes nothing and exits 3. One killed with SIGKILL cannot: a detached watchdog then kills
+ *     the app's process group (and nothing else) within a second.
  *  7. Reads the stores with `--stores-cmd` after shutdown. A failing or unparsable stores command exits 3. A store may
  *     carry `semantics` (probe results) beside its records; it is kept as printed and compared as `store_semantics`.
  *
@@ -259,12 +262,24 @@ export async function run(o: Obj): Promise<Obj> {
     PATH: `${dirname(process.execPath)}:/usr/bin:/bin`, HOME: join(workdir, 'app'), TZ: 'UTC', LANG: 'en_US.UTF-8', LC_ALL: 'en_US.UTF-8',
   }
   for (const kv of o.env as string[]) { const i = kv.indexOf('='); if (i < 1) throw new Bad(`--env ${kv}: NAME=VALUE`); env[kv.slice(0, i)] = kv.slice(i + 1) }
+  const wrapped = Boolean(clock && o['clock-wrap'])
+  // Under libfaketime a JVM's parallel GC threads spin on clock reads and the app never listens (ENG-C4: startup_timeout
+  // after 420 s, GC threads at 600-800% CPU). The serial collector does not. Both sides get it, and only wrapped runs.
+  if (wrapped) {
+    env['JAVA_TOOL_OPTIONS'] = [env['JAVA_TOOL_OPTIONS'], '-XX:+UseSerialGC'].filter(Boolean).join(' ')
+    notes.push('JAVA_TOOL_OPTIONS gets -XX:+UseSerialGC under --clock-wrap')
+  }
 
   const app = spawn('sh', ['-c', cmd], { cwd: join(workdir, 'app'), env, detached: true, stdio: ['ignore', 'pipe', 'pipe'] })
   const log: Buffer[] = []
   app.stdout!.on('data', (c) => log.push(c)); app.stderr!.on('data', (c) => log.push(c))
   const done = exited(app)
   current = app
+  // A runner killed with SIGKILL cannot stop its app, and a JVM may ignore SIGTERM (ENG-C4: orphan JVMs, then a
+  // `pkill -9 -f bin/java` that kills every Java process on the machine). A detached watchdog outside the app's group
+  // kills that group, and only it, once the runner is gone.
+  spawn(process.execPath, [fileURLToPath(import.meta.url), 'watch', '--runner', String(process.pid), '--pgid', String(app.pid)],
+    { detached: true, stdio: 'ignore' }).unref()
   // (b) An app stopped by HUP/INT/KILL/TERM before the runner stops it was stopped by someone else (ENG-C3: a pkill of
   // leftover JVMs): that is the harness, not the app. `sh` reports a killed child as exit 128 + n.
   let stopping = false, foreign: string | null = null
@@ -308,6 +323,10 @@ export async function run(o: Obj): Promise<Obj> {
   writeFileSync(join(workdir, 'app.log'), Buffer.concat(log))
   current = null
   if (foreign) throw new Untrusted(`the app was stopped by ${foreign}, a signal the runner did not send: rerun the case`)
+  // Under the wrap a start-up timeout measures the wrap, not the app (ENG-C4: written as behaviour, deleted by hand).
+  if (wrapped && abend === 'startup_timeout') {
+    throw new Untrusted(`the app did not listen within ${o['startup-timeout']} s under --clock-wrap: that is the wrap, not the app; raise --startup-timeout and rerun the case`)
+  }
 
   if (clock && !o['clock-wrap'] && utcDate() !== clock.slice(0, 10)) throw new Untrusted('the UTC date changed during the run')
   let stores: Obj = {}
@@ -322,11 +341,22 @@ export async function run(o: Obj): Promise<Obj> {
   // The clock was applied (by the wrap, or by running on that UTC day, checked above), so its calendar events count.
   // Under the wrap libfaketime makes every clock read ~470x slower (ENG-C3: ~30 s a case instead of 4 s), so the time
   // measures the wrap, not the app: it is left out, and <U>.timing is not compared for this case.
-  const wrapped = Boolean(clock && o['clock-wrap'])
   if (wrapped && elapsedMs !== null) notes.push('no elapsed_ms: a run through --clock-wrap is not timed (the wrap slows the app)')
   return { screens, messages: messagesOf(screens, o['message-class']), stores, return_code: returnCode, abend, notes, workdir,
            ...(elapsedMs !== null && !wrapped ? { elapsed_ms: elapsedMs } : {}),
            ...(clock ? { clock_applied: clock } : {}) }
+}
+
+const alive = (pid: number) => { try { process.kill(pid, 0); return true } catch (e) { return (e as NodeJS.ErrnoException).code === 'EPERM' } }
+
+/** The watchdog (internal): until the app's group is gone, kill the group with SIGKILL as soon as the runner is gone. */
+async function watch(runner: number, pgid: number): Promise<number> {
+  if (!(runner > 0 && pgid > 0)) return 2
+  while (alive(-pgid)) {
+    if (!alive(runner)) { try { process.kill(-pgid, 'SIGKILL') } catch { /* already gone */ } return 0 }
+    await sleep(500)
+  }
+  return 0
 }
 
 export async function main(argv: string[]): Promise<number> {
@@ -337,8 +367,10 @@ export async function main(argv: string[]): Promise<number> {
       'stores-cmd': { type: 'string' }, 'message-class': { type: 'string' }, 'clock-wrap': { type: 'string' },
       'startup-timeout': { type: 'string', default: '180' }, 'request-timeout': { type: 'string', default: '30' },
       host: { type: 'string', default: 'localhost:8080' }, workdir: { type: 'string' }, help: { type: 'boolean' },
+      runner: { type: 'string' }, pgid: { type: 'string' },
     },
   })
+  if (positionals[0] === 'watch') return watch(Number(a.runner), Number(a.pgid))
   // (c) A runner that is stopped (`timeout`, Ctrl-C, a closed terminal) stops the app's process group too and writes
   // nothing: ENG-C3 found app JVMs left running after `timeout` stopped the runner.
   for (const sig of ['SIGTERM', 'SIGINT', 'SIGHUP'] as const) process.once(sig, () => {
