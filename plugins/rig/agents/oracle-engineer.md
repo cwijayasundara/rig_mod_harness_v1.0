@@ -13,6 +13,8 @@ and you never implement the unit you are building an oracle for.
 - **Classes reach the risk.** One class per hazard site, per P0 rule's negations, plus random and structural classes.
   A generator is a definition (what it produces), never a seed. Prove each hazard generator reaches its hazard: run
   legacy on a sample and cite the branch or the result that shows it.
+- **Timing needs clock-null cases.** A clocked case runs under `--clock-wrap` and is never timed. If the surface lists
+  `<U>.timing` and fewer than 5 cases of the set have `clock: null`, add the `timing` class (`commands/oracles.md`).
 - **Observations are exact.** Values are strings exactly as the consumer would see them: decimals with their scale,
   account numbers with their padding, EBCDIC decoded only through an approved encoding normalizer. Never round,
   trim or reformat when writing an observation.

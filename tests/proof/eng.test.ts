@@ -1069,3 +1069,16 @@ describe('ENG-C4 fixes: proof.md describes the runner as it now behaves', () => 
     assert.match(d, /Never clean up with `pkill -f java`/)
   })
 })
+
+describe('owner decision (2026-11-07): a unit held at a clock is timed by a class of clock-null cases', () => {
+  const read = (p: string) => readFileSync(new URL(`../../plugins/rig/${p}`, import.meta.url), 'utf8')
+  test('oracles.md, the oracle-engineer and proof.md ask for the timing class when fewer than 5 cases are clock-null', () => {
+    const o = read('commands/oracles.md')
+    assert.match(o, /\*\*Timing cases \(V9\)\.\*\*/)
+    assert.match(o, /fewer than 5 cases of its set have\s+`clock: null`/)
+    assert.match(o, /--class-observables '\{"timing": \["<U>\.timing"\]\}'/)
+    assert.match(o, /same UTC day/)
+    assert.match(read('agents/oracle-engineer.md'), /\*\*Timing needs clock-null cases\.\*\*/)
+    assert.match(read('skills/rig-method/references/proof.md'), /gets the `timing` class of `\/rig:oracles`/)
+  })
+})

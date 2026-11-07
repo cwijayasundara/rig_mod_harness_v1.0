@@ -81,7 +81,7 @@ the stores command to print each table's `semantics` too (probe results as strin
 name returns, or whether a duplicate key is rejected), the same on both sides. The runner records `elapsed_ms`, the time
 the requests took (not start-up), which the judge counts as `<U>.timing` (V9; see `timing_max_ratio` in `verify.md`). A case run through `--clock-wrap` records
 no `elapsed_ms` (libfaketime makes each clock read far slower, so the time would measure the wrap); time the unit
-with cases whose clock is null.
+with cases whose clock is null: a unit with fewer than 5 of them gets the `timing` class of `/rig:oracles`.
 
 ## Set (`oracles/<system>/sets/<name>.json`, written by `set build` and `judge`)
 

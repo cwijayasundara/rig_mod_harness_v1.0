@@ -58,6 +58,16 @@ Give `--class-observables` for a class that is only reached when a particular ob
 hazard needs `<U>.timing` (runners record `elapsed_ms`), a second-run hazard needs `<U>.repeat` (its cases carry
 `repeat`). A case of that class that did not compare it does not count toward the class.
 
+**Timing cases (V9).** A case run under `--clock-wrap` records no `elapsed_ms` (the wrap slows the app), so only cases
+with `clock: null` can time a unit. When the unit's surface lists `<U>.timing` and fewer than 5 cases of its set have
+`clock: null` (a route whose every case carries a date, such as a form that shows today's date), add a class `timing`:
+at least 5 inputs with `clock: null` that make the unit's usual requests, built with
+`--class-observables '{"timing": ["<U>.timing"]}'` so a case counts only where both sides were timed. A clock-null case
+asserts that the date does not change the comparison: both sides run it on the host's day, so a date the app shows
+appears on both. Say so in the class description, and run both sides of these cases on the same UTC day (a difference
+that is only the date across midnight is an infrastructure rerun, not a failure). Never put a case that needs a
+particular date in this class.
+
 When a change to the oracle needs the modern runner to change too (a new observation field, `repeat`), do not edit
 `modernized/`: hand the contract to the fixer (`agents/fixer.md`, "A runner-contract change").
 
