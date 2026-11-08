@@ -31,8 +31,11 @@ Write each card with `status: extracted`.
 
 Dispatch `rule-verifier` per card, giving it only the card and the cited files, not the extractor's reasoning. It
 re-reads the citations and returns, for each claim, *holds* or *does not hold* with a reason, plus anything the card
-missed (a branch, a domain value, a rounding difference). Apply what it finds: a card whose claims all hold becomes
-`verified`; any other card stays `extracted` with the verifier's findings in a `review_notes` list.
+missed (a branch, a domain value, a rounding difference). Apply what it finds: **only a false claim blocks
+`verified`.** A card with no `does_not_hold` finding becomes `verified`, even when the verifier lists `missing` items
+(a negation, an observable, a hazard or a citation the card left out); those go into `review_notes` as
+`missing: ...` lines for the person to see at review. A card with any `does_not_hold` finding stays `extracted`,
+with every finding in `review_notes`.
 
 ## 4 — Report
 

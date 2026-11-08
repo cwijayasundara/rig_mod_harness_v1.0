@@ -15,7 +15,8 @@ with the person's name (ask once per session) and today's date.
 
 ## Rules (`rules`, or when `$what` is empty)
 
-P0 cards first, then P1, then cards with `review_notes`. Options: *Confirm*, *Correct it* (they type the correction:
+P0 cards first, then P1, then cards with `review_notes`. Show a verified card's `missing: ...` notes in its question:
+the verifier found nothing false, but the person decides whether the gaps matter before confirming. Options: *Confirm*, *Correct it* (they type the correction:
 apply it, keep the old text under `review_notes`, and set `status: verified` so it goes round again), *Not a rule*,
 *Not now*. Confirm sets `status: confirmed`, `confirmed_by`, `confirmed_on`.
 

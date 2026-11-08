@@ -170,7 +170,8 @@ negations:                   # every value of each condition's domain, plus one 
   - account.status = FROZEN
   - account.status = PENDING
   - account.status = <outside domain>
-status: extracted            # extracted → verified (second agent) → confirmed (a person)
+status: extracted            # extracted → verified (second agent: no claim does_not_hold) → confirmed (a person)
+review_notes: []             # verifier findings; on a verified card only `missing: ...` lines, shown at review
 ```
 
 ## attestations.yaml

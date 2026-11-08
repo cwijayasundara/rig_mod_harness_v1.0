@@ -1082,3 +1082,16 @@ describe('owner decision (2026-11-07): a unit held at a clock is timed by a clas
     assert.match(read('skills/rig-method/references/proof.md'), /gets the `timing` class of `\/rig:oracles`/)
   })
 })
+
+describe('owner decision 2026-11-08: only a false claim blocks verified', () => {
+  const read = (p: string) => readFileSync(new URL(`../../plugins/rig/${p}`, import.meta.url), 'utf8')
+  test('rules.md, artifacts.md and review.md say a card with only missing items is verified and shown at review', () => {
+    const r = read('commands/rules.md')
+    assert.match(r, /\*\*only a false claim blocks\s+`verified`\.\*\*/)
+    assert.match(r, /no `does_not_hold` finding becomes `verified`, even when the verifier lists `missing` items/)
+    assert.match(r, /any `does_not_hold` finding stays `extracted`/)
+    assert.doesNotMatch(r, /a card whose claims all hold becomes\s+`verified`; any other card stays `extracted`/)
+    assert.match(read('skills/rig-method/references/artifacts.md'), /verified \(second agent: no claim does_not_hold\)/)
+    assert.match(read('commands/review.md'), /Show a verified card's `missing: \.\.\.` notes in its question/)
+  })
+})
