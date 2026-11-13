@@ -7,13 +7,33 @@ result more reliable. The design is in [plugins/rig/docs/PROPOSAL.md](plugins/ri
 Anthropic's [code-modernization](https://github.com/anthropics/claude-plugins-official/tree/main/plugins/code-modernization)
 plugin.
 
+It covers like-for-like ports (COBOL to Java, Java 8 to 21, Spring Boot 2.7 to 3), restructuring into a modular
+monolith, data re-platforming, and a staged cutover (shadow, canary, primary, decommission).
+
+## Status
+
+Plugin version 0.1.0, built to proposal v0.3. Milestones M0 to M7 are built and have been run end to end on the two
+fixtures in this repo: CardDemo-mini (COBOL batch and CICS to Java and to Spring Boot / Spring Batch) and Spring
+PetClinic 2.7 (uplift to Boot 3 and Java 21). The verdicts on those runs are honest about their gaps: rungs pass every
+case but stay `NOT_PROVEN` where a hazard was not reached or an obligation is still open for a person to decide. This
+is research software, not a supported product.
+
+## Requirements
+
+- [Claude Code](https://claude.com/claude-code).
+- Node 24 or later. The scripts are TypeScript run directly by `node`; there are no npm dependencies and nothing to
+  build.
+- The tools each side needs to build and run, for example GnuCOBOL (`cobc`), a JDK and Maven. RIG does not assume
+  them: `/rig:preflight` proves each one with a smoke run and records what is missing.
+
 ## Install
 
 ```sh
+git clone https://github.com/cwijayasundara/rig_mod_harness_v1.0.git
 claude --plugin-dir /path/to/rig_mod_harness_v1.0/plugins/rig
 ```
 
-or add this repo as a marketplace (`/plugin marketplace add /path/to/rig_mod_harness_v1.0`) and `/plugin install rig@rig-local`. Then, in the folder you work in, type `/rig:start`.
+or add this repo as a marketplace (`/plugin marketplace add /path/to/rig_mod_harness_v1.0`) and `/plugin install rig@rig-local`. Then, in the folder you work in, put the legacy code under `legacy/<system>/` (read-only to RIG) and type `/rig:start`.
 
 ## The path
 
@@ -105,9 +125,8 @@ workspace inside it could not write its results.
 ## Testing
 
 ```sh
-node --test tests/proof/     # the proof core, no tokens spent
+node --test tests/proof/     # the proof core and the guard hook, 225 tests, no tokens spent
 ```
-
 
 `tests/fixtures/carddemo-mini` is a small slice of AWS CardDemo (Apache-2.0). It covers batch, CICS, dynamic XCTL,
 PROCs, SORT, the internal reader, FTP, DB2, IMS, MQ, Control-M and CA-7, at about 5k lines. To try a command without
@@ -122,3 +141,16 @@ cd ../../.. && node tests/check_map.ts $R/analysis/carddemo
 
 The check compares the run with [tests/fixtures/carddemo-mini.EXPECTED.md](tests/fixtures/carddemo-mini.EXPECTED.md),
 the M1 exit check.
+
+## Documentation
+
+- [plugins/rig/docs/PROPOSAL.md](plugins/rig/docs/PROPOSAL.md): the design (v0.3), the verification ladder V1 to V10,
+  the milestones and their results.
+- [INTERROGATION.md](plugins/rig/docs/INTERROGATION.md) and [INTERROGATION-2.md](plugins/rig/docs/INTERROGATION-2.md):
+  the two adversarial reviews that shaped v0.2 and v0.3.
+- [plugins/rig/skills/rig-method/](plugins/rig/skills/rig-method/): the method every command follows and every artifact format.
+
+## Licences
+
+The repo has no licence file of its own yet. The two fixtures keep their upstream licences: AWS CardDemo and Spring
+PetClinic are both Apache-2.0 (see `tests/fixtures/*/LICENSE*` and `tests/fixtures/*.SOURCE.md`).
