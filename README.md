@@ -152,5 +152,5 @@ the M1 exit check.
 
 ## Licences
 
-The repo has no licence file of its own yet. The two fixtures keep their upstream licences: AWS CardDemo and Spring
-PetClinic are both Apache-2.0 (see `tests/fixtures/*/LICENSE*` and `tests/fixtures/*.SOURCE.md`).
+RIG is released under the [MIT licence](LICENSE). The two fixtures keep their upstream licences: AWS CardDemo and
+Spring PetClinic are both Apache-2.0 (see `tests/fixtures/*/LICENSE*` and `tests/fixtures/*.SOURCE.md`).

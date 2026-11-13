@@ -1,3 +1,5 @@
 .venv/
 .idea/
 tests/runs/
+__pycache__/
+*.pyc
